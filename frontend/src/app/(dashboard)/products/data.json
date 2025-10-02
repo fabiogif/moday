@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "name": "Pizza Margherita",
+    "description": "Pizza tradicional com molho de tomate, mussarela e manjericão",
+    "price": 25.90,
+    "category": "Pizzas",
+    "stock": 10,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 2,
+    "name": "Coca-Cola 350ml",
+    "description": "Refrigerante Coca-Cola lata 350ml",
+    "price": 4.50,
+    "category": "Bebidas",
+    "stock": 50,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "name": "Pudim de Leite",
+    "description": "Pudim caseiro de leite condensado",
+    "price": 8.90,
+    "category": "Sobremesas",
+    "stock": 5,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 4,
+    "name": "Hambúrguer Clássico",
+    "description": "Hambúrguer com carne, queijo, alface e tomate",
+    "price": 18.50,
+    "category": "Lanches",
+    "stock": 8,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 5,
+    "name": "Salada Caesar",
+    "description": "Salada com alface, croutons, queijo parmesão e molho caesar",
+    "price": 15.90,
+    "category": "Saladas",
+    "stock": 0,
+    "isActive": false,
+    "createdAt": "2024-01-10"
+  }
+]
