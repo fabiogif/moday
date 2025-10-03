@@ -51,25 +51,32 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ProductFormDialog } from "./product-form-dialog"
+import { ProductEditDialog } from "./product-edit-dialog"
 
 interface Product {
   id: number
   name: string
   description: string
   price: number
-  category: string
-  stock: number
-  isActive: boolean
+  categories: Array<{
+    identify: string
+    name: string
+  }>
+  price_cost: number
+  is_active: boolean
+  created_at: string
   createdAt: string
+  url?: string
 }
 
 interface ProductFormValues {
   name: string
   description: string
   price: number
-  category: string
-  stock: number
-  isActive: boolean
+  categories: string[]
+  price_cost: number
+  qtd_stock: number
+  image?: File
 }
 
 interface DataTableProps {
@@ -92,10 +99,16 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
   }
 
-  const getStockColor = (stock: number) => {
-    if (stock === 0) return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
-    if (stock < 5) return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
-    return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+  const getStockColor = (qtd_stock: number) => {
+    if (qtd_stock === 0) return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
+    if (qtd_stock < 3) return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
+     return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+  }
+
+  const filterCategories = (row: any, columnId: string, filterValue: string) => {
+    if (!filterValue || filterValue === "all") return true
+    const categories = row.getValue(columnId) as Array<{identify: string, name: string}>
+    return categories?.some(category => category.name === filterValue) || false
   }
 
   const columns: ColumnDef<Product>[] = [
@@ -146,17 +159,40 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       },
     },
     {
-      accessorKey: "category",
-      header: "Categoria",
-      cell: ({ row }) => (
-        <Badge variant="outline">{row.getValue("category")}</Badge>
-      ),
+      accessorKey: "categories",
+      header: "Categorias",
+      filterFn: filterCategories,
+      cell: ({ row }) => {
+        const categories = row.getValue("categories") as Array<{identify: string, name: string}>
+        return (
+          <div className="flex flex-wrap gap-1">
+            {categories?.map((category, index) => (
+              <Badge key={category.identify || `category-${index}`} variant="outline">
+                {category.name}
+              </Badge>
+            )) || <span className="text-muted-foreground">Sem categorias</span>}
+          </div>
+        )
+      },
     },
     {
-      accessorKey: "stock",
-      header: "Estoque",
+      accessorKey: "price_cost",
+      header: "Preço de custo",
       cell: ({ row }) => {
-        const stock = row.getValue("stock") as number
+        const price = parseFloat(row.getValue("price_cost"))
+        const formatted = new Intl.NumberFormat("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        }).format(price)
+        return <div className="font-medium">{formatted}</div>
+  
+      },
+    },
+    {
+      accessorKey: "qty_stock",
+      header: "Qtd. Estoque",
+      cell: ({ row }) => {
+        const stock = row.getValue("qty_stock") as number
         return (
           <Badge className={getStockColor(stock)}>
             {stock} unidades
@@ -165,10 +201,10 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       },
     },
     {
-      accessorKey: "isActive",
+      accessorKey: "is_active",
       header: "Status",
       cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean
+        const isActive = row.getValue("is_active") as boolean
         return (
           <Badge className={getStatusColor(isActive)}>
             {isActive ? "Ativo" : "Inativo"}
@@ -177,11 +213,11 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       },
     },
     {
-      accessorKey: "createdAt",
+      accessorKey: "created_at",
       header: "Criado em",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("createdAt"))
-        return <div>{date.toLocaleDateString("pt-BR")}</div>
+        const dateValue = row.getValue("created_at")
+        return <div>{dateValue || "Data não disponível"}</div>
       },
     },
     {
@@ -194,7 +230,7 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Abrir menu</span>
                 <EllipsisVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -203,9 +239,8 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEditProduct(product)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Editar
+              <DropdownMenuItem asChild>
+                <ProductEditDialog product={product} onEditProduct={onEditProduct} />
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -257,11 +292,11 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
               className="pl-8"
             />
           </div>
-          {table.getColumn("category") && (
+          {table.getColumn("categories") && (
             <Select
-              value={(table.getColumn("category")?.getFilterValue() as string) ?? ""}
+              value={(table.getColumn("categories")?.getFilterValue() as string) ?? ""}
               onValueChange={(value) =>
-                table.getColumn("category")?.setFilterValue(value === "all" ? "" : value)
+                table.getColumn("categories")?.setFilterValue(value === "all" ? "" : value)
               }
             >
               <SelectTrigger className="w-[180px]">

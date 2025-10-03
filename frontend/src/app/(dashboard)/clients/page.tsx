@@ -118,7 +118,11 @@ export default function ClientsPage() {
       }
     } catch (error) {
       console.error("Erro ao criar cliente:", error);
-      alert("Erro ao cadastrar cliente. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao cadastrar cliente. Tente novamente."
+      });
     }
   };
 
@@ -135,7 +139,11 @@ export default function ClientsPage() {
       }
     } catch (error) {
       console.error("Erro ao excluir cliente:", error);
-      alert("Erro ao excluir cliente. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao excluir cliente. Tente novamente."
+      });
     }
   };
 
@@ -177,7 +185,11 @@ export default function ClientsPage() {
       }
     } catch (error) {
       console.error("Erro ao atualizar cliente:", error);
-      alert("Erro ao atualizar cliente. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao atualizar cliente. Tente novamente."
+      });
     }
   };
 

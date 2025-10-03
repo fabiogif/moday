@@ -178,7 +178,7 @@ export const commonFieldMappings = {
   'price': 'price',
   'price_cost': "price_cost",
   'qtd_stock': 'qtd_stock',
-  'category_id': 'category_id',
+  'categories': 'categories',
   'image': 'image',
   
   // Campos de cliente
@@ -205,4 +205,4 @@ export const commonFieldMappings = {
   // Campos de categoria
   'url': 'url',
   'status': 'status',
-} as const
+}

@@ -291,11 +291,13 @@ export function OrderFormDialog({ onAddOrder }: OrderFormDialogProps) {
         setNewClientComplement("")
         
         // Mostrar mensagem de sucesso
-        alert('Cliente cadastrado com sucesso!')
+        // TODO: Implementar toast ou alert dialog para sucesso
+        console.log('Cliente cadastrado com sucesso!')
       }
     } catch (error) {
       console.error("Erro ao criar cliente:", error)
-      alert('Erro ao cadastrar cliente. Verifique os dados e tente novamente.')
+      // TODO: Implementar toast ou alert dialog para erro
+      console.error('Erro ao cadastrar cliente. Verifique os dados e tente novamente.')
     }
   }
 

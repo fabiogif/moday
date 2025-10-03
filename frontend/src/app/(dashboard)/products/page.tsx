@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { DataTable } from "./components/data-table"
 import { ProductStatCards } from "./components/product-stat-cards"
+import { SuccessAlert } from "./components/success-alert"
 import { useAuthenticatedProducts, useMutation, useMutationWithValidation } from "@/hooks/use-authenticated-api"
 import { commonFieldMappings } from "@/hooks/use-backend-validation"
 import { endpoints } from "@/lib/api-client"
@@ -13,7 +14,7 @@ interface Product {
   name: string
   description: string
   price: number
-  price_cost: number
+  price_cost?: number
   category: string
   stock: number
   isActive: boolean
@@ -35,6 +36,21 @@ export default function ProductsPage() {
   const { mutate: createProduct, loading: creating, error: createError } = useMutation()
   const { mutate: deleteProduct, loading: deleting } = useMutation()
 
+  // Estados para o alert de sucesso
+  const [successAlert, setSuccessAlert] = useState({
+    open: false,
+    title: "",
+    message: "",
+  })
+
+  const handleShowSuccessAlert = (title: string, message: string) => {
+    setSuccessAlert({
+      open: true,
+      title,
+      message,
+    })
+  }
+
   const handleAddProduct = async (productData: ProductFormValues) => {
     try {
       console.log('Dados do produto antes do envio:', productData)
@@ -42,7 +58,7 @@ export default function ProductsPage() {
       // Validar se categories está definido
       if (!productData.categories || productData.categories.length === 0) {
         console.error('categories está undefined ou vazio:', productData.categories)
-        alert('Por favor, selecione uma categoria antes de criar o produto.')
+        handleShowSuccessAlert('Atenção!', 'Por favor, selecione uma categoria antes de criar o produto.')
         return
       }
       
@@ -53,18 +69,15 @@ export default function ProductsPage() {
       formData.append('price', productData.price.toString())
       formData.append('price_cost', productData.price_cost.toString())
       formData.append('qtd_stock', productData.qtd_stock.toString())
-      // O backend espera 'categories' como array de UUIDs
-      formData.append('categories', JSON.stringify(productData.categories))
+      
+      // Enviar cada categoria individualmente para o Laravel processar como array
+      productData.categories.forEach((categoryId, index) => {
+        formData.append(`categories[${index}]`, categoryId)
+      })
       
       // Só adicionar imagem se ela existir
       if (productData.image && productData.image instanceof File) {
         formData.append('image', productData.image)
-      }
-      
-      // Debug: mostrar o que está sendo enviado
-      console.log('FormData contents:')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, ':', value)
       }
       
       const result = await createProduct(
@@ -75,8 +88,9 @@ export default function ProductsPage() {
       
       if (result) {
         console.log('Produto criado com sucesso:', result)
-        // Recarregar dados após criação
+        // ✅ Atualizar grid automaticamente sem refresh
         await refetch()
+        handleShowSuccessAlert('Sucesso!', 'Produto criado com sucesso!')
       }
     } catch (error: any) {
       console.error('Erro ao criar produto:', error)
@@ -86,9 +100,9 @@ export default function ProductsPage() {
         const validationErrors = Object.entries(error.data.data)
           .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
           .join('; ')
-        alert(`Erro de validação: ${validationErrors}`)
+        handleShowSuccessAlert('Erro de Validação!', `Erro de validação: ${validationErrors}`)
       } else {
-        alert(error.message || 'Erro ao criar produto')
+        handleShowSuccessAlert('Erro!', error.message || 'Erro ao criar produto')
       }
     }
   }
@@ -101,16 +115,24 @@ export default function ProductsPage() {
       )
       
       if (result) {
-        // Recarregar dados após exclusão
+        // ✅ Atualizar grid automaticamente sem refresh
         await refetch()
+        handleShowSuccessAlert('Sucesso!', 'Produto excluído com sucesso!')
       }
     } catch (error) {
       console.error('Erro ao excluir produto:', error)
+      handleShowSuccessAlert('Erro!', 'Erro ao excluir produto')
     }
   }
 
-  const handleEditProduct = (product: Product) => {
-    console.log("Edit product:", product)
+  const handleEditProduct = async (product: Product) => {
+    try {
+      console.log("Edit product:", product)
+      // Implementar lógica de edição aqui
+      // Após editar, usar: await refetch()
+    } catch (error) {
+      console.error('Erro ao editar produto:', error)
+    }
   }
 
   if (!isAuthenticated) {
@@ -162,6 +184,14 @@ export default function ProductsPage() {
           onAddProduct={handleAddProduct}
         />
       </div>
+
+      {/* Success Alert */}
+      <SuccessAlert
+        open={successAlert.open}
+        onOpenChange={(open: boolean) => setSuccessAlert(prev => ({ ...prev, open }))}
+        title={successAlert.title}
+        message={successAlert.message}
+      />
     </div>
   )
 }

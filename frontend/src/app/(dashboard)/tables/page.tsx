@@ -71,7 +71,11 @@ export default function TablesPage() {
       }
     } catch (error) {
       console.error("Erro ao criar mesa:", error);
-      alert("Erro ao salvar mesa. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao salvar mesa. Tente novamente."
+      });
     }
   };
 
@@ -88,7 +92,11 @@ export default function TablesPage() {
       }
     } catch (error) {
       console.error("Erro ao excluir mesa:", error);
-      alert("Erro ao excluir mesa. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao excluir mesa. Tente novamente."
+      });
     }
   };
 
@@ -114,7 +122,11 @@ export default function TablesPage() {
       }
     } catch (error) {
       console.error("Erro ao atualizar mesa:", error);
-      alert("Erro ao atualizar mesa. Tente novamente.");
+      setSuccessAlert({
+        open: true,
+        title: "Erro!",
+        message: "Erro ao atualizar mesa. Tente novamente."
+      });
     }
   };
 
