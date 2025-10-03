@@ -4,11 +4,11 @@
 
 "use client"
 
-import { useAuthStore } from '@/contexts/auth-context'
+import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api-client'
 
 export function AuthDebug() {
-  const { user, token, isAuthenticated } = useAuthStore()
+  const { user, token, isAuthenticated } = useAuth()
 
   const checkToken = () => {
     const cookies = document.cookie.split(';')

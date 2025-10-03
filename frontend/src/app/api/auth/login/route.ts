@@ -56,13 +56,15 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json()
-    console.log('Login successful, data:', data)
+    console.log('Login successful, data received from backend')
 
     // Ajustar para a estrutura de resposta do backend (ApiResponseClass)
-    return NextResponse.json({
+    const responseData = {
       user: data.data.user,
       token: data.data.token,
-    })
+    }
+    
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Erro interno do servidor:', error)
     return NextResponse.json(

@@ -49,6 +49,16 @@ export function Combobox({
   allowClear = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const [searchValue, setSearchValue] = React.useState("")
+
+  // Filtrar opções baseado na busca
+  const filteredOptions = React.useMemo(() => {
+    if (!searchValue) return options;
+    return options.filter(option => 
+      option.label.toLowerCase().includes(searchValue.toLowerCase()) ||
+      option.value.toLowerCase().includes(searchValue.toLowerCase())
+    );
+  }, [options, searchValue]);
 
   const selectedOption = options.find((option) => option.value === value)
 
@@ -59,7 +69,20 @@ export function Combobox({
       onValueChange?.(currentValue)
     }
     setOpen(false)
+    setSearchValue("") // Limpar busca após seleção
   }
+
+  // Log para debug
+  React.useEffect(() => {
+    console.log('Combobox Debug:', {
+      totalOptions: options.length,
+      filteredOptions: filteredOptions.length,
+      selectedValue: value,
+      selectedOption: selectedOption?.label,
+      disabled,
+      searchValue
+    });
+  }, [options, filteredOptions, value, selectedOption, disabled, searchValue]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -71,6 +94,7 @@ export function Combobox({
           className={cn(
             "w-full justify-between",
             !selectedOption && "text-muted-foreground",
+            disabled && "cursor-not-allowed opacity-50",
             className
           )}
           disabled={disabled}
@@ -80,30 +104,46 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} className="h-9" />
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder={searchPlaceholder} 
+            className="h-9"
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {options
-                .filter((option) => option.value != null && option.value !== undefined)
-                .map((option, index) => (
-                <CommandItem
-                  key={option.value || `option-${index}`}
-                  value={option.value}
-                  onSelect={handleSelect}
-                  disabled={option.disabled}
-                >
-                  {option.label}
-                  <Check
+            {filteredOptions.length === 0 ? (
+              <CommandEmpty>
+                {options.length === 0 ? 
+                  (disabled ? "Carregando..." : "Nenhuma opção disponível") : 
+                  emptyText
+                }
+              </CommandEmpty>
+            ) : (
+              <CommandGroup>
+                {filteredOptions
+                  .filter((option) => option.value != null && option.value !== undefined)
+                  .map((option, index) => (
+                  <CommandItem
+                    key={option.value || `option-${index}`}
+                    value={option.value}
+                    onSelect={handleSelect}
+                    disabled={option.disabled}
                     className={cn(
-                      "ml-auto h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      option.disabled && "opacity-50 cursor-not-allowed"
                     )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
+                  >
+                    {option.label}
+                    <Check
+                      className={cn(
+                        "ml-auto h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
@@ -113,11 +153,11 @@ export function Combobox({
 
 // Combobox com suporte a React Hook Form
 export interface ComboboxFormProps extends Omit<ComboboxProps, 'value' | 'onValueChange'> {
-  field: {
+  field?: {
     value?: string
-    onChange: (value: string) => void
-    onBlur: () => void
-    name: string
+    onChange?: (value: string) => void
+    onBlur?: () => void
+    name?: string
   }
 }
 
@@ -125,11 +165,15 @@ export function ComboboxForm({
   field,
   ...props
 }: ComboboxFormProps) {
+  // Melhor tratamento de valores undefined/null
+  const safeValue = field?.value || "";
+  const safeOnChange = field?.onChange || (() => {});
+
   return (
     <Combobox
       {...props}
-      value={field.value}
-      onValueChange={field.onChange}
+      value={safeValue}
+      onValueChange={safeOnChange}
     />
   )
 }

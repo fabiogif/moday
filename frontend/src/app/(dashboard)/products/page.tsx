@@ -11,14 +11,21 @@ import { PageLoading } from "@/components/ui/loading-progress"
 
 interface Product {
   id: number
+  identify?: string
   name: string
   description: string
   price: number
   price_cost?: number
   category: string
   stock: number
+  qtd_stock?: number
   isActive: boolean
+  is_active?: boolean
   createdAt: string
+  categories?: Array<{
+    identify: string
+    name: string
+  }>
 }
 
 interface ProductFormValues {
@@ -128,10 +135,33 @@ export default function ProductsPage() {
   const handleEditProduct = async (product: Product) => {
     try {
       console.log("Edit product:", product)
-      // Implementar lógica de edição aqui
-      // Após editar, usar: await refetch()
+      
+      const formData = new FormData()
+      formData.append('name', product.name)
+      formData.append('description', product.description)
+      formData.append('price', product.price.toString())
+      formData.append('price_cost', product.price_cost.toString())
+      formData.append('qtd_stock', product.qtd_stock?.toString() || '0')
+      
+      // Categorias
+      product.categories?.forEach((category, index) => {
+        formData.append(`categories[${index}]`, category.identify)
+      })
+      
+      const result = await createProduct(
+        endpoints.products.update(product.id),
+        'PUT',
+        formData
+      )
+      
+      if (result) {
+        // ✅ Atualizar grid automaticamente sem refresh
+        await refetch()
+        handleShowSuccessAlert('Sucesso!', 'Produto alterado com sucesso!')
+      }
     } catch (error) {
       console.error('Erro ao editar produto:', error)
+      handleShowSuccessAlert('Erro!', 'Erro ao editar produto')
     }
   }
 

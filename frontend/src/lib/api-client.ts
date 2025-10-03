@@ -224,8 +224,10 @@ export const endpoints = {
     list: '/api/order',
     create: '/api/order',
     show: (id: string) => `/api/order/${id}`,
-    update: (id: number) => `/api/order/${id}`,
+    update: (id: string) => `/api/order/${id}`,
     delete: (id: string) => `/api/order/${id}`,
+    invoice: (id: string) => `/api/order/${id}/invoice`,
+    receipt: (id: string) => `/api/order/${id}/receipt`,
   },
   
   // Mesas
@@ -282,6 +284,16 @@ export const endpoints = {
     show: (id: string) => `/api/client/${id}`,
     update: (id: number) => `/api/client/${id}`,
     delete: (id: string) => `/api/client/${id}`,
+  },
+
+  // Formas de Pagamento
+  paymentMethods: {
+    list: '/api/payment-methods',
+    active: '/api/payment-methods/active',
+    create: '/api/payment-methods',
+    show: (uuid: string) => `/api/payment-methods/${uuid}`,
+    update: (uuid: string) => `/api/payment-methods/${uuid}`,
+    delete: (uuid: string) => `/api/payment-methods/${uuid}`,
   },
 } as const
 

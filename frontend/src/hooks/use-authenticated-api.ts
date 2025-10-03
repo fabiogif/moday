@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAuthStore } from '@/contexts/auth-context'
+import { useAuth } from '@/contexts/auth-context'
 import { apiClient, endpoints } from '@/lib/api-client'
 
 interface UseAuthenticatedApiState<T> {
@@ -20,7 +20,7 @@ export function useAuthenticatedApi<T>(
   options: { immediate?: boolean } = {}
 ): UseAuthenticatedApiState<T> {
   const { immediate = true } = options
-  const { token, isAuthenticated } = useAuthStore()
+  const { token, isAuthenticated } = useAuth()
   
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
@@ -166,7 +166,7 @@ export function useAuthenticatedClientStats() {
 export function useMutation<T, P = any>() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { token, isAuthenticated } = useAuthStore()
+  const { token, isAuthenticated } = useAuth()
 
   const mutate = useCallback(async (
     endpoint: string,
@@ -234,7 +234,7 @@ export function useMutationWithValidation<T, P = any>(
 ) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { token, isAuthenticated } = useAuthStore()
+  const { token, isAuthenticated } = useAuth()
 
   const mutate = useCallback(async (
     endpoint: string,
@@ -302,4 +302,14 @@ export function useMutationWithValidation<T, P = any>(
   }, [isAuthenticated, token, setFormError])
 
   return { mutate, loading, error }
+}
+
+// Hook específico para formas de pagamento
+export function useAuthenticatedPaymentMethods() {
+  return useAuthenticatedApi(endpoints.paymentMethods.list)
+}
+
+// Hook específico para formas de pagamento ativas
+export function useAuthenticatedActivePaymentMethods() {
+  return useAuthenticatedApi(endpoints.paymentMethods.active)
 }

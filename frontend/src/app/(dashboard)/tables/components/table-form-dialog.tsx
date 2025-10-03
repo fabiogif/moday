@@ -25,6 +25,7 @@ import { Plus } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { TableData, TableFormValues } from "../types"
 
 const tableFormSchema = z.object({
   identify: z.string().min(1, {
@@ -34,36 +35,24 @@ const tableFormSchema = z.object({
     message: "Nome da mesa é obrigatório.",
   }),
   description: z.string().optional(),
-  capacity: z.number().min(1, {
+  capacity: z.number({
+    required_error: "Capacidade é obrigatória.",
+    invalid_type_error: "Capacidade deve ser um número.",
+  }).min(1, {
     message: "Capacidade deve ser pelo menos 1.",
   }).max(20, {
     message: "Capacidade não pode ser maior que 20.",
   }),
 })
 
-interface Table {
-  id: number
-  identify: string
-  name: string
-  description?: string
-  capacity: number
-  createdAt?: string
-}
-
-interface TableFormValues {
-  identify: string
-  name: string
-  description?: string
-  capacity: number
-}
-
 interface TableFormDialogProps {
   onAddTable: (tableData: TableFormValues) => void
   onEditTable?: (id: number, tableData: TableFormValues) => void
-  editTable?: Table | null
+  editTable?: TableData | null
+  onStartNew?: () => void
 }
 
-export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFormDialogProps) {
+export function TableFormDialog({ onAddTable, onEditTable, editTable, onStartNew }: TableFormDialogProps) {
   const [open, setOpen] = useState(false)
   const isEditing = !!editTable
 
@@ -80,13 +69,24 @@ export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFor
       identify: "",
       name: "",
       description: "",
-      capacity: 4,
+      capacity: undefined,
     },
   })
 
-  // Preencher formulário quando editando
+  // Reset form when closing or changing between add/edit modes
   React.useEffect(() => {
-    if (editTable) {
+    if (open && !editTable) {
+      // Creating new table - reset to empty values
+      setTimeout(() => {
+        form.reset({
+          identify: "",
+          name: "",
+          description: "",
+          capacity: undefined,
+        })
+      }, 50)
+    } else if (open && editTable) {
+      // Editing existing table - fill with table data  
       form.reset({
         identify: editTable.identify || "",
         name: editTable.name || "",
@@ -94,7 +94,7 @@ export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFor
         capacity: editTable.capacity || 4,
       })
     }
-  }, [editTable, form])
+  }, [open, editTable, form])
 
   const onSubmit = (data: TableFormValues) => {
     if (isEditing && editTable && onEditTable) {
@@ -102,22 +102,56 @@ export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFor
     } else {
       onAddTable(data)
     }
-    form.reset()
+    form.reset({
+      identify: "",
+      name: "",
+      description: "",
+      capacity: undefined,
+    })
     setOpen(false)
+    
+    // Limpar estado de edição após submissão
+    if (onStartNew) {
+      onStartNew()
+    }
   }
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
-    if (!newOpen && editTable) {
-      // Se está fechando o modal de edição, limpar o estado
-      // Isso será tratado pelo componente pai
+    if (!newOpen) {
+      // Quando fechando o modal, resetar formulário
+      setTimeout(() => {
+        form.reset({
+          identify: "",
+          name: "",
+          description: "",
+          capacity: undefined,
+        })
+      }, 100)
     }
+  }
+
+  // Handler para quando clicar no botão "Nova Mesa"
+  const handleOpenForNew = () => {
+    // Limpar estado de edição se existir
+    if (onStartNew) {
+      onStartNew()
+    }
+    // Forçar reset do formulário
+    form.reset({
+      identify: "",
+      name: "",
+      description: "",
+      capacity: undefined,
+    })
+    // Abrir modal
+    setOpen(true)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button>
+        <Button onClick={handleOpenForNew}>
           <Plus className="mr-2 h-4 w-4" />
           Nova Mesa
         </Button>
@@ -169,9 +203,9 @@ export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFor
                   <FormControl>
                     <Input
                       type="number"
-                      placeholder="4"
+                      placeholder="Digite a capacidade..."
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 4)}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -192,6 +226,13 @@ export function TableFormDialog({ onAddTable, onEditTable, editTable }: TableFor
               )}
             />
             <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+              >
+                Cancelar
+              </Button>
               <Button type="submit">{isEditing ? 'Salvar Alterações' : 'Criar Mesa'}</Button>
             </DialogFooter>
           </form>

@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import Image from "next/image"
-import { useAuthStore } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 
 const loginSchema = z.object({
@@ -29,7 +29,7 @@ export function LoginForm3({
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { login } = useAuthStore()
+  const { login } = useAuth()
 
   const {
     register,

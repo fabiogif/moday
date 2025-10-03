@@ -3,11 +3,11 @@
  */
 
 import { useEffect } from 'react'
-import { useAuthStore } from '@/contexts/auth-context'
+import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api-client'
 
 export function useAuthSync() {
-  const { token, isAuthenticated, user } = useAuthStore()
+  const { token, isAuthenticated, user } = useAuth()
 
   useEffect(() => {
     console.log('AuthSync: Sincronizando autenticação', { isAuthenticated, hasToken: !!token })

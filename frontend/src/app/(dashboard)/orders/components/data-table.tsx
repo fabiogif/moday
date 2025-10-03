@@ -22,6 +22,9 @@ import {
   Trash2,
   Download,
   Search,
+  Receipt,
+  FileText,
+  Printer,
 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -52,36 +55,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { OrderFormDialog } from "./order-form-dialog"
-
-interface Order {
-  id: number
-  orderNumber: string
-  customerName: string
-  customerEmail: string
-  status: string
-  total: number
-  items: number
-  orderDate: string
-  deliveryDate: string
-}
-
-interface OrderFormValues {
-  customerName: string
-  customerEmail: string
-  status: string
-  total: number
-  items: number
-}
+import { OrderDetailsDialog } from "./order-details-dialog"
+import { ReceiptDialog } from "./receipt-dialog"
+import { Order } from "../types"
 
 interface DataTableProps {
   orders: Order[]
   onDeleteOrder: (id: number) => void
   onEditOrder: (order: Order) => void
-  onAddOrder: (orderData: OrderFormValues) => void
+  onViewOrder: (order: Order) => void
+  onInvoiceOrder: (order: Order) => void
+  onReceiptOrder: (order: Order) => void
 }
 
-export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: DataTableProps) {
+export function DataTable({ orders, onDeleteOrder, onEditOrder, onViewOrder, onInvoiceOrder, onReceiptOrder }: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -127,21 +114,35 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: Da
       enableHiding: false,
     },
     {
-      accessorKey: "orderNumber",
+      accessorKey: "identify",
       header: "Número do Pedido",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue("orderNumber")}</div>
-      ),
+      cell: ({ row }) => {
+        const orderNumber = row.getValue("identify") as string
+        return (
+          <div className="font-medium">{orderNumber || 'N/A'}</div>
+        )
+      },
     },
     {
-      accessorKey: "customerName",
+      accessorKey: "client",
       header: "Cliente",
-      cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.getValue("customerName")}</div>
-          <div className="text-sm text-muted-foreground">{row.original.customerEmail}</div>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const client = row.getValue("client") as any
+          // Debug: verificar estrutura do cliente
+          if (!client?.name) {
+            console.log('Client data:', client, 'Full row:', row.original)
+          }
+        return (
+          <div>
+            <div className="font-medium">
+                {client?.name || row.original?.client?.name || row.original?.customerName || 'Nome não informado'}
+              </div>
+            <div className="text-sm text-muted-foreground">
+                {client?.email || row.original?.client?.email || row.original?.customerEmail || 'Email não informado'}
+              </div>
+          </div>
+        )
+      },
     },
     {
       accessorKey: "status",
@@ -168,26 +169,21 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: Da
       },
     },
     {
-      accessorKey: "items",
+      accessorKey: "products", 
       header: "Itens",
-      cell: ({ row }) => (
-        <div className="text-center">{row.getValue("items")}</div>
-      ),
-    },
-    {
-      accessorKey: "orderDate",
-      header: "Data do Pedido",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("orderDate"))
-        return <div>{date.toLocaleDateString("pt-BR")}</div>
+        const products = row.getValue("products") as any[]
+        return (
+          <div className="text-center">{products?.length || 0}</div>
+        )
       },
     },
     {
-      accessorKey: "deliveryDate",
-      header: "Data de Entrega",
+      accessorKey: "date",
+      header: "Data do Pedido",
       cell: ({ row }) => {
-        const date = new Date(row.getValue("deliveryDate"))
-        return <div>{date.toLocaleDateString("pt-BR")}</div>
+        const date = row.getValue("date") as string
+        return <div>{date || 'Data não informada'}</div>
       },
     },
     {
@@ -205,13 +201,21 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: Da
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(order.orderNumber)}>
+              <DropdownMenuItem onClick={() => onViewOrder(order)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onEditOrder(order)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onInvoiceOrder(order)}>
+                <Receipt className="mr-2 h-4 w-4" />
+                Faturar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onReceiptOrder(order)}>
+                <Printer className="mr-2 h-4 w-4" />
+                Recibo
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -284,7 +288,6 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: Da
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <OrderFormDialog onAddOrder={onAddOrder} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto">
@@ -394,3 +397,4 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onAddOrder }: Da
     </div>
   )
 }
+

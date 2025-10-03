@@ -48,6 +48,29 @@ const productFormSchema = z.object({
   price_cost: z.number().min(0, {
     message: "Preço de custo deve ser maior ou igual a 0.",
   }),
+  promotional_price: z.number().min(0, {
+    message: "Preço promocional deve ser maior ou igual a 0.",
+  }).optional(),
+  brand: z.string().optional(),
+  sku: z.string().optional(),
+  weight: z.number().min(0, {
+    message: "Peso deve ser maior ou igual a 0.",
+  }).optional(),
+  height: z.number().min(0, {
+    message: "Altura deve ser maior ou igual a 0.",
+  }).optional(),
+  width: z.number().min(0, {
+    message: "Largura deve ser maior ou igual a 0.",
+  }).optional(),
+  depth: z.number().min(0, {
+    message: "Profundidade deve ser maior ou igual a 0.",
+  }).optional(),
+  shipping_info: z.string().optional(),
+  warehouse_location: z.string().optional(),
+  variations: z.array(z.object({
+    type: z.string(),
+    value: z.string(),
+  })).optional(),
   categories: z.array(z.string()).min(1, {
     message: "Por favor, selecione pelo menos uma categoria.",
   }),
@@ -62,6 +85,16 @@ interface ProductFormValues {
   description: string;
   price: number;
   price_cost: number;
+  promotional_price?: number;
+  brand?: string;
+  sku?: string;
+  weight?: number;
+  height?: number;
+  width?: number;
+  depth?: number;
+  shipping_info?: string;
+  warehouse_location?: string;
+  variations?: Array<{ type: string; value: string }>;
   categories: string[];
   qtd_stock: number;
   image?: File;
@@ -69,9 +102,10 @@ interface ProductFormValues {
 
 interface ProductFormDialogProps {
   onAddProduct: (productData: ProductFormValues) => void;
+  renderAsPage?: boolean;
 }
 
-export function ProductFormDialog({ onAddProduct }: ProductFormDialogProps) {
+export function ProductFormDialog({ onAddProduct, renderAsPage = false }: ProductFormDialogProps) {
   const [open, setOpen] = useState(false);
   const {
     data: categories,

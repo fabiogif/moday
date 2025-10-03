@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { StatCards } from "./components/stat-cards"
 import { DataTable } from "./components/data-table"
 import { OrderDetailsDialog } from "./components/order-details-dialog"
 import { ReceiptDialog } from "./components/receipt-dialog"
 import { useOrders, useMutation } from "@/hooks/use-api"
-import { useOrderRefresh } from "@/hooks/use-order-refresh"
 import { endpoints } from "@/lib/api-client"
 import { PageLoading } from "@/components/ui/loading-progress"
 import { Order } from "./types"
@@ -22,20 +21,9 @@ export default function OrdersPage() {
   const { mutate: deleteOrder, loading: deleting } = useMutation()
   const { mutate: invoiceOrder, loading: invoicing } = useMutation()
   
-  // Hook para detectar quando precisa atualizar
-  const { shouldRefresh, resetRefresh } = useOrderRefresh()
-
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [receiptOpen, setReceiptOpen] = useState(false)
-
-  // Atualizar lista quando shouldRefresh for true
-  useEffect(() => {
-    if (shouldRefresh) {
-      refetch()
-      resetRefresh()
-    }
-  }, [shouldRefresh, refetch, resetRefresh])
 
   const handleDeleteOrder = async (id: number) => {
     try {
@@ -43,7 +31,7 @@ export default function OrdersPage() {
         endpoints.orders.delete(id.toString()),
         'DELETE'
       )
-
+      
       if (result) {
         toast.success('Pedido excluído com sucesso!')
         // Recarregar dados após exclusão
@@ -62,7 +50,7 @@ export default function OrdersPage() {
       console.error('ID do pedido não encontrado')
       return
     }
-
+    
     // Navegar para página de edição
     router.push(`/orders/edit/${orderId}`)
   }
@@ -85,15 +73,14 @@ export default function OrdersPage() {
         endpoints.orders.invoice(orderId),
         'POST'
       )
-
+      
       if (result) {
-        toast.success('Pedido faturado com sucesso!')
         // Recarregar dados após faturamento
         await refetch()
+        console.log("Pedido faturado com sucesso:", result)
       }
     } catch (error) {
       console.error('Erro ao faturar pedido:', error)
-      toast.error('Erro ao faturar pedido')
     }
   }
 
@@ -104,7 +91,7 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <PageLoading
+      <PageLoading 
         isLoading={loading}
         message="Carregando pedidos..."
       />
@@ -124,7 +111,7 @@ export default function OrdersPage() {
       <div className="@container/main px-4 lg:px-6">
         <StatCards />
       </div>
-
+      
       <div className="@container/main px-4 lg:px-6">
         <div className="flex justify-between items-center mb-4">
           <div>
@@ -136,8 +123,8 @@ export default function OrdersPage() {
             Novo Pedido
           </Button>
         </div>
-
-        <DataTable
+        
+        <DataTable 
           orders={Array.isArray(orders) ? orders : []}
           onDeleteOrder={handleDeleteOrder}
           onEditOrder={handleEditOrder}
@@ -147,13 +134,13 @@ export default function OrdersPage() {
         />
       </div>
 
-      <OrderDetailsDialog
+      <OrderDetailsDialog 
         order={selectedOrder}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
       />
 
-      <ReceiptDialog
+      <ReceiptDialog 
         order={selectedOrder}
         open={receiptOpen}
         onOpenChange={setReceiptOpen}

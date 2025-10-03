@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StatCards } from "./components/stat-cards";
 import { DataTable } from "./components/data-table";
+import { TableFormDialog } from "./components/table-form-dialog";
 import { SuccessAlert } from "./components/success-alert";
 import {
   useAuthenticatedTables,
@@ -10,25 +11,7 @@ import {
 } from "@/hooks/use-authenticated-api";
 import { endpoints } from "@/lib/api-client";
 import { PageLoading } from "@/components/ui/loading-progress";
-
-interface Table {
-  id: number;
-  identify: string;
-  uuid: string;
-  name: string;
-  description?: string;
-  capacity: number;
-  created_at: string;
-  created_at_formatted: string;
-  updated_at: string;
-}
-
-interface TableFormValues {
-  identify: string;
-  name: string;
-  description?: string;
-  capacity: number;
-}
+import { TableData, TableFormValues } from "./types";
 
 export default function TablesPage() {
   const {
@@ -48,6 +31,9 @@ export default function TablesPage() {
     title: "",
     message: "",
   });
+
+  // Estado para controlar mesa sendo editada
+  const [editingTable, setEditingTable] = useState<TableData | null>(null);
 
   const handleAddTable = async (tableData: TableFormValues) => {
     try {
@@ -109,6 +95,9 @@ export default function TablesPage() {
       );
 
       if (result) {
+        // Limpar estado de edição
+        setEditingTable(null);
+        
         // Mostrar sucesso primeiro
         setSuccessAlert({
           open: true,
@@ -128,6 +117,16 @@ export default function TablesPage() {
         message: "Erro ao atualizar mesa. Tente novamente."
       });
     }
+  };
+
+  // Função para iniciar nova mesa (limpar estado de edição)
+  const handleStartNew = () => {
+    setEditingTable(null);
+  };
+
+  // Função para iniciar edição
+  const handleStartEdit = (table: TableData) => {
+    setEditingTable(table);
   };
 
   const handleShowSuccessAlert = (title: string, message: string) => {
@@ -167,10 +166,23 @@ export default function TablesPage() {
       </div>
 
       <div className="@container/main px-4 lg:px-6 mt-8 lg:mt-12">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="text-2xl font-bold">Mesas</h2>
+            <p className="text-muted-foreground">Gerencie todas as mesas</p>
+          </div>
+          <TableFormDialog
+            onAddTable={handleAddTable}
+            onEditTable={handleEditTable}
+            editTable={editingTable}
+            onStartNew={handleStartNew}
+          />
+        </div>
+
         <DataTable
           tables={Array.isArray(tables) ? tables : []}
           onDeleteTable={handleDeleteTable}
-          onEditTable={handleEditTable}
+          onEditTable={handleStartEdit}
           onAddTable={handleAddTable}
           onShowSuccessAlert={handleShowSuccessAlert}
         />

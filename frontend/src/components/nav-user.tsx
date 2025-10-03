@@ -8,7 +8,7 @@ import {
   CircleUser,
 } from "lucide-react"
 import Link from "next/link"
-import { useAuthStore } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context"
 
 import { Logo } from "@/components/logo"
 import {
@@ -37,7 +37,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const { logout } = useAuthStore()
+  const { logout } = useAuth()
 
   const handleLogout = () => {
     logout()

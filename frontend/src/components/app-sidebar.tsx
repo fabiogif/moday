@@ -12,10 +12,11 @@ import {
   Shield,
   UserCog,
   Settings,
+  CreditCard,
 } from "lucide-react"
 import Link from "next/link"
 import { Logo } from "@/components/logo"
-import { useAuthStore } from "@/contexts/auth-context"
+import { useAuth } from "@/contexts/auth-context"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -64,6 +65,11 @@ const navGroups = [
         icon: UserCheck,
       },
       {
+        title: "Formas de Pagamento",
+        url: "/payment-methods",
+        icon: CreditCard,
+      },
+      {
         title: "Relatórios",
         url: "/reports",
         icon: BarChart3,
@@ -93,7 +99,7 @@ const navGroups = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated } = useAuth()
 
   // Dados do usuário para exibir no sidebar
   const userData = {

@@ -1,8 +1,8 @@
-import { useAuthStore } from '@/contexts/auth-context'
+import { useAuth } from '@/contexts/auth-context'
 import { useMemo } from 'react'
 
 export const usePermissions = () => {
-  const { user, isAuthenticated } = useAuthStore()
+  const { user, isAuthenticated } = useAuth()
 
   const permissions = useMemo(() => {
     if (!isAuthenticated || !user) return []

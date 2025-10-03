@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -42,7 +43,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TableFormDialog } from "./table-form-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,30 +53,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Table {
-  id: number;
-  identify: string;
-  uuid: string;
-  name: string;
-  description?: string;
-  capacity: number;
-  created_at: string;
-  created_at_formatted: string;
-  updated_at: string;
-}
-
-interface TableFormValues {
-  identify: string;
-  name: string;
-  description?: string;
-  capacity: number;
-}
+import { TableData, TableFormValues } from "../types";
 
 interface DataTableProps {
-  tables: Table[];
+  tables: TableData[];
   onDeleteTable: (uuid: string) => void;
-  onEditTable: (id: number, tableData: TableFormValues) => void;
+  onEditTable: (table: TableData) => void;
   onAddTable: (tableData: TableFormValues) => void;
   onShowSuccessAlert?: (title: string, message: string) => void;
 }
@@ -88,15 +70,16 @@ export function DataTable({
   onAddTable,
   onShowSuccessAlert,
 }: DataTableProps) {
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [globalFilter, setGlobalFilter] = useState("");
-  const [editingTable, setEditingTable] = useState<Table | null>(null);
-  const [deletingTable, setDeletingTable] = useState<Table | null>(null);
+  const [editingTable, setEditingTable] = useState<TableData | null>(null);
+  const [deletingTable, setDeletingTable] = useState<TableData | null>(null);
 
-  const columns: ColumnDef<Table>[] = [
+  const columns: ColumnDef<TableData>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -197,12 +180,12 @@ export function DataTable({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(table.identify)}
+                onClick={() => router.push(`/tables/table-details?id=${table.uuid || table.id}`)}
               >
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditingTable(table)}>
+              <DropdownMenuItem onClick={() => onEditTable(table)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Editar
               </DropdownMenuItem>
@@ -258,11 +241,6 @@ export function DataTable({
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <TableFormDialog
-            onAddTable={onAddTable}
-            onEditTable={onEditTable}
-            editTable={editingTable}
-          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto">
@@ -377,18 +355,6 @@ export function DataTable({
           </Button>
         </div>
       </div>
-
-      {/* Dialog de edição */}
-      {editingTable && (
-        <TableFormDialog
-          onAddTable={onAddTable}
-          onEditTable={(id, data) => {
-            onEditTable(id, data);
-            setEditingTable(null);
-          }}
-          editTable={editingTable}
-        />
-      )}
 
       {/* Dialog de confirmação de exclusão */}
       <AlertDialog
