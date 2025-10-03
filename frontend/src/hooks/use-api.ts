@@ -118,28 +118,6 @@ export function useOrders(params?: { page?: number; per_page?: number; status?: 
   const queryString = params ? `?${new URLSearchParams(
     Object.entries(params).filter(([_, v]) => v !== undefined) as [string, string][]
   ).toString()}` : ''
-
-  const result = useApi(`${endpoints.orders.list}${queryString}`, {
-    cacheKey: `orders-${JSON.stringify(params)}`,
-    immediate: true
-  })
-
-  // Debug: Log dos dados recebidos
-  if (result.data) {
-    console.log('useOrders - Dados recebidos:', result.data)
-    if (Array.isArray(result.data) && result.data.length > 0) {
-      console.log('useOrders - Primeiro pedido:', result.data[0])
-    }
-  }
-
-  return result
-}
-
-// Hook específico para pedidos - OLD VERSION - REMOVER
-export function useOrdersOLD(params?: { page?: number; per_page?: number; status?: string }) {
-  const queryString = params ? `?${new URLSearchParams(
-    Object.entries(params).filter(([_, v]) => v !== undefined) as [string, string][]
-  ).toString()}` : ''
   
   return useApi(`${endpoints.orders.list}${queryString}`, {
     cacheKey: `orders-${JSON.stringify(params)}`,

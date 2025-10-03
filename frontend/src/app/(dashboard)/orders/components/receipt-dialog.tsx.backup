@@ -30,10 +30,10 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
-import { OrderReceipt, Order } from "../types"
+import { OrderReceipt } from "../types"
 
 interface ReceiptDialogProps {
-  order: OrderReceipt | Order | null
+  order: OrderReceipt | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }
@@ -45,37 +45,11 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
 
   if (!order) return null
 
-  // Debug: Log completo do pedido recebido
-  console.log('ReceiptDialog - Pedido completo:', order)
-  console.log('ReceiptDialog - Cliente:', order.client)
-  console.log('ReceiptDialog - Cliente JSON:', JSON.stringify(order.client, null, 2))
-  console.log('ReceiptDialog - Todas as keys do pedido:', Object.keys(order))
-  console.log('ReceiptDialog - Tentando acessar:', {
-    'order.client?.name': order.client?.name,
-    'order.client?.email': order.client?.email,
-    'order.client?.phone': order.client?.phone,
-    'order.customerName': (order as any).customerName,
-    'order.customer?.name': (order as any).customer?.name
-  })
-  console.log('ReceiptDialog - Produtos:', order.products || order.items)
-
-  const formatCurrency = (value: number | string | undefined) => {
-    // Debug: Log do valor recebido
-    console.log('formatCurrency recebeu:', value, 'tipo:', typeof value)
-    
-    // Converter para número se for string
-    const numValue = typeof value === 'string' ? parseFloat(value) : value
-    
-    // Verificar se é um número válido
-    if (numValue === undefined || numValue === null || isNaN(numValue)) {
-      console.warn('formatCurrency: valor inválido:', value)
-      return 'R$ 0,00'
-    }
-    
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(numValue)
+    }).format(value)
   }
 
   const formatDate = (dateString: string | null | undefined) => {
@@ -96,15 +70,15 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   }
 
   const getFullDeliveryAddress = () => {
-    if (order.useClientAddress && order.client?.address) {
+    if (order.useClientAddress && order.client.address) {
       const parts = [
-        order.client?.address,
-        order.client?.number,
-        order.client?.complement,
-        order.client?.neighborhood,
-        order.client?.city,
-        order.client?.state,
-        order.client?.zipCode
+        order.client.address,
+        order.client.number,
+        order.client.complement,
+        order.client.neighborhood,
+        order.client.city,
+        order.client.state,
+        order.client.zipCode
       ].filter(Boolean)
       return parts.join(", ")
     }
@@ -154,7 +128,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Recibo - Pedido #${order.orderNumber || order.identify}</title>
+        <title>Recibo - Pedido #${order.orderNumber}</title>
         <style>
           body { 
             font-family: Arial, sans-serif; 
@@ -217,17 +191,17 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
         </div>
         
         <div class="order-info">
-          <strong>PEDIDO #${order.orderNumber || order.identify}</strong><br>
-          Data: ${formatDate(order.orderDate || order.date)}<br>
+          <strong>PEDIDO #${order.orderNumber}</strong><br>
+          Data: ${formatDate(order.orderDate)}<br>
           Status: ${order.status}<br>
           ${order.isDelivery ? 'Tipo: Delivery' : 'Tipo: Balcão'}
         </div>
         
         <div class="client-info">
           <strong>CLIENTE:</strong><br>
-          ${order.client?.name || (order as any).customerName || (order as any).customer?.name || 'N/A'}<br>
-          ${order.client?.email || (order as any).customerEmail || (order as any).customer?.email || 'N/A'}<br>
-          ${order.client?.phone || (order as any).customerPhone || (order as any).customer?.phone || 'N/A'}
+          ${order.client.name}<br>
+          ${order.client.email}<br>
+          ${order.client.phone}
           ${order.isDelivery ? `<br><br><strong>ENDEREÇO DE ENTREGA:</strong><br>${getFullDeliveryAddress()}` : ''}
         </div>
         
@@ -241,10 +215,10 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
             </tr>
           </thead>
           <tbody>
-            ${(order.items || order.products || []).map(item => `
+            ${order.items.map(item => `
               <tr>
                 <td>${item.name}</td>
-                <td>${item.quantity || item.qty || 1}</td>
+                <td>${item.quantity}</td>
                 <td>${formatCurrency(item.price)}</td>
                 <td>${formatCurrency(item.total)}</td>
               </tr>
@@ -275,7 +249,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
       // Por enquanto, vamos simular
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      toast.success(`Recibo enviado por email para ${order.client?.email || (order as any).customerEmail || (order as any).customer?.email || 'N/A'}`)
+      toast.success(`Recibo enviado por email para ${order.client.email}`)
     } catch (error) {
       toast.error("Não foi possível enviar o email. Tente novamente.")
     } finally {
@@ -286,23 +260,20 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   const handleWhatsApp = () => {
     setIsSharing(true)
     
-    const message = `Olá! Aqui está o recibo do seu pedido #${order.orderNumber || order.identify}:
+    const message = `Olá! Aqui está o recibo do seu pedido #${order.orderNumber}:
 
-📋 *PEDIDO #${order.orderNumber || order.identify}*
-📅 Data: ${formatDate(order.orderDate || order.date)}
+📋 *PEDIDO #${order.orderNumber}*
+📅 Data: ${formatDate(order.orderDate)}
 💰 Total: ${formatCurrency(order.total)}
 
-${(order.items || order.products || []).map(item => `• ${item.name} - ${item.quantity || item.qty || 1}x ${formatCurrency(item.price)} = ${formatCurrency(item.total)}`).join('\n')}
+${order.items.map(item => `• ${item.name} - ${item.quantity}x ${formatCurrency(item.price)} = ${formatCurrency(item.total)}`).join('\n')}
 
 ${order.comment ? `\n📝 Observações: ${order.comment}` : ''}
 
 Obrigado pela preferência! 🍽️`
 
-    const whatsappUrl = order.client?.phone ? `https://wa.me/55${order.client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}` : null
-    if (!whatsappUrl) {
-      toast.error('Cliente não possui telefone cadastrado')
-      return
-    }
+    const whatsappUrl = `https://wa.me/55${order.client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
+    
     window.open(whatsappUrl, '_blank')
     
     setTimeout(() => {
@@ -318,7 +289,7 @@ Obrigado pela preferência! 🍽️`
     
     const link = document.createElement('a')
     link.href = url
-    link.download = `recibo-pedido-${order.orderNumber || order.identify}.html`
+    link.download = `recibo-pedido-${order.orderNumber}.html`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -334,7 +305,7 @@ Obrigado pela preferência! 🍽️`
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold">
-              Recibo - Pedido #{order.orderNumber || order.identify}
+              Recibo - Pedido #{order.orderNumber}
             </DialogTitle>
             <Badge variant="outline">
               {order.status}
@@ -356,8 +327,8 @@ Obrigado pela preferência! 🍽️`
               <div>
                 <h3 className="font-semibold mb-2">Informações do Pedido</h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong>Número:</strong> #{order.orderNumber || order.identify}</p>
-                  <p><strong>Data:</strong> {formatDate(order.orderDate || order.date)}</p>
+                  <p><strong>Número:</strong> #{order.orderNumber}</p>
+                  <p><strong>Data:</strong> {formatDate(order.orderDate)}</p>
                   <p><strong>Tipo:</strong> {order.isDelivery ? 'Delivery' : 'Balcão'}</p>
                   {order.table && (
                     <p><strong>Mesa:</strong> {order.table.name}</p>
@@ -368,27 +339,9 @@ Obrigado pela preferência! 🍽️`
               <div>
                 <h3 className="font-semibold mb-2">Cliente</h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong>Nome:</strong> {
-                      order.client?.name || 
-                      (order as any).customerName || 
-                      (order as any).customer?.name || 
-                      (order as any).client_name ||
-                      'N/A'
-                    }</p>
-                  <p><strong>Email:</strong> {
-                      order.client?.email || 
-                      (order as any).customerEmail || 
-                      (order as any).customer?.email ||
-                      (order as any).client_email ||
-                      'N/A'
-                    }</p>
-                  <p><strong>Telefone:</strong> {
-                      order.client?.phone || 
-                      (order as any).customerPhone || 
-                      (order as any).customer?.phone ||
-                      (order as any).client_phone ||
-                      'N/A'
-                    }</p>
+                  <p><strong>Nome:</strong> {order.client.name}</p>
+                  <p><strong>Email:</strong> {order.client.email}</p>
+                  <p><strong>Telefone:</strong> {order.client.phone}</p>
                 </div>
               </div>
             </div>
@@ -418,9 +371,10 @@ Obrigado pela preferência! 🍽️`
                     </tr>
                   </thead>
                   <tbody>
-                    {(order.items || order.products || []).map((item, index) => (<tr key={item.id || `item-${index}`} className="border-t">
+                    {order.items.map((item) => (
+                      <tr key={item.id} className="border-t">
                         <td className="p-3">{item.name}</td>
-                        <td className="p-3 text-center">{item.quantity || item.qty || 1}</td>
+                        <td className="p-3 text-center">{item.quantity}</td>
                         <td className="p-3 text-right">{formatCurrency(item.price)}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(item.total)}</td>
                       </tr>
@@ -498,16 +452,3 @@ Obrigado pela preferência! 🍽️`
     </Dialog>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

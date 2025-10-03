@@ -1,3 +1,5 @@
+export type OrderStatus = 'Pendente' | 'Completo' | 'Cancelado' | 'Rejeitado' | 'Em Andamento' | 'Em Entrega'
+
 export interface Order {
   id?: number
   identify: string // Campo do backend
@@ -23,7 +25,7 @@ export interface Order {
     id: number
     name: string
   }
-  status: string
+  status: OrderStatus
   total: number
   products: Array<{
     id: number
@@ -65,7 +67,7 @@ export interface OrderFormValues {
     quantity: number
     price: number
   }[]
-  status: string
+  status: OrderStatus
   isDelivery: boolean
   tableId?: string
   total: number
@@ -101,7 +103,7 @@ export interface OrderDetails {
     name: string
     capacity: number
   }
-  status: string
+  status: OrderStatus
   total: number
   products: Array<{
     id: number
@@ -157,7 +159,7 @@ export interface OrderReceipt {
     name: string
     capacity: number
   }
-  status: string
+  status: OrderStatus
   total: number
   items: Array<{
     id: number

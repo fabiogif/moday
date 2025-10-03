@@ -54,15 +54,11 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
     }
   }
 
-  const formatCurrency = (value: number | string | undefined) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value
-    if (numValue === undefined || numValue === null || isNaN(numValue)) {
-      return 'R$ 0,00'
-    }
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(numValue)
+    }).format(value)
   }
 
   const formatDate = (dateString: string) => {
@@ -87,13 +83,13 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
 
     if (order.use_client_address && order.client?.address) {
       const parts = [
-        order.client?.address,
-        order.client?.number,
-        order.client?.complement,
-        order.client?.neighborhood,
-        order.client?.city,
-        order.client?.state,
-        order.client?.zip_code
+        order.client.address,
+        order.client.number,
+        order.client.complement,
+        order.client.neighborhood,
+        order.client.city,
+        order.client.state,
+        order.client.zip_code
       ].filter(Boolean)
       return parts.join(", ")
     }
@@ -140,28 +136,28 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7">
                   <div>
                     <p className="text-sm text-muted-foreground">Nome</p>
-                    <p className="font-medium">{order.client?.name || 'N/A'}</p>
+                    <p className="font-medium">{order.client.name}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">{order.client?.email || 'N/A'}</p>
+                      <p className="font-medium">{order.client.email}</p>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Telefone</p>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">{order.client?.phone || 'N/A'}</p>
+                      <p className="font-medium">{order.client.phone}</p>
                     </div>
                   </div>
-                  {order.client?.address && (
+                  {order.client.address && (
                     <div>
                       <p className="text-sm text-muted-foreground">Endereço</p>
                       <div className="flex items-center gap-2">
                         <Home className="h-4 w-4 text-muted-foreground" />
-                        <p className="font-medium">{order.client?.address || 'N/A'}</p>
+                        <p className="font-medium">{order.client.address}</p>
                       </div>
                     </div>
                   )}
@@ -250,8 +246,8 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
               </div>
               <div className="pl-7">
                 <div className="space-y-3">
-                  {(order.products || order.items || []).map((item, index) => (
-                    <div key={item.id || `item-${index}`} className="flex justify-between items-center p-3 border rounded-lg">
+                  {(order.products || order.items || []).map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-3 border rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium">{item.name}</p>
                         <p className="text-sm text-muted-foreground">
@@ -297,7 +293,3 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
     </Dialog>
   )
 }
-
-
-
-
