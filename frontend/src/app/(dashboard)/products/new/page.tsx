@@ -73,7 +73,7 @@ export default function NewProductPage() {
       description: "",
       price: 0,
       price_cost: 0,
-      promotional_price: undefined,
+      promotional_price: 0,
       brand: "",
       sku: "",
       weight: undefined,
@@ -381,6 +381,7 @@ export default function NewProductPage() {
                           step="0.01"
                           placeholder="0.00 (opcional)"
                           {...field}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             field.onChange(value === '' ? undefined : Number(value));
@@ -431,7 +432,7 @@ export default function NewProductPage() {
                           type="number"
                           step="0.001"
                           placeholder="0.000 (opcional)"
-                          {...field}
+                          value={field.value ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             field.onChange(value === '' ? undefined : Number(value));

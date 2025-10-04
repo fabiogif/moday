@@ -18,6 +18,18 @@ import { toast } from "sonner"
 export default function OrdersPage() {
   const router = useRouter()
   const { data: orders, loading, error, refetch } = useOrders()
+  
+  // Debug: Log dos pedidos recebidos
+  useEffect(() => {
+    if (orders) {
+      console.log('OrdersPage - Total de pedidos:', Array.isArray(orders) ? orders.length : 'não é array')
+      console.log('OrdersPage - Pedidos:', orders)
+      if (Array.isArray(orders) && orders.length > 0) {
+        console.log('OrdersPage - Primeiro pedido completo:', orders[0])
+        console.log('OrdersPage - Cliente do primeiro pedido:', orders[0].client)
+      }
+    }
+  }, [orders])
   const { mutate: createOrder, loading: creating } = useMutation()
   const { mutate: deleteOrder, loading: deleting } = useMutation()
   const { mutate: invoiceOrder, loading: invoicing } = useMutation()
@@ -161,3 +173,4 @@ export default function OrdersPage() {
     </div>
   )
 }
+
