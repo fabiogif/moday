@@ -1,0 +1,200 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use Illuminate\Routing\Controller;
+use App\Http\Requests\PermissionStoreRequest;
+use App\Http\Requests\PermissionUpdateRequest;
+use App\Http\Resources\PermissionResource;
+use App\Models\Permission;
+use App\Classes\ApiResponseClass;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class PermissionApiController extends Controller
+{
+    /**
+     * Display a listing of permissions.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        try {
+            $perPage = min($request->get('per_page', 15), 100);
+            $filters = $request->only(['name', 'description', 'resource']);
+            
+            $query = Permission::where('tenant_id', auth()->user()->tenant_id);
+            
+            // Apply filters
+            if (isset($filters['name'])) {
+                $query->where('name', 'like', '%' . $filters['name'] . '%');
+            }
+            
+            if (isset($filters['description'])) {
+                $query->where('description', 'like', '%' . $filters['description'] . '%');
+            }
+            
+            if (isset($filters['resource'])) {
+                $query->where('resource', 'like', '%' . $filters['resource'] . '%');
+            }
+            
+            $permissions = $query->paginate($perPage);
+            
+            return ApiResponseClass::sendResponse([
+                'permissions' => PermissionResource::collection($permissions->items()),
+                'pagination' => [
+                    'current_page' => $permissions->currentPage(),
+                    'last_page' => $permissions->lastPage(),
+                    'per_page' => $permissions->perPage(),
+                    'total' => $permissions->total(),
+                ]
+            ], 'Permissões recuperadas com sucesso');
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar permissões: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao recuperar permissões');
+        }
+    }
+
+    /**
+     * Store a newly created permission.
+     */
+    public function store(PermissionStoreRequest $request): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+            
+            $validatedData = $request->validated();
+            $validatedData['tenant_id'] = auth()->user()->tenant_id;
+            
+            $permission = Permission::create($validatedData);
+            
+            DB::commit();
+            
+            return ApiResponseClass::sendResponse(
+                new PermissionResource($permission->load(['profiles', 'tenant'])),
+                'Permissão criada com sucesso',
+                201
+            );
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao criar permissão: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao criar permissão');
+        }
+    }
+
+    /**
+     * Display the specified permission.
+     */
+    public function show(Permission $permission): JsonResponse
+    {
+        try {
+            // Verificar se a permissão pertence ao mesmo tenant
+            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+                return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
+            }
+            
+            return ApiResponseClass::sendResponse(
+                new PermissionResource($permission->load(['profiles', 'tenant'])),
+                'Permissão recuperada com sucesso'
+            );
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao recuperar permissão: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao recuperar permissão');
+        }
+    }
+
+    /**
+     * Update the specified permission.
+     */
+    public function update(PermissionUpdateRequest $request, Permission $permission): JsonResponse
+    {
+        try {
+            // Verificar se a permissão pertence ao mesmo tenant
+            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+                return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
+            }
+            
+            DB::beginTransaction();
+            
+            $validatedData = $request->validated();
+            $permission->update($validatedData);
+            
+            DB::commit();
+            
+            return ApiResponseClass::sendResponse(
+                new PermissionResource($permission->load(['profiles', 'tenant'])),
+                'Permissão atualizada com sucesso'
+            );
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao atualizar permissão: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao atualizar permissão');
+        }
+    }
+
+    /**
+     * Remove the specified permission.
+     */
+    public function destroy(Permission $permission): JsonResponse
+    {
+        try {
+            // Verificar se a permissão pertence ao mesmo tenant
+            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+                return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
+            }
+            
+            // Verificar se a permissão está sendo usada por perfis
+            $profilesCount = $permission->profiles()->count();
+            if ($profilesCount > 0) {
+                return ApiResponseClass::sendResponse(
+                    null, 
+                    "Não é possível excluir a permissão. Ela está sendo usada por {$profilesCount} perfil(s).", 
+                    400
+                );
+            }
+            
+            $permission->delete();
+            
+            return ApiResponseClass::sendResponse(null, 'Permissão excluída com sucesso');
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao excluir permissão: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao excluir permissão');
+        }
+    }
+
+    /**
+     * Check permission usage.
+     */
+    public function checkUsage(Permission $permission): JsonResponse
+    {
+        try {
+            // Verificar se a permissão pertence ao mesmo tenant
+            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+                return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
+            }
+            
+            $profiles = $permission->profiles()->get();
+            $users = $permission->users()->get();
+            
+            return ApiResponseClass::sendResponse([
+                'permission' => new PermissionResource($permission),
+                'usage' => [
+                    'profiles_count' => $profiles->count(),
+                    'users_count' => $users->count(),
+                    'profiles' => $profiles,
+                    'users' => $users,
+                ]
+            ], 'Uso da permissão recuperado com sucesso');
+            
+        } catch (\Exception $e) {
+            Log::error('Erro ao verificar uso da permissão: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao verificar uso da permissão');
+        }
+    }
+}
