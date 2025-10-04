@@ -47,7 +47,9 @@ class ApiClient {
         }
       }
       
-      console.log('ApiClient: Token carregado:', this.token ? 'Sim' : 'Não')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('ApiClient: Token carregado:', this.token ? 'Sim' : 'Não')
+      }
     }
   }
 
@@ -58,7 +60,9 @@ class ApiClient {
       // Também salvar no cookie para sincronizar com AuthContext
       document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`
     }
-    console.log('ApiClient: Token definido:', token ? 'Sim' : 'Não')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('ApiClient: Token definido:', token ? 'Sim' : 'Não')
+    }
   }
 
   // Função para forçar recarga do token
@@ -83,6 +87,7 @@ class ApiClient {
   private getHeaders(isFormData = false): HeadersInit {
     const headers: HeadersInit = {
       'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
     }
 
     // Não definir Content-Type para FormData, deixar o navegador definir
@@ -92,9 +97,6 @@ class ApiClient {
 
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`
-      console.log('ApiClient: Enviando token JWT:', this.token.substring(0, 20) + '...')
-    } else {
-      console.log('ApiClient: Nenhum token disponível')
     }
 
     return headers
@@ -137,11 +139,14 @@ class ApiClient {
       })
     }
 
-    console.log('ApiClient: GET:', url.toString())
+    if (process.env.NODE_ENV === 'development') {
+      console.log('ApiClient: GET:', url.toString())
+    }
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: this.getHeaders(false),
+      credentials: 'include', // Importante para cookies
     })
 
     return this.handleResponse<T>(response)
@@ -150,11 +155,14 @@ class ApiClient {
   async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     const isFormData = data instanceof FormData
     
-    console.log('ApiClient: POST:', `${this.baseURL}${endpoint}`, 'isFormData:', isFormData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('ApiClient: POST:', `${this.baseURL}${endpoint}`, 'isFormData:', isFormData)
+    }
 
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'POST',
       headers: this.getHeaders(isFormData),
+      credentials: 'include', // Importante para cookies
       body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     })
 
@@ -167,6 +175,7 @@ class ApiClient {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'PUT',
       headers: this.getHeaders(isFormData),
+      credentials: 'include', // Importante para cookies
       body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
     })
 
@@ -177,6 +186,7 @@ class ApiClient {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
       headers: this.getHeaders(false),
+      credentials: 'include', // Importante para cookies
     })
 
     return this.handleResponse<T>(response)
@@ -205,7 +215,8 @@ export const endpoints = {
     stats: '/api/product/stats', // Added
     create: '/api/product',
     show: (id: string) => `/api/product/${id}`,
-    update: (id: number) => `/api/product/${id}`,
+    getById: (id: string) => `/api/product/${id}`,
+    update: (id: number | string) => `/api/product/${id}`,
     delete: (id: string) => `/api/product/${id}`,
   },
   
@@ -282,7 +293,8 @@ export const endpoints = {
     stats: '/api/client/stats',
     create: '/api/client',
     show: (id: string) => `/api/client/${id}`,
-    update: (id: number) => `/api/client/${id}`,
+    getById: (id: string) => `/api/client/${id}`,
+    update: (id: number | string) => `/api/client/${id}`,
     delete: (id: string) => `/api/client/${id}`,
   },
 

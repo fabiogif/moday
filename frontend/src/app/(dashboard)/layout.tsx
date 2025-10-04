@@ -9,6 +9,7 @@ import { ThemeCustomizer, ThemeCustomizerTrigger } from "@/components/theme-cust
 import { useSidebarConfig } from "@/hooks/use-sidebar-config";
 import { useAuthSync } from "@/hooks/use-auth-sync";
 import { AuthDebug } from "@/components/auth-debug";
+import { ForceLogoutButton } from "@/components/force-logout-button";
 
 export default function DashboardLayout({
   children,
@@ -79,6 +80,9 @@ export default function DashboardLayout({
       
       {/* Debug de autenticação (apenas em desenvolvimento) */}
       {/* <AuthDebug /> */}
+      
+      {/* Botão para forçar logout em caso de token inválido */}
+    {/* <ForceLogoutButton /> */}
     </SidebarProvider>
   );
 }

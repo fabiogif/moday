@@ -22,7 +22,8 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\OrderStatsApiController,
     Api\UserStatsApiController,
     Api\PaymentMethodApiController,
-    Api\DashboardApiController};
+    Api\DashboardApiController,
+    Api\CsrfTokenController};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -51,12 +52,27 @@ Route::get('/health', function () {
     ]);
 });
 
-// Rotas de autenticação públicas
+/**
+ * @OA\Get(
+ *     path="/api/csrf-token",
+ *     summary="Obter token CSRF para proteção de requisições",
+ *     description="Retorna um token CSRF válido que deve ser incluído em requisições POST, PUT, PATCH e DELETE",
+ *     tags={"CSRF"},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Token CSRF gerado com sucesso"
+ *     )
+ * )
+ */
+Route::get('/csrf-token', [CsrfTokenController::class, 'getToken']);
+Route::post('/csrf-token/verify', [CsrfTokenController::class, 'verifyToken']);
+
+// Rotas de autenticação públicas com rate limiting específico
 Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 });
 
 // Rotas protegidas por JWT
@@ -73,164 +89,163 @@ Route::middleware(['auth:api'])->group(function () {
 // Rotas protegidas por JWT e tenant
 Route::middleware(['auth:api'])->group(function () {
     // Produtos
-    Route::put('/product/{id}', [ProductApiController::class , 'update']);
-    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser']);
-    Route::get('/product/stats', [ProductApiController::class , 'stats']); // Added
-    Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts']); // Produtos similares
-    Route::get('/product/{identify}', [ProductApiController::class , 'show']);
-    Route::post('/product', [ProductApiController::class , 'store']);
-    Route::delete('/product/{identify}', [ProductApiController::class , 'delete']);
+    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware('throttle:read');
+    Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware('throttle:read');
+    Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware('throttle:read');
+    Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware('throttle:read');
+    Route::post('/product', [ProductApiController::class , 'store'])->middleware('throttle:critical');
+    Route::put('/product/{id}', [ProductApiController::class , 'update'])->middleware('throttle:critical');
+    Route::delete('/product/{identify}', [ProductApiController::class , 'delete'])->middleware('throttle:critical');
 
     // Pedidos
-    Route::get('/order', [OrderApiController::class , 'index']);
-    Route::post('/order', [OrderApiController::class , 'store']);
-    Route::post('/order/{identify}/evaluations', [EvaluationApiController::class , 'store']);
-    Route::get('/order/client/', [OrderApiController::class , 'orderByClient']);
-    Route::get('/order/{identify}', [OrderApiController::class , 'show']);
-    Route::put('/order/{identify}', [OrderApiController::class , 'update']);
-    Route::delete('/order/{identify}', [OrderApiController::class , 'delete']);
-    Route::post('/order/{identify}/invoice', [OrderApiController::class , 'invoice']);
-    Route::get('/order/{identify}/receipt', [OrderApiController::class , 'receipt']);
+    Route::get('/order', [OrderApiController::class , 'index'])->middleware('throttle:read');
+    Route::get('/order/client/', [OrderApiController::class , 'orderByClient'])->middleware('throttle:read');
+    Route::get('/order/{identify}', [OrderApiController::class , 'show'])->middleware('throttle:read');
+    Route::get('/order/{identify}/receipt', [OrderApiController::class , 'receipt'])->middleware('throttle:read');
+    Route::post('/order', [OrderApiController::class , 'store'])->middleware('throttle:critical');
+    Route::put('/order/{identify}', [OrderApiController::class , 'update'])->middleware('throttle:critical');
+    Route::delete('/order/{identify}', [OrderApiController::class , 'delete'])->middleware('throttle:critical');
+    Route::post('/order/{identify}/evaluations', [EvaluationApiController::class , 'store'])->middleware('throttle:critical');
+    Route::post('/order/{identify}/invoice', [OrderApiController::class , 'invoice'])->middleware('throttle:critical');
 
     // Mesas
-    Route::post('/table', [TableApiController::class , 'store']);
-    Route::get('/table', [TableApiController::class , 'index']);
-    Route::get('/table/stats', [TableApiController::class , 'stats']);
-    Route::get('/table/{identify}', [TableApiController::class , 'show']);
-    Route::put('/table/{id}', [TableApiController::class , 'update']);
-    Route::delete('/table/{identify}', [TableApiController::class , 'delete']);
+    Route::get('/table', [TableApiController::class , 'index'])->middleware('throttle:read');
+    Route::get('/table/stats', [TableApiController::class , 'stats'])->middleware('throttle:read');
+    Route::get('/table/{identify}', [TableApiController::class , 'show'])->middleware('throttle:read');
+    Route::post('/table', [TableApiController::class , 'store'])->middleware('throttle:critical');
+    Route::put('/table/{id}', [TableApiController::class , 'update'])->middleware('throttle:critical');
+    Route::delete('/table/{identify}', [TableApiController::class , 'delete'])->middleware('throttle:critical');
 
     // Categorias (protegidas)
-    Route::get('/category', [CategoryApiController::class , 'index']);
-    Route::get('/category/stats', [CategoryApiController::class , 'stats']);
-    Route::post('/category', [CategoryApiController::class , 'store']);
-    Route::get('/category/{identify}', [CategoryApiController::class , 'show']);
-    Route::put('/category/{id}', [CategoryApiController::class , 'update']);
-    Route::delete('/category/{identify}', [CategoryApiController::class , 'delete']);
+    Route::get('/category', [CategoryApiController::class , 'index'])->middleware('throttle:read');
+    Route::get('/category/stats', [CategoryApiController::class , 'stats'])->middleware('throttle:read');
+    Route::get('/category/{identify}', [CategoryApiController::class , 'show'])->middleware('throttle:read');
+    Route::post('/category', [CategoryApiController::class , 'store'])->middleware('throttle:critical');
+    Route::put('/category/{id}', [CategoryApiController::class , 'update'])->middleware('throttle:critical');
+    Route::delete('/category/{identify}', [CategoryApiController::class , 'delete'])->middleware('throttle:critical');
     
 
     // Usuários
-    Route::get('/user', [UserApiController::class , 'index']);
-    Route::post('/user', [UserApiController::class , 'store']);
-    Route::get('/user/{user}', [UserApiController::class , 'show']);
-    Route::put('/user/{user}', [UserApiController::class , 'update']);
-    Route::delete('/user/{user}', [UserApiController::class , 'destroy']);
+    Route::get('/user', [UserApiController::class , 'index'])->middleware('throttle:read');
+    Route::get('/user/{user}', [UserApiController::class , 'show'])->middleware('throttle:read');
+    Route::post('/user', [UserApiController::class , 'store'])->middleware('throttle:critical');
+    Route::put('/user/{user}', [UserApiController::class , 'update'])->middleware('throttle:critical');
+    Route::delete('/user/{user}', [UserApiController::class , 'destroy'])->middleware('throttle:critical');
 
     // Clientes (protegidas por autenticação)
-    Route::get('/client', [ClientApiController::class, 'index']);
-    Route::get('/client/stats', [ClientApiController::class, 'stats']);
-    Route::post('/client', [ClientApiController::class, 'store']);
-    Route::get('/client/{id}', [ClientApiController::class, 'show']);
-    Route::put('/client/{id}', [ClientApiController::class, 'update']);
-    Route::delete('/client/{id}', [ClientApiController::class, 'destroy']);
+    Route::get('/client', [ClientApiController::class, 'index'])->middleware('throttle:read');
+    Route::get('/client/stats', [ClientApiController::class, 'stats'])->middleware('throttle:read');
+    Route::get('/client/{id}', [ClientApiController::class, 'show'])->middleware('throttle:read');
+    Route::post('/client', [ClientApiController::class, 'store'])->middleware('throttle:critical');
+    Route::put('/client/{id}', [ClientApiController::class, 'update'])->middleware('throttle:critical');
+    Route::delete('/client/{id}', [ClientApiController::class, 'destroy'])->middleware('throttle:critical');
 
     // Estatísticas de pedidos
-    Route::get('/order/stats', [OrderStatsApiController::class, 'stats']);
+    Route::get('/order/stats', [OrderStatsApiController::class, 'stats'])->middleware('throttle:read');
 
     // Estatísticas de usuários
-    Route::get('/user/stats', [UserStatsApiController::class, 'stats']);
+    Route::get('/user/stats', [UserStatsApiController::class, 'stats'])->middleware('throttle:read');
 
 
     // Dashboard
-    Route::get('/dashboard', [DashboardApiController::class, 'index']);
+    Route::get('/dashboard', [DashboardApiController::class, 'index'])->middleware('throttle:read');
 });
-
 
 // Cliente (movido para dentro do middleware auth:api)
 
-Route::get('/tenant', [TenantApiController::class , 'index']);
-Route::get('/tenant/{uuid}', [TenantApiController::class , 'show']);
-Route::post('/tenant', [TenantApiController::class , 'store']);
+Route::get('/tenant', [TenantApiController::class , 'index'])->middleware('throttle:read');
+Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware('throttle:read');
+Route::post('/tenant', [TenantApiController::class , 'store'])->middleware('throttle:register');
 
 
-Route::get('/plan/{id}/details', [DetailPlanApiController::class , 'index']);
-Route::post('/plan/{id}/details', [DetailPlanApiController::class , 'store']);
-Route::put('/plan/{url}/details/{idDetail}', [DetailPlanApiController::class , 'update']);
+Route::get('/plan/{id}/details', [DetailPlanApiController::class , 'index'])->middleware('throttle:read');
+Route::post('/plan/{id}/details', [DetailPlanApiController::class , 'store'])->middleware('throttle:critical');
+Route::put('/plan/{url}/details/{idDetail}', [DetailPlanApiController::class , 'update'])->middleware('throttle:critical');
 
-Route::get('/plan', [PlanApiController::class , 'index']);
-Route::get('/plan/{id}', [PlanApiController::class , 'show']);
-Route::post('/plan', [PlanApiController::class , 'store']);
-Route::delete('/plan/{id}', [PlanApiController::class , 'delete']);
-Route::put('/plan/{id}', [PlanApiController::class , 'update']);
+Route::get('/plan', [PlanApiController::class , 'index'])->middleware('throttle:read');
+Route::get('/plan/{id}', [PlanApiController::class , 'show'])->middleware('throttle:read');
+Route::post('/plan', [PlanApiController::class , 'store'])->middleware('throttle:critical');
+Route::delete('/plan/{id}', [PlanApiController::class , 'delete'])->middleware('throttle:critical');
+Route::put('/plan/{id}', [PlanApiController::class , 'update'])->middleware('throttle:critical');
 
 // Rotas para gestão de usuários, perfis e permissões
 Route::middleware(['auth:api'])->group(function () {
     // Usuários
     Route::prefix('users')->group(function () {
-        Route::get('/', [UserApiController::class, 'index'])->middleware('acl.permission:users.index');
-        Route::post('/', [UserApiController::class, 'store'])->middleware('acl.permission:users.create');
-        Route::get('/{id}', [UserApiController::class, 'show'])->middleware('acl.permission:users.show');
-        Route::put('/{id}', [UserApiController::class, 'update'])->middleware('acl.permission:users.update');
-        Route::delete('/{id}', [UserApiController::class, 'destroy'])->middleware('acl.permission:users.delete');
-        Route::post('/{id}/assign-profile', [UserApiController::class, 'assignProfile'])->middleware('acl.permission:users.update');
-        Route::put('/{id}/change-password', [UserApiController::class, 'changePassword'])->middleware('acl.permission:users.update');
-        Route::get('/{id}/permissions', [UserApiController::class, 'getUserPermissions'])->middleware('acl.permission:users.show');
+        Route::get('/', [UserApiController::class, 'index'])->middleware(['acl.permission:users.index', 'throttle:read']);
+        Route::post('/', [UserApiController::class, 'store'])->middleware(['acl.permission:users.create', 'throttle:critical']);
+        Route::get('/{id}', [UserApiController::class, 'show'])->middleware(['acl.permission:users.show', 'throttle:read']);
+        Route::put('/{id}', [UserApiController::class, 'update'])->middleware(['acl.permission:users.update', 'throttle:critical']);
+        Route::delete('/{id}', [UserApiController::class, 'destroy'])->middleware(['acl.permission:users.delete', 'throttle:critical']);
+        Route::post('/{id}/assign-profile', [UserApiController::class, 'assignProfile'])->middleware(['acl.permission:users.update', 'throttle:critical']);
+        Route::put('/{id}/change-password', [UserApiController::class, 'changePassword'])->middleware(['acl.permission:users.update', 'throttle:critical']);
+        Route::get('/{id}/permissions', [UserApiController::class, 'getUserPermissions'])->middleware(['acl.permission:users.show', 'throttle:read']);
     });
 
     // Perfis
     Route::prefix('profiles')->group(function () {
-        Route::get('/', [ProfileApiController::class, 'index']);
-        Route::post('/', [ProfileApiController::class, 'store']);
-        Route::get('/{id}', [ProfileApiController::class, 'show']);
-        Route::put('/{id}', [ProfileApiController::class, 'update']);
-        Route::delete('/{id}', [ProfileApiController::class, 'destroy']);
+        Route::get('/', [ProfileApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [ProfileApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/{id}', [ProfileApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [ProfileApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [ProfileApiController::class, 'destroy'])->middleware('throttle:critical');
         
         // Gerenciar permissões do perfil
-        Route::get('/{id}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions']);
-        Route::get('/{id}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile']);
-        Route::post('/{id}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile']);
-        Route::delete('/{id}/permissions/{permissionId}', [PermissionProfileApiController::class, 'detachPermissionFromProfile']);
-        Route::put('/{id}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile']);
+        Route::get('/{id}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions'])->middleware('throttle:read');
+        Route::get('/{id}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile'])->middleware('throttle:read');
+        Route::post('/{id}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile'])->middleware('throttle:critical');
+        Route::delete('/{id}/permissions/{permissionId}', [PermissionProfileApiController::class, 'detachPermissionFromProfile'])->middleware('throttle:critical');
+        Route::put('/{id}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile'])->middleware('throttle:critical');
     });
 
     // Permissões
     Route::prefix('permissions')->group(function () {
-        Route::get('/', [PermissionApiController::class, 'index']);
-        Route::post('/', [PermissionApiController::class, 'store']);
-        Route::get('/{id}', [PermissionApiController::class, 'show']);
-        Route::put('/{id}', [PermissionApiController::class, 'update']);
-        Route::delete('/{id}', [PermissionApiController::class, 'destroy']);
-        Route::get('/{id}/usage', [PermissionApiController::class, 'checkUsage']);
-        Route::get('/{id}/profiles', [PermissionProfileApiController::class, 'getPermissionProfiles']);
+        Route::get('/', [PermissionApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [PermissionApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/{id}', [PermissionApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [PermissionApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [PermissionApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/{id}/usage', [PermissionApiController::class, 'checkUsage'])->middleware('throttle:read');
+        Route::get('/{id}/profiles', [PermissionProfileApiController::class, 'getPermissionProfiles'])->middleware('throttle:read');
     });
 
     // Roles
     Route::prefix('role')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\RoleApiController::class, 'index']);
-        Route::post('/', [\App\Http\Controllers\Api\RoleApiController::class, 'store']);
-        Route::get('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'show']);
-        Route::put('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'update']);
-        Route::delete('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'destroy']);
-        Route::get('/{id}/permissions', [\App\Http\Controllers\Api\RoleApiController::class, 'getRolePermissions']);
-        Route::post('/{id}/permissions', [\App\Http\Controllers\Api\RoleApiController::class, 'attachPermissionToRole']);
-        Route::delete('/{id}/permissions/{permissionId}', [\App\Http\Controllers\Api\RoleApiController::class, 'detachPermissionFromRole']);
-        Route::put('/{id}/permissions/sync', [\App\Http\Controllers\Api\RoleApiController::class, 'syncPermissionsForRole']);
+        Route::get('/', [\App\Http\Controllers\Api\RoleApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [\App\Http\Controllers\Api\RoleApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/{id}/permissions', [\App\Http\Controllers\Api\RoleApiController::class, 'getRolePermissions'])->middleware('throttle:read');
+        Route::post('/{id}/permissions', [\App\Http\Controllers\Api\RoleApiController::class, 'attachPermissionToRole'])->middleware('throttle:critical');
+        Route::delete('/{id}/permissions/{permissionId}', [\App\Http\Controllers\Api\RoleApiController::class, 'detachPermissionFromRole'])->middleware('throttle:critical');
+        Route::put('/{id}/permissions/sync', [\App\Http\Controllers\Api\RoleApiController::class, 'syncPermissionsForRole'])->middleware('throttle:critical');
     });
 
     // Profile (alias para profiles)
     Route::prefix('profile')->group(function () {
-        Route::get('/', [ProfileApiController::class, 'index']);
-        Route::post('/', [ProfileApiController::class, 'store']);
-        Route::get('/{id}', [ProfileApiController::class, 'show']);
-        Route::put('/{id}', [ProfileApiController::class, 'update']);
-        Route::delete('/{id}', [ProfileApiController::class, 'destroy']);
+        Route::get('/', [ProfileApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [ProfileApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/{id}', [ProfileApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [ProfileApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [ProfileApiController::class, 'destroy'])->middleware('throttle:critical');
         
         // Gerenciar permissões do perfil
-        Route::get('/{id}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions']);
-        Route::get('/{id}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile']);
-        Route::post('/{id}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile']);
-        Route::delete('/{id}/permissions/{permissionId}', [PermissionProfileApiController::class, 'detachPermissionFromProfile']);
-        Route::put('/{id}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile']);
+        Route::get('/{id}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions'])->middleware('throttle:read');
+        Route::get('/{id}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile'])->middleware('throttle:read');
+        Route::post('/{id}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile'])->middleware('throttle:critical');
+        Route::delete('/{id}/permissions/{permissionId}', [PermissionProfileApiController::class, 'detachPermissionFromProfile'])->middleware('throttle:critical');
+        Route::put('/{id}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile'])->middleware('throttle:critical');
     });
 
     // Formas de Pagamento
     Route::prefix('payment-methods')->group(function () {
-        Route::get('/', [PaymentMethodApiController::class, 'index']);
-        Route::post('/', [PaymentMethodApiController::class, 'store']);
-        Route::get('/active', [PaymentMethodApiController::class, 'active']);
-        Route::get('/{uuid}', [PaymentMethodApiController::class, 'show']);
-        Route::put('/{uuid}', [PaymentMethodApiController::class, 'update']);
-        Route::delete('/{uuid}', [PaymentMethodApiController::class, 'destroy']);
+        Route::get('/', [PaymentMethodApiController::class, 'index'])->middleware('throttle:read');
+        Route::get('/active', [PaymentMethodApiController::class, 'active'])->middleware('throttle:read');
+        Route::get('/{uuid}', [PaymentMethodApiController::class, 'show'])->middleware('throttle:read');
+        Route::post('/', [PaymentMethodApiController::class, 'store'])->middleware('throttle:critical');
+        Route::put('/{uuid}', [PaymentMethodApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{uuid}', [PaymentMethodApiController::class, 'destroy'])->middleware('throttle:critical');
     });
 });
 

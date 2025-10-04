@@ -132,10 +132,27 @@ class ClientApiController extends Controller
     public function show($id): JsonResponse
     {
         try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
             $client = $this->clientService->getClientById($id);
+            
             if (!$client) {
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
+            
+            // Verificar se o cliente pertence ao tenant do usuário
+            if ($client->tenant_id !== $user->tenant_id) {
+                return ApiResponseClass::forbidden('Acesso negado ao cliente');
+            }
+            
             return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente encontrado com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
@@ -177,10 +194,29 @@ class ClientApiController extends Controller
     public function update(UpdateClient $request, $id): JsonResponse
     {
         try {
-            $client = $this->clientService->updateClient($id, $request->all());
-            if (!$client) {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
+            // Verificar se o cliente existe e pertence ao tenant do usuário
+            $existingClient = $this->clientService->getClientById($id);
+            
+            if (!$existingClient) {
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
+            
+            if ($existingClient->tenant_id !== $user->tenant_id) {
+                return ApiResponseClass::forbidden('Acesso negado ao cliente');
+            }
+            
+            $client = $this->clientService->updateClient($id, $request->all());
+            
             return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente atualizado com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar cliente');
@@ -217,10 +253,29 @@ class ClientApiController extends Controller
     public function destroy($id): JsonResponse
     {
         try {
-            $result = $this->clientService->deleteClient($id);
-            if (!$result) {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
+            // Verificar se o cliente existe e pertence ao tenant do usuário
+            $existingClient = $this->clientService->getClientById($id);
+            
+            if (!$existingClient) {
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
+            
+            if ($existingClient->tenant_id !== $user->tenant_id) {
+                return ApiResponseClass::forbidden('Acesso negado ao cliente');
+            }
+            
+            $result = $this->clientService->deleteClient($id);
+            
             return ApiResponseClass::sendResponse(null, 'Cliente excluído com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao excluir cliente');

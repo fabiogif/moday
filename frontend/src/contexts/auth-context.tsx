@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   setUser: (user: User) => void
   setToken: (token: string) => void
 }
@@ -49,16 +49,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const savedUser = localStorage.getItem('auth-user')
     const savedToken = localStorage.getItem('auth-token')
     
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AuthContext: Inicializando autenticação')
+      console.log('AuthContext: Token presente?', !!savedToken)
+      console.log('AuthContext: Token é JWT?', savedToken?.startsWith('eyJ'))
+    }
+    
     if (savedUser && savedToken) {
-      try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
-        setToken(savedToken)
-        setIsAuthenticated(true)
-      } catch (error) {
-        console.error('Erro ao recuperar dados de autenticação:', error)
+      // Validar se o token parece ser um JWT válido
+      if (!savedToken.startsWith('eyJ')) {
+        console.error('AuthContext: Token inválido encontrado (não é JWT). Limpando...')
         localStorage.removeItem('auth-user')
         localStorage.removeItem('auth-token')
+        document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      } else {
+        try {
+          const userData = JSON.parse(savedUser)
+          setUser(userData)
+          setToken(savedToken)
+          setIsAuthenticated(true)
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('AuthContext: Autenticação restaurada com sucesso')
+          }
+        } catch (error) {
+          console.error('Erro ao recuperar dados de autenticação:', error)
+          localStorage.removeItem('auth-user')
+          localStorage.removeItem('auth-token')
+        }
       }
     }
     
@@ -72,7 +90,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
+        credentials: 'include', // Importante para cookies
         body: JSON.stringify({ email, password }),
       })
 
@@ -83,16 +103,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const data = await response.json()
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log('AuthContext: Login bem-sucedido')
+        console.log('AuthContext: Token recebido?', !!data.token)
+        console.log('AuthContext: Token é JWT?', data.token?.startsWith('eyJ'))
+      }
+      
       setUser(data.user)
-      setToken(data.token)
+      setToken(data.token) // Armazenar o token JWT recebido
       setIsAuthenticated(true)
 
-      // Salvar no localStorage
+      // Salvar dados do usuário e token
       localStorage.setItem('auth-user', JSON.stringify(data.user))
       localStorage.setItem('auth-token', data.token)
-
-      // Salvar token no cookie
-      document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}` // 7 dias
+      
+      // Também salvar no cookie para compatibilidade
+      document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`
     } catch (error) {
       throw error
     } finally {
@@ -100,17 +126,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    setToken(null)
-    setIsAuthenticated(false)
-    
-    // Remover do localStorage
-    localStorage.removeItem('auth-user')
-    localStorage.removeItem('auth-token')
-    
-    // Remover token do cookie
-    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+  const logout = async () => {
+    try {
+      // Chamar logout no backend
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+    } catch (error) {
+      console.error('Erro ao fazer logout no backend:', error)
+    } finally {
+      setUser(null)
+      setToken(null)
+      setIsAuthenticated(false)
+      
+      // Remover dados do localStorage
+      localStorage.removeItem('auth-user')
+      localStorage.removeItem('auth-token')
+      
+      // Limpar cookie
+      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
   }
 
   const updateUser = (userData: User) => {

@@ -604,7 +604,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem className="md:col-span-2">
                       <FormLabel>Endereço *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua das Flores, 123" {...field} />
+                        <Input placeholder="Rua das Flores, 123" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -618,7 +618,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>Número</FormLabel>
                       <FormControl>
-                        <Input placeholder="123" {...field} />
+                        <Input placeholder="123" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -632,7 +632,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>Complemento</FormLabel>
                       <FormControl>
-                        <Input placeholder="Apto 101" {...field} />
+                        <Input placeholder="Apto 101" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -646,7 +646,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>Bairro</FormLabel>
                       <FormControl>
-                        <Input placeholder="Centro" {...field} />
+                        <Input placeholder="Centro" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -660,7 +660,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>Cidade *</FormLabel>
                       <FormControl>
-                        <Input placeholder="São Paulo" {...field} />
+                        <Input placeholder="São Paulo" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -674,7 +674,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>Estado</FormLabel>
                       <FormControl>
-                        <Input placeholder="SP" {...field} />
+                        <Input placeholder="SP" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -688,7 +688,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     <FormItem>
                       <FormLabel>CEP</FormLabel>
                       <FormControl>
-                        <Input placeholder="01234-567" {...field} />
+                        <Input placeholder="01234-567" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1365,7 +1365,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem className="md:col-span-2">
                               <FormLabel>Endereço *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Rua das Flores, 123" {...field} />
+                                <Input placeholder="Rua das Flores, 123" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1379,7 +1379,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>Número</FormLabel>
                               <FormControl>
-                                <Input placeholder="123" {...field} />
+                                <Input placeholder="123" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1393,7 +1393,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>Complemento</FormLabel>
                               <FormControl>
-                                <Input placeholder="Apto 101" {...field} />
+                                <Input placeholder="Apto 101" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1407,7 +1407,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>Bairro</FormLabel>
                               <FormControl>
-                                <Input placeholder="Centro" {...field} />
+                                <Input placeholder="Centro" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1421,7 +1421,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>Cidade *</FormLabel>
                               <FormControl>
-                                <Input placeholder="São Paulo" {...field} />
+                                <Input placeholder="São Paulo" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1435,7 +1435,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>Estado</FormLabel>
                               <FormControl>
-                                <Input placeholder="SP" {...field} />
+                                <Input placeholder="SP" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1449,7 +1449,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             <FormItem>
                               <FormLabel>CEP</FormLabel>
                               <FormControl>
-                                <Input placeholder="01234-567" {...field} />
+                                <Input placeholder="01234-567" {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

@@ -69,5 +69,6 @@ class Kernel extends HttpKernel
         'permission.any' => \App\Http\Middleware\CheckAnyPermission::class,
         'role.any' => \App\Http\Middleware\CheckAnyRole::class,
         'acl.permission' => \App\Http\Middleware\PermissionMiddleware::class,
+        'csrf.api' => \App\Http\Middleware\VerifyCsrfTokenApi::class,
     ];
 }

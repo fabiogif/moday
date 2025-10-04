@@ -696,7 +696,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>Endereço *</FormLabel>
                             <FormControl>
-                              <Input placeholder="Rua das Flores, 123" {...field} />
+                              <Input placeholder="Rua das Flores, 123" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -710,7 +710,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>Bairro</FormLabel>
                             <FormControl>
-                              <Input placeholder="Centro" {...field} />
+                              <Input placeholder="Centro" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -724,7 +724,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>Cidade *</FormLabel>
                             <FormControl>
-                              <Input placeholder="São Paulo" {...field} />
+                              <Input placeholder="São Paulo" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -738,7 +738,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>Estado</FormLabel>
                             <FormControl>
-                              <Input placeholder="SP" {...field} />
+                              <Input placeholder="SP" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -752,7 +752,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>CEP</FormLabel>
                             <FormControl>
-                              <Input placeholder="01000-000" {...field} />
+                              <Input placeholder="01000-000" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -766,7 +766,7 @@ export default function NewOrderPage() {
                           <FormItem>
                             <FormLabel>Número</FormLabel>
                             <FormControl>
-                              <Input placeholder="123" {...field} />
+                              <Input placeholder="123" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -780,7 +780,7 @@ export default function NewOrderPage() {
                           <FormItem className="md:col-span-2">
                             <FormLabel>Complemento</FormLabel>
                             <FormControl>
-                              <Input placeholder="Apartamento 101, Bloco A" {...field} />
+                              <Input placeholder="Apartamento 101, Bloco A" {...field} value={field.value || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -796,7 +796,8 @@ export default function NewOrderPage() {
                             <FormControl>
                               <Textarea 
                                 placeholder="Observações especiais para a entrega..."
-                                {...field} 
+                                {...field}
+                                value={field.value || ""}
                               />
                             </FormControl>
                             <FormMessage />

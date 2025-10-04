@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -113,6 +114,7 @@ export function DataTable({
   onOpenDialog,
   onShowSuccessAlert,
 }: DataTableProps) {
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -125,6 +127,10 @@ export function DataTable({
     return isActive
       ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-300 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
       : "bg-red-100 text-red-800 hover:bg-red-200 border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800";
+  };
+
+  const handleViewDetails = (clientId: number) => {
+    router.push(`/clients/${clientId}`);
   };
 
   const handleDeleteClick = (client: Client) => {
@@ -295,7 +301,7 @@ export function DataTable({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(client.name)}
+                onClick={() => handleViewDetails(client.id)}
               >
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes

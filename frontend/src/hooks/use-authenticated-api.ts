@@ -199,6 +199,12 @@ export function useMutation<T, P = any>() {
           break
       }
 
+      // Verificar se a resposta existe e é válida
+      if (!response) {
+        setError('Resposta vazia do servidor')
+        return null
+      }
+
       if (response.success) {
         return response.data
       } else {

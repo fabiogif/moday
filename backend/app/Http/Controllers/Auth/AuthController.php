@@ -83,11 +83,22 @@ class AuthController extends ApiController
                 ]);
             }
 
+            // Criar cookie HttpOnly seguro (TTL padrão de 24 horas)
+            $cookie = cookie(
+                'auth_token',
+                $result['token'],
+                24 * 60, // 24 horas em minutos
+                '/',
+                null,
+                true, // secure (HTTPS)
+                true  // httpOnly
+            );
+
             return ApiResponseClass::sendResponse([
                 'user' => new UserResource($result['user']),
-                'token' => $result['token'],
-                'expires_in' => auth('api')->factory()->getTTL() * 60
-            ], 'Login realizado com sucesso');
+                'token' => $result['token'], // Incluir token no JSON
+                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
+            ], 'Login realizado com sucesso')->withCookie($cookie);
 
         } catch (ValidationException $e) {
             return response()->json([
@@ -155,7 +166,7 @@ class AuthController extends ApiController
             return ApiResponseClass::sendResponse([
                 'user' => new UserResource($result['user']),
                 'token' => $result['token'],
-                'expires_in' => auth('api')->factory()->getTTL() * 60
+                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
             ], 'Usuário registrado com sucesso', 201);
 
         } catch (\Exception $e) {
@@ -203,8 +214,13 @@ class AuthController extends ApiController
         try {
             $user = auth('api')->user();
             
+            // Carregar relacionamentos diretamente
+            $user->tenant;
+            $user->profiles;
+            
             return ApiResponseClass::sendResponse(
-                new UserResource($user->load(['tenant', 'profiles.permissions']))
+                new UserResource($user),
+                'Dados do usuário recuperados com sucesso'
             );
 
         } catch (\Exception $e) {
@@ -221,7 +237,11 @@ class AuthController extends ApiController
         try {
             auth('api')->logout();
             
-            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso');
+            // Limpar cookie HttpOnly
+            $cookie = cookie('auth_token', '', -1, '/', null, true, true);
+            
+            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso')
+                ->withCookie($cookie);
 
         } catch (\Exception $e) {
             Log::error('Erro no logout: ' . $e->getMessage());
@@ -235,12 +255,31 @@ class AuthController extends ApiController
     public function refresh(): JsonResponse
     {
         try {
-            $token = auth('api')->refresh();
+            // Para JWT, vamos usar o AuthService para gerar novo token
+            $user = auth('api')->user();
+            $result = $this->authService->login([
+                'email' => $user->email,
+                'password' => 'dummy' // Não será usado pois o usuário já está autenticado
+            ]);
+            
+            if (!$result['success']) {
+                throw new \Exception('Erro ao renovar token');
+            }
+            
+            // Criar novo cookie HttpOnly
+            $cookie = cookie(
+                'auth_token',
+                $result['token'],
+                24 * 60, // 24 horas
+                '/',
+                null,
+                true, // secure
+                true  // httpOnly
+            );
             
             return ApiResponseClass::sendResponse([
-                'token' => $token,
-                'expires_in' => auth('api')->factory()->getTTL() * 60
-            ]);
+                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
+            ], 'Token renovado com sucesso')->withCookie($cookie);
 
         } catch (\Exception $e) {
             Log::error('Erro ao renovar token: ' . $e->getMessage());

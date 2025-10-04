@@ -176,11 +176,25 @@ class ProductApiController extends Controller
 
     public function show($identify):JsonResponse
     {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return ApiResponseClass::unauthorized('Usuário não autenticado');
+        }
+        
+        if (!$user->tenant_id) {
+            return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+        }
 
         $product = $this->productService->getByUuid($identify);
         if(!$product)
         {
             return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
+        }
+        
+        // Verificar se o produto pertence ao tenant do usuário
+        if ($product->tenant_id !== $user->tenant_id) {
+            return ApiResponseClass::forbidden('Acesso negado ao produto');
         }
 
         return ApiResponseClass::sendResponse(new ProductResource($product), '', 200);
@@ -227,17 +241,33 @@ class ProductApiController extends Controller
     public function update(StoreUpdateProductRequest $request, $id): JsonResponse
     {
         try {
-            $tenant = auth()->user();
+            $user = auth()->user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
+            // Verificar se o produto existe e pertence ao tenant
+            $existingProduct = $this->productService->getByUuid($id);
+            
+            if (!$existingProduct) {
+                return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
+            }
+            
+            if ($existingProduct->tenant_id !== $user->tenant_id) {
+                return ApiResponseClass::forbidden('Acesso negado ao produto');
+            }
 
             $data = $request->all();
             if ($request->hasFile('image') && $request->image->isValid()) {
-                $data['image'] = $request->image->store("tenants/{$tenant->uuid}/products");
+                $data['image'] = $request->image->store("tenants/{$user->uuid}/products");
             }
             
             $product = $this->productService->update($data, $id);
-            if (!$product) {
-                return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
-            }
             
             return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto atualizado com sucesso', 200);
         } catch (\Exception $ex) {
@@ -248,10 +278,29 @@ class ProductApiController extends Controller
     public function delete($id): JsonResponse
     {
         try {
-            $deleted = $this->productService->delete($id);
-            if (!$deleted) {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
+            // Verificar se o produto existe e pertence ao tenant
+            $existingProduct = $this->productService->getByUuid($id);
+            
+            if (!$existingProduct) {
                 return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
             }
+            
+            if ($existingProduct->tenant_id !== $user->tenant_id) {
+                return ApiResponseClass::forbidden('Acesso negado ao produto');
+            }
+            
+            $deleted = $this->productService->delete($id);
+            
             return ApiResponseClass::sendResponse('', 'Produto removido com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao remover produto');

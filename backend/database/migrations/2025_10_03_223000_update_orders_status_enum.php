@@ -9,9 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("
-            ALTER TABLE orders 
-            MODIFY COLUMN status ENUM(
+        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM(
                 'Preparo', 
                 'Pronto', 
                 'Entregue', 
@@ -21,10 +19,9 @@ return new class extends Migration
                 'Completo', 
                 'Cancelado', 
                 'Rejeitado', 
-                'Em Entrega'
-            ) DEFAULT 'Pendente'
-        ");
+                'Em Entrega') DEFAULT 'Pendente'");
     }
+
     
     public function down(): void
     {
@@ -38,7 +35,4 @@ return new class extends Migration
             ) DEFAULT 'Preparo'
         ");
     }
-}
-
-
-
+};

@@ -291,7 +291,7 @@ export default function EditOrderPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status do Pedido</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o status" />
@@ -578,8 +578,8 @@ export default function EditOrderPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(order.products || order.items || []).map((item) => (
-                  <div key={item.id} className="flex justify-between items-center">
+                {(order.products || order.items || []).map((item, index) => (
+                  <div key={`item-${item.id}-${index}`} className="flex justify-between items-center">
                     <div className="flex-1">
                       <p className="text-sm font-medium">{item.name}</p>
                       <p className="text-xs text-muted-foreground">

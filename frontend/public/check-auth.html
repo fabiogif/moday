@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h1>Debug de Autenticação</h1>
+    <button onclick="checkAuth()">Verificar Estado</button>
+    <button onclick="clearAuth()">Limpar Tudo</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function checkAuth() {
+            const output = document.getElementById('output');
+            const token = localStorage.getItem('auth-token');
+            const user = localStorage.getItem('auth-user');
+            const cookies = document.cookie;
+            
+            output.textContent = `
+LocalStorage Token: ${token ? (token.length > 20 ? token.substring(0, 20) + '... (length: ' + token.length + ')' : token) : 'NULL'}
+LocalStorage User: ${user ? 'Present' : 'NULL'}
+Cookies: ${cookies || 'Empty'}
+
+Token is JWT? ${token && token.startsWith('eyJ') ? 'YES' : 'NO (THIS IS THE PROBLEM!)'}
+            `;
+        }
+        
+        function clearAuth() {
+            localStorage.removeItem('auth-token');
+            localStorage.removeItem('auth-user');
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            alert('Auth cleared! Please login again.');
+            checkAuth();
+        }
+        
+        // Auto-check on load
+        checkAuth();
+    </script>
+</body>
+</html>

@@ -18,10 +18,10 @@ export function AuthDebug() {
     console.log('=== DEBUG AUTENTICAÇÃO ===')
     console.log('AuthStore - isAuthenticated:', isAuthenticated)
     console.log('AuthStore - user:', user)
-    console.log('AuthStore - token:', token ? `${token.substring(0, 20)}...` : 'null')
-    console.log('localStorage token:', localStorageToken ? `${localStorageToken.substring(0, 20)}...` : 'null')
-    console.log('Cookie token:', authCookie ? authCookie.split('=')[1].substring(0, 20) + '...' : 'null')
-    console.log('ApiClient token:', (apiClient as any).token ? `${(apiClient as any).token.substring(0, 20)}...` : 'null')
+    console.log('AuthStore - hasToken:', !!token)
+    console.log('localStorage hasToken:', !!localStorageToken)
+    console.log('Cookie hasToken:', !!authCookie)
+    console.log('ApiClient hasToken:', !!(apiClient as any).token)
     console.log('========================')
   }
 

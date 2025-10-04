@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -89,6 +90,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProduct }: DataTableProps) {
+  const router = useRouter();
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -106,6 +108,10 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
     if (qtd_stock < 3) return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
      return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
   }
+
+  const handleViewDetails = (productId: number | string) => {
+    router.push(`/products/${productId}`);
+  };
 
   const filterCategories = (row: any, columnId: string, filterValue: string) => {
     if (!filterValue || filterValue === "all") return true
@@ -237,7 +243,7 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(product.name)}>
+              <DropdownMenuItem onClick={() => handleViewDetails(product.id || product.identify || '')}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>
