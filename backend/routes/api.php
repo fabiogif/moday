@@ -99,6 +99,7 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Pedidos
     Route::get('/order', [OrderApiController::class , 'index'])->middleware('throttle:read');
+    Route::get('/order/stats', [OrderStatsApiController::class, 'stats'])->middleware('throttle:read');
     Route::get('/order/client/', [OrderApiController::class , 'orderByClient'])->middleware('throttle:read');
     Route::get('/order/{identify}', [OrderApiController::class , 'show'])->middleware('throttle:read');
     Route::get('/order/{identify}/receipt', [OrderApiController::class , 'receipt'])->middleware('throttle:read');
@@ -139,9 +140,6 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('/client', [ClientApiController::class, 'store'])->middleware('throttle:critical');
     Route::put('/client/{id}', [ClientApiController::class, 'update'])->middleware('throttle:critical');
     Route::delete('/client/{id}', [ClientApiController::class, 'destroy'])->middleware('throttle:critical');
-
-    // Estatísticas de pedidos
-    Route::get('/order/stats', [OrderStatsApiController::class, 'stats'])->middleware('throttle:read');
 
     // Estatísticas de usuários
     Route::get('/user/stats', [UserStatsApiController::class, 'stats'])->middleware('throttle:read');

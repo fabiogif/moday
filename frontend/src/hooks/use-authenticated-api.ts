@@ -130,6 +130,10 @@ export function useAuthenticatedOrders(params?: { page?: number; per_page?: numb
   return useAuthenticatedApi(`${endpoints.orders.list}${queryString}`, { immediate: true })
 }
 
+export function useAuthenticatedOrderStats() {
+  return useAuthenticatedApi(endpoints.orders.stats, { immediate: true })
+}
+
 export function useAuthenticatedTables() {
   return useAuthenticatedApi(endpoints.tables.list, { immediate: true })
 }

@@ -233,6 +233,7 @@ export const endpoints = {
   // Pedidos
   orders: {
     list: '/api/order',
+    stats: '/api/order/stats',
     create: '/api/order',
     show: (id: string) => `/api/order/${id}`,
     update: (id: string) => `/api/order/${id}`,

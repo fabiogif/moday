@@ -222,12 +222,35 @@ readonly class OrderService
         $currentAvgOrderValue = $currentTotalOrders > 0 ? $currentRevenue / $currentTotalOrders : 0;
         $previousAvgOrderValue = $previousTotalOrders > 0 ? $previousRevenue / $previousTotalOrders : 0;
 
-        // Orders by status
+        // Orders by status (current month)
         $currentOrdersByStatus = $currentMonthOrders->groupBy('status')
             ->map(function ($orders) {
                 return $orders->count();
             })
             ->toArray();
+        
+        // Orders by status (previous month)
+        $previousOrdersByStatus = $previousMonthOrders->groupBy('status')
+            ->map(function ($orders) {
+                return $orders->count();
+            })
+            ->toArray();
+
+        // Calcular estatísticas específicas por status
+        $pendingCurrent = $currentOrdersByStatus['Pendente'] ?? 0;
+        $pendingPrevious = $previousOrdersByStatus['Pendente'] ?? 0;
+        
+        $paidCurrent = $currentOrdersByStatus['Pago'] ?? 0;
+        $paidPrevious = $previousOrdersByStatus['Pago'] ?? 0;
+        
+        $deliveredCurrent = $currentOrdersByStatus['Entregue'] ?? 0;
+        $deliveredPrevious = $previousOrdersByStatus['Entregue'] ?? 0;
+        
+        $inProgressCurrent = $currentOrdersByStatus['Em Preparo'] ?? 0;
+        $inProgressPrevious = $previousOrdersByStatus['Em Preparo'] ?? 0;
+        
+        $canceledCurrent = $currentOrdersByStatus['Cancelado'] ?? 0;
+        $canceledPrevious = $previousOrdersByStatus['Cancelado'] ?? 0;
 
         // Calculate growth percentages
         $ordersGrowth = $previousTotalOrders > 0 
@@ -241,6 +264,18 @@ readonly class OrderService
         $avgOrderValueGrowth = $previousAvgOrderValue > 0 
             ? round((($currentAvgOrderValue - $previousAvgOrderValue) / $previousAvgOrderValue) * 100, 1)
             : ($currentAvgOrderValue > 0 ? 100 : 0);
+        
+        $pendingGrowth = $pendingPrevious > 0
+            ? round((($pendingCurrent - $pendingPrevious) / $pendingPrevious) * 100, 1)
+            : ($pendingCurrent > 0 ? 100 : 0);
+        
+        $paidGrowth = $paidPrevious > 0
+            ? round((($paidCurrent - $paidPrevious) / $paidPrevious) * 100, 1)
+            : ($paidCurrent > 0 ? 100 : 0);
+        
+        $deliveredGrowth = $deliveredPrevious > 0
+            ? round((($deliveredCurrent - $deliveredPrevious) / $deliveredPrevious) * 100, 1)
+            : ($deliveredCurrent > 0 ? 100 : 0);
 
         return [
             'total_orders' => [
@@ -257,6 +292,35 @@ readonly class OrderService
                 'current' => round($currentAvgOrderValue, 2),
                 'previous' => round($previousAvgOrderValue, 2),
                 'growth' => $avgOrderValueGrowth
+            ],
+            'pending_orders' => [
+                'current' => $pendingCurrent,
+                'previous' => $pendingPrevious,
+                'growth' => $pendingGrowth
+            ],
+            'paid_orders' => [
+                'current' => $paidCurrent,
+                'previous' => $paidPrevious,
+                'growth' => $paidGrowth
+            ],
+            'delivered_orders' => [
+                'current' => $deliveredCurrent,
+                'previous' => $deliveredPrevious,
+                'growth' => $deliveredGrowth
+            ],
+            'in_progress_orders' => [
+                'current' => $inProgressCurrent,
+                'previous' => $inProgressPrevious,
+                'growth' => $inProgressPrevious > 0 
+                    ? round((($inProgressCurrent - $inProgressPrevious) / $inProgressPrevious) * 100, 1)
+                    : ($inProgressCurrent > 0 ? 100 : 0)
+            ],
+            'canceled_orders' => [
+                'current' => $canceledCurrent,
+                'previous' => $canceledPrevious,
+                'growth' => $canceledPrevious > 0 
+                    ? round((($canceledCurrent - $canceledPrevious) / $canceledPrevious) * 100, 1)
+                    : ($canceledCurrent > 0 ? 100 : 0)
             ],
             'orders_by_status' => $currentOrdersByStatus
         ];
