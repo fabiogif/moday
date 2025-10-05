@@ -28,7 +28,7 @@ class PermissionMiddleware
         }
 
         // Verificar se o usuário tem a permissão
-        if (!$user->hasPermission($permission)) {
+        if (!$user->hasPermissionTo($permission)) {
             Log::warning('Tentativa de acesso negada', [
                 'user_id' => $user->id,
                 'permission' => $permission,
