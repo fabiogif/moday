@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('client_id')->nullable();
             $table->integer('table_id')->nullable();
             $table->double('total', 10, 2);
-            $table->enum('status', ['Pendente', 'Completo', 'Cancelado',"Rejeitado", "Em Andamento", "Em Entrega"]);
+            $table->enum('status', ['Em Preparo', 'Pronto', 'Entregue', 'Cancelado'])->default('Em Preparo');
             $table->text('comment')->nullable();
             $table->foreign('tenant_id')->references('id')->on('tenants')->onDelete('cascade');
             $table->timestamps();

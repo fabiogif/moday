@@ -42,8 +42,9 @@ class DashboardApiController extends Controller
      *                     @OA\Property(property="previous_month", type="integer", example=120),
      *                     @OA\Property(property="growth", type="number", format="float", example=25.0),
      *                     @OA\Property(property="by_status", type="object",
-     *                         @OA\Property(property="Em Andamento", type="integer", example=50),
-     *                         @OA\Property(property="Concluído", type="integer", example=80),
+     *                         @OA\Property(property="Em Preparo", type="integer", example=50),
+     *                         @OA\Property(property="Pronto", type="integer", example=30),
+     *                         @OA\Property(property="Entregue", type="integer", example=80),
      *                         @OA\Property(property="Cancelado", type="integer", example=20)
      *                     )
      *                 ),
@@ -57,7 +58,7 @@ class DashboardApiController extends Controller
      *                     @OA\Property(property="id", type="integer", example=1),
      *                     @OA\Property(property="identify", type="string", example="abc12345"),
      *                     @OA\Property(property="total", type="number", format="float", example=50.00),
-     *                     @OA\Property(property="status", type="string", example="Em Andamento"),
+     *                     @OA\Property(property="status", type="string", example="Em Preparo"),
      *                     @OA\Property(property="created_at", type="string", format="date-time")
      *                 )),
      *                 @OA\Property(property="period", type="object",

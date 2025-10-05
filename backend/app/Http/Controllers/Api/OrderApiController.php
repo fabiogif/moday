@@ -94,13 +94,13 @@ class OrderApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Pedido não encontrado', 404);
             }
 
-            // Verificar se o pedido já foi faturado
-            if ($order->status === 'Completo') {
-                return ApiResponseClass::sendResponse('', 'Pedido já foi faturado', 400);
+            // Verificar se o pedido já foi faturado/entregue
+            if ($order->status === 'Entregue') {
+                return ApiResponseClass::sendResponse('', 'Pedido já foi entregue/faturado', 400);
             }
 
-            // Atualizar status para faturado (usando 'Completo' que está no ENUM)
-            $order->update(['status' => 'Completo']);
+            // Atualizar status para entregue (faturado)
+            $order->update(['status' => 'Entregue']);
 
             return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido faturado com sucesso', 200);
         } catch (\Exception $ex) {

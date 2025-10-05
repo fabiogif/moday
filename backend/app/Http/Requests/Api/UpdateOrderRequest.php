@@ -24,7 +24,7 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'sometimes|required|string|in:Em Preparo,Pronto,Entregue,Cancelado,Pendente,Completo,Cancelado,Rejeitado,Em Andamento,Em Entrega.',
+            'status' => 'sometimes|required|string|in:Em Preparo,Pronto,Entregue,Cancelado',
             'comment' => 'nullable|string|max:500',
             'is_delivery' => 'sometimes|boolean',
             'use_client_address' => 'sometimes|boolean',
@@ -46,7 +46,7 @@ class UpdateOrderRequest extends FormRequest
     {
         return [
             'status.required' => 'O status é obrigatório.',
-            'status.in' => 'Status inválido. Valores permitidos: Em Preparo,Pronto,Entregue,Cancelado,Pendente,Completo,Cancelado,Rejeitado,Em Andamento,Em Entrega.',
+            'status.in' => 'Status inválido. Valores permitidos: Em Preparo, Pronto, Entregue, Cancelado.',
             'comment.max' => 'O comentário deve ter no máximo :max caracteres.',
             'delivery_address.max' => 'O endereço deve ter no máximo :max caracteres.',
             'delivery_city.max' => 'A cidade deve ter no máximo :max caracteres.',

@@ -31,7 +31,7 @@ readonly class OrderService
 
         $identify = $this->getIdentifyOrder();
         $total = $this->getTotalOrder($productsOrder);
-        $status = 'Em Andamento';
+        $status = 'Em Preparo';
         $tenantId =  $this->getTenantIdByOrder($order['token_company']);
         $comment = isset($order['comment']) ? $order['comment'] : '';
         $clientId = $this->getClientIdByOrder($order['client_id'] ?? null);
@@ -237,17 +237,14 @@ readonly class OrderService
             ->toArray();
 
         // Calcular estatísticas específicas por status
-        $pendingCurrent = $currentOrdersByStatus['Pendente'] ?? 0;
-        $pendingPrevious = $previousOrdersByStatus['Pendente'] ?? 0;
+        $inPreparoCurrent = $currentOrdersByStatus['Em Preparo'] ?? 0;
+        $inPreparoPrevious = $previousOrdersByStatus['Em Preparo'] ?? 0;
         
-        $paidCurrent = $currentOrdersByStatus['Pago'] ?? 0;
-        $paidPrevious = $previousOrdersByStatus['Pago'] ?? 0;
+        $prontoCurrent = $currentOrdersByStatus['Pronto'] ?? 0;
+        $prontoPrevious = $previousOrdersByStatus['Pronto'] ?? 0;
         
         $deliveredCurrent = $currentOrdersByStatus['Entregue'] ?? 0;
         $deliveredPrevious = $previousOrdersByStatus['Entregue'] ?? 0;
-        
-        $inProgressCurrent = $currentOrdersByStatus['Em Preparo'] ?? 0;
-        $inProgressPrevious = $previousOrdersByStatus['Em Preparo'] ?? 0;
         
         $canceledCurrent = $currentOrdersByStatus['Cancelado'] ?? 0;
         $canceledPrevious = $previousOrdersByStatus['Cancelado'] ?? 0;
@@ -265,13 +262,13 @@ readonly class OrderService
             ? round((($currentAvgOrderValue - $previousAvgOrderValue) / $previousAvgOrderValue) * 100, 1)
             : ($currentAvgOrderValue > 0 ? 100 : 0);
         
-        $pendingGrowth = $pendingPrevious > 0
-            ? round((($pendingCurrent - $pendingPrevious) / $pendingPrevious) * 100, 1)
-            : ($pendingCurrent > 0 ? 100 : 0);
+        $inPreparoGrowth = $inPreparoPrevious > 0
+            ? round((($inPreparoCurrent - $inPreparoPrevious) / $inPreparoPrevious) * 100, 1)
+            : ($inPreparoCurrent > 0 ? 100 : 0);
         
-        $paidGrowth = $paidPrevious > 0
-            ? round((($paidCurrent - $paidPrevious) / $paidPrevious) * 100, 1)
-            : ($paidCurrent > 0 ? 100 : 0);
+        $prontoGrowth = $prontoPrevious > 0
+            ? round((($prontoCurrent - $prontoPrevious) / $prontoPrevious) * 100, 1)
+            : ($prontoCurrent > 0 ? 100 : 0);
         
         $deliveredGrowth = $deliveredPrevious > 0
             ? round((($deliveredCurrent - $deliveredPrevious) / $deliveredPrevious) * 100, 1)
@@ -293,27 +290,20 @@ readonly class OrderService
                 'previous' => round($previousAvgOrderValue, 2),
                 'growth' => $avgOrderValueGrowth
             ],
-            'pending_orders' => [
-                'current' => $pendingCurrent,
-                'previous' => $pendingPrevious,
-                'growth' => $pendingGrowth
+            'in_preparo_orders' => [
+                'current' => $inPreparoCurrent,
+                'previous' => $inPreparoPrevious,
+                'growth' => $inPreparoGrowth
             ],
-            'paid_orders' => [
-                'current' => $paidCurrent,
-                'previous' => $paidPrevious,
-                'growth' => $paidGrowth
+            'pronto_orders' => [
+                'current' => $prontoCurrent,
+                'previous' => $prontoPrevious,
+                'growth' => $prontoGrowth
             ],
             'delivered_orders' => [
                 'current' => $deliveredCurrent,
                 'previous' => $deliveredPrevious,
                 'growth' => $deliveredGrowth
-            ],
-            'in_progress_orders' => [
-                'current' => $inProgressCurrent,
-                'previous' => $inProgressPrevious,
-                'growth' => $inProgressPrevious > 0 
-                    ? round((($inProgressCurrent - $inProgressPrevious) / $inProgressPrevious) * 100, 1)
-                    : ($inProgressCurrent > 0 ? 100 : 0)
             ],
             'canceled_orders' => [
                 'current' => $canceledCurrent,

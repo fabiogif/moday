@@ -46,7 +46,7 @@ class TableRepository extends BaseRepository implements TableRepositoryInterface
         // Assumindo que temos uma tabela de orders com status ativo
         $occupiedTables = DB::table('orders')
             ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['Pendente', 'Em Andamento', 'Em Entrega'])
+            ->whereIn('status', ['Em Preparo', 'Pronto'])
             ->whereNotNull('table_id')
             ->distinct('table_id')
             ->count();
