@@ -1,10 +1,14 @@
 "use client"
 
-import { useState } from "react"
 import { DataTable } from "./components/data-table"
 import { ProfileFormDialog } from "./components/profile-form-dialog"
+import { StatCards } from "./components/stat-cards"
 import { useAuthenticatedProfiles, useMutation } from "@/hooks/use-authenticated-api"
 import { endpoints } from "@/lib/api-client"
+import { PageLoading } from "@/components/ui/loading-progress"
+import { toast } from "sonner"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 
 interface Profile {
   id: number
@@ -24,12 +28,6 @@ export default function ProfilesPage() {
   const { mutate: createProfile, loading: creating } = useMutation()
   const { mutate: deleteProfile, loading: deleting } = useMutation()
 
-  // Debug: verificar dados recebidos
-  console.log('ProfilesPage - profiles:', profiles)
-  console.log('ProfilesPage - loading:', loading)
-  console.log('ProfilesPage - error:', error)
-  console.log('ProfilesPage - isAuthenticated:', isAuthenticated)
-
   const handleAddProfile = async (profileData: ProfileFormValues) => {
     try {
       const result = await createProfile(
@@ -39,10 +37,12 @@ export default function ProfilesPage() {
       )
       
       if (result) {
+        toast.success('Perfil criado com sucesso!')
         await refetch()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar perfil:', error)
+      toast.error(error.message || 'Erro ao criar perfil')
     }
   }
 
@@ -54,62 +54,80 @@ export default function ProfilesPage() {
       )
       
       if (result) {
+        toast.success('Perfil excluído com sucesso!')
         await refetch()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao excluir perfil:', error)
+      toast.error(error.message || 'Erro ao excluir perfil')
     }
   }
 
-  const handleEditProfile = (id: number) => {
-    // TODO: Implementar edição
-    console.log('Editar perfil:', id)
+  const handleEditProfile = async (id: number, profileData: ProfileFormValues) => {
+    try {
+      const result = await createProfile(
+        endpoints.profiles.update(id),
+        'PUT',
+        profileData
+      )
+      
+      if (result) {
+        toast.success('Perfil atualizado com sucesso!')
+        await refetch()
+      }
+    } catch (error: any) {
+      console.error('Erro ao editar perfil:', error)
+      toast.error(error.message || 'Erro ao editar perfil')
+    }
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-destructive">Usuário não autenticado. Faça login para continuar.</div>
-      </div>
-    )
+    return <PageLoading />
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Carregando perfis...</div>
-      </div>
-    )
+    return <PageLoading />
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-destructive">Erro ao carregar perfis: {error}</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Erro ao carregar perfis
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Perfis</h1>
+          <h1 className="text-3xl font-bold">Perfis</h1>
           <p className="text-muted-foreground">
             Gerencie os perfis do sistema
           </p>
         </div>
-        <ProfileFormDialog onAddProfile={handleAddProfile} />
       </div>
-      
-      <div className="@container/main px-4 lg:px-6 mt-8 lg:mt-12">
-        <DataTable 
-          profiles={profiles?.profiles || []}
-          onDeleteProfile={handleDeleteProfile}
-          onEditProfile={handleEditProfile}
-          onAddProfile={handleAddProfile}
-        />
-      </div>
+
+      <StatCards profiles={profiles || []} />
+
+      <DataTable 
+        profiles={profiles || []}
+        onDeleteProfile={handleDeleteProfile}
+        onEditProfile={handleEditProfile}
+        onAddProfile={handleAddProfile}
+        onRefresh={refetch}
+      />
     </div>
   )
 }

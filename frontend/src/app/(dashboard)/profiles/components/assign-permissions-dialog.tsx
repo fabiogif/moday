@@ -18,6 +18,9 @@ import { Search, Loader2 } from "lucide-react"
 import { useAuthenticatedPermissions, useMutation } from "@/hooks/use-authenticated-api"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { endpoints } from "@/lib/api-client"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
 
 interface Permission {
   id: number
@@ -73,9 +76,10 @@ export function AssignPermissionsDialog({
     if (!profile) return
 
     try {
-      const response = await fetch(`/api/profiles/${profile.id}/permissions`, {
+      const response = await fetch(API_BASE_URL + endpoints.profiles.permissions(profile.id), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Accept': 'application/json',
         },
       })
 
@@ -113,8 +117,9 @@ export function AssignPermissionsDialog({
     if (!profile) return
 
     try {
+      console.log('Vinculando permissões:', { profileId: profile.id, permissionIds: selectedPermissions })
       const result = await syncPermissions(
-        `/api/profiles/${profile.id}/permissions/sync`,
+        endpoints.profiles.syncPermissions(profile.id),
         'PUT',
         { permission_ids: selectedPermissions }
       )
@@ -125,6 +130,7 @@ export function AssignPermissionsDialog({
         onOpenChange(false)
       }
     } catch (error: any) {
+      console.error('Erro ao vincular permissões:', error)
       toast.error(error.message || 'Erro ao vincular permissões')
     }
   }
@@ -149,7 +155,9 @@ export function AssignPermissionsDialog({
       }
     }
     
-    if (!searchTerm.trim()) return permissionsArray
+    if (!searchTerm.trim()) {
+      return permissionsArray
+    }
 
     const search = searchTerm.toLowerCase()
     return permissionsArray.filter(

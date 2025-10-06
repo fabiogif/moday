@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -83,6 +84,7 @@ interface DataTableProps {
 }
 
 export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddCategory }: DataTableProps) {
+  const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
@@ -93,6 +95,10 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
     return isActive 
       ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
       : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
+  }
+
+  const handleViewDetails = (categoryId: string) => {
+    router.push(`/categories/${categoryId}`)
   }
 
   const columns: ColumnDef<Category>[] = [
@@ -191,7 +197,7 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(category.name)}>
+              <DropdownMenuItem onClick={() => handleViewDetails(category.identify)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>

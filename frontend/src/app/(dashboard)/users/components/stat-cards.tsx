@@ -1,71 +1,58 @@
+"use client"
+
 import { Card, CardContent } from "@/components/ui/card"
-import {Users, CreditCard, UserCheck, Clock5, TrendingUp, TrendingDown, ArrowUpRight} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from '@/lib/utils'
+import { Users, UserCheck, Clock5 } from "lucide-react"
+import { useAuthenticatedApi } from "@/hooks/use-authenticated-api"
+import { endpoints } from "@/lib/api-client"
 
-
-const performanceMetrics = [
-  {
-    title: 'Total de usuários',
-    current: '$2.4M',
-    previous: '$1.8M',
-    growth: 33.3,
-    icon: Users,
-  },
-  {
-    title: 'Usuários ativos',
-    current: '8.9k',
-    previous: '6.7k',
-    growth: 32.8,
-    icon: UserCheck,
-  },
-  {
-    title: 'Usuários pendentes',
-    current: '17%',
-    previous: '24%',
-    growth: -8.0,
-    icon: Clock5,
-  },
-]
+interface UserStats {
+  total_users: number
+  active_users: number
+  pending_users: number
+  inactive_users: number
+}
 
 export function StatCards() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {performanceMetrics.map((metric, index) => (
-        <Card key={index} className='border'>
-          <CardContent className='space-y-4'>
-            <div className='flex items-center justify-between'>
-              <metric.icon className='text-muted-foreground size-6' />
-              <Badge
-                variant='outline'
-                className={cn(
-                  metric.growth >= 0
-                    ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400'
-                    : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400',
-                )}
-              >
-                {metric.growth >= 0 ? (
-                  <>
-                    <TrendingUp className='me-1 size-3' />
-                    {metric.growth >= 0 ? '+' : ''}
-                    {metric.growth}%
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className='me-1 size-3' />
-                    {metric.growth}%
-                  </>
-                )}
-              </Badge>
-            </div>
+  const { data: stats, loading } = useAuthenticatedApi<UserStats>(endpoints.users.stats)
 
-            <div className='space-y-2'>
-              <p className='text-muted-foreground text-sm font-medium'>{metric.title}</p>
-              <div className='text-2xl font-bold'>{metric.current}</div>
-              <div className='text-muted-foreground flex items-center gap-2 text-sm'>
-                <span>from {metric.previous}</span>
-                <ArrowUpRight className='size-3' />
+  const metrics = [
+    {
+      title: 'Total de usuários',
+      value: stats?.total_users || 0,
+      icon: Users,
+      color: 'text-blue-600',
+    },
+    {
+      title: 'Usuários ativos',
+      value: stats?.active_users || 0,
+      icon: UserCheck,
+      color: 'text-green-600',
+    },
+    {
+      title: 'Usuários pendentes',
+      value: stats?.pending_users || 0,
+      icon: Clock5,
+      color: 'text-yellow-600',
+    },
+  ]
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {metrics.map((metric, index) => (
+        <Card key={index} className='border'>
+          <CardContent className='p-6'>
+            <div className='flex items-center justify-between'>
+              <div className='space-y-2'>
+                <p className='text-muted-foreground text-sm font-medium'>{metric.title}</p>
+                <div className='text-3xl font-bold'>
+                  {loading ? (
+                    <div className="h-9 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
+                  ) : (
+                    metric.value
+                  )}
+                </div>
               </div>
+              <metric.icon className={`${metric.color} size-8`} />
             </div>
           </CardContent>
         </Card>

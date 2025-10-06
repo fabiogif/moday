@@ -14,6 +14,9 @@ interface CategoryStats {
 
 export function StatCards() {
   const { data: stats, loading, error } = useAuthenticatedCategoryStats()
+  
+  // Type assertion para garantir que stats tem o tipo correto
+  const categoryStats = stats as CategoryStats | null
 
   if (loading) {
     return (
@@ -37,7 +40,7 @@ export function StatCards() {
     )
   }
 
-  if (error || !stats) {
+  if (error || !categoryStats) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
@@ -56,28 +59,28 @@ export function StatCards() {
   const performanceMetrics = [
     {
       title: 'Total Categorias',
-      current: stats.total_categories.toString(),
+      current: categoryStats.total_categories.toString(),
       previous: '0',
       growth: 0,
       icon: Tag,
     },
     {
       title: 'Categorias Ativas',
-      current: stats.active_categories.toString(),
+      current: categoryStats.active_categories.toString(),
       previous: '0',
       growth: 0,
       icon: CheckCircle,
     },
     {
       title: 'Produtos por Categoria',
-      current: stats.avg_products_per_category.toString(),
+      current: categoryStats.avg_products_per_category.toString(),
       previous: '0',
       growth: 0,
       icon: Package,
     },
     {
       title: 'Categorias Inativas',
-      current: stats.inactive_categories.toString(),
+      current: categoryStats.inactive_categories.toString(),
       previous: '0',
       growth: 0,
       icon: XCircle,

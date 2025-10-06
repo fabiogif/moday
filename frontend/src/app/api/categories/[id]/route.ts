@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     
     if (!token) {
@@ -14,7 +15,7 @@ export async function PUT(
     const body = await request.json()
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
     
-    const response = await fetch(`${backendUrl}/api/category/${params.id}`, {
+    const response = await fetch(`${backendUrl}/api/category/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -44,9 +45,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     
     if (!token) {
@@ -55,7 +57,7 @@ export async function DELETE(
 
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
     
-    const response = await fetch(`${backendUrl}/api/category/${params.id}`, {
+    const response = await fetch(`${backendUrl}/api/category/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

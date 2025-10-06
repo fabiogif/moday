@@ -226,7 +226,8 @@ export const endpoints = {
     stats: '/api/category/stats',
     create: '/api/category',
     show: (id: string) => `/api/category/${id}`,
-    update: (id: number) => `/api/category/${id}`,
+    getById: (id: string) => `/api/category/${id}`,
+    update: (id: number | string) => `/api/category/${id}`,
     delete: (id: string) => `/api/category/${id}`,
   },
   
@@ -254,11 +255,15 @@ export const endpoints = {
   
   // Usuários
   users: {
-    list: '/api/user',
-    create: '/api/user',
-    show: (id: string) => `/api/user/${id}`,
-    update: (id: number) => `/api/user/${id}`,
-    delete: (id: string) => `/api/user/${id}`,
+    list: '/api/users',
+    stats: '/api/user/stats',
+    create: '/api/users',
+    show: (id: string) => `/api/users/${id}`,
+    update: (id: number | string) => `/api/users/${id}`,
+    delete: (id: string) => `/api/users/${id}`,
+    assignProfile: (id: string) => `/api/users/${id}/assign-profile`,
+    changePassword: (id: string) => `/api/users/${id}/change-password`,
+    permissions: (id: string) => `/api/users/${id}/permissions`,
   },
 
   // Permissões
@@ -273,6 +278,7 @@ export const endpoints = {
   // Roles
   roles: {
     list: '/api/role',
+    stats: '/api/role/stats',
     create: '/api/role',
     show: (id: string) => `/api/role/${id}`,
     update: (id: number) => `/api/role/${id}`,
@@ -281,11 +287,14 @@ export const endpoints = {
 
   // Perfis
   profiles: {
-    list: '/api/profile',
-    create: '/api/profile',
-    show: (id: string) => `/api/profile/${id}`,
-    update: (id: number) => `/api/profile/${id}`,
-    delete: (id: string) => `/api/profile/${id}`,
+    base: '/api/profiles',
+    list: '/api/profiles',
+    create: '/api/profiles',
+    show: (id: string) => `/api/profiles/${id}`,
+    update: (id: number) => `/api/profiles/${id}`,
+    delete: (id: string) => `/api/profiles/${id}`,
+    permissions: (id: number) => `/api/profiles/${id}/permissions`,
+    syncPermissions: (id: number) => `/api/profiles/${id}/permissions/sync`,
   },
   
   // Clientes

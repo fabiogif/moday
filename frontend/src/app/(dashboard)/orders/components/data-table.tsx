@@ -219,8 +219,9 @@ export function DataTable({ orders, onDeleteOrder, onEditOrder, onViewOrder, onI
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => onDeleteOrder(order.id)}
+                onClick={() => order.id && onDeleteOrder(order.id)}
                 className="text-red-600"
+                disabled={!order.id}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Excluir

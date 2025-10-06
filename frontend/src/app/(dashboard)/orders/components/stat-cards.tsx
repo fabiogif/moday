@@ -38,6 +38,8 @@ interface OrderStats {
 export function StatCards() {
   const { data: stats, loading, error } = useAuthenticatedOrderStats()
 
+  const orderStats = stats as OrderStats | null
+
   if (loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -60,7 +62,7 @@ export function StatCards() {
     )
   }
 
-  if (error || !stats) {
+  if (error || !orderStats) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border col-span-full">
@@ -72,44 +74,49 @@ export function StatCards() {
     )
   }
 
+  // Função auxiliar para obter valores seguros
+  const getSafeValue = (obj: any, path: string, defaultValue: any = 0) => {
+    return path.split('.').reduce((current, key) => current?.[key], obj) ?? defaultValue
+  }
+
   const performanceMetrics = [
     {
       title: 'Total Pedidos',
-      current: stats.total_orders.current.toString(),
-      previous: stats.total_orders.previous.toString(),
-      growth: stats.total_orders.growth,
+      current: getSafeValue(orderStats, 'total_orders.current', 0).toString(),
+      previous: getSafeValue(orderStats, 'total_orders.previous', 0).toString(),
+      growth: getSafeValue(orderStats, 'total_orders.growth', 0),
       icon: ShoppingCart,
     },
     {
       title: 'Pedidos Pagos',
-      current: stats.paid_orders.current.toString(),
-      previous: stats.paid_orders.previous.toString(),
-      growth: stats.paid_orders.growth,
+      current: getSafeValue(orderStats, 'paid_orders.current', 0).toString(),
+      previous: getSafeValue(orderStats, 'paid_orders.previous', 0).toString(),
+      growth: getSafeValue(orderStats, 'paid_orders.growth', 0),
       icon: CreditCard,
     },
     {
       title: 'Pedidos Entregues',
-      current: stats.delivered_orders.current.toString(),
-      previous: stats.delivered_orders.previous.toString(),
-      growth: stats.delivered_orders.growth,
+      current: getSafeValue(orderStats, 'delivered_orders.current', 0).toString(),
+      previous: getSafeValue(orderStats, 'delivered_orders.previous', 0).toString(),
+      growth: getSafeValue(orderStats, 'delivered_orders.growth', 0),
       icon: CheckCircle,
     },
     {
       title: 'Pedidos Pendentes',
-      current: stats.pending_orders.current.toString(),
-      previous: stats.pending_orders.previous.toString(),
-      growth: stats.pending_orders.growth,
+      current: getSafeValue(orderStats, 'pending_orders.current', 0).toString(),
+      previous: getSafeValue(orderStats, 'pending_orders.previous', 0).toString(),
+      growth: getSafeValue(orderStats, 'pending_orders.growth', 0),
       icon: Clock,
     },
   ]
 
   // Se houver dados de receita, adicionar ao início
-  if (stats.total_revenue) {
+  if (getSafeValue(orderStats, 'total_revenue')) {
     performanceMetrics.unshift({
       title: 'Receita Total',
-      current: `R$ ${stats.total_revenue.current.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      previous: `R$ ${stats.total_revenue.previous.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      growth: stats.total_revenue.growth,
+      current: `R$ ${getSafeValue(orderStats, 'total_revenue.current', 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      previous: `R$ ${getSafeValue(orderStats, 'total_revenue.previous', 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      growth: getSafeValue(orderStats, 'total_revenue.growth', 0),
       icon: DollarSign,
     })
   }

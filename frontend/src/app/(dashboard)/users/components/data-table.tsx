@@ -22,6 +22,8 @@ import {
   Trash2,
   Download,
   Search,
+  Key,
+  UserCog,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -54,73 +56,90 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { UserFormDialog } from "./user-form-dialog"
+import { ChangePasswordDialog } from "./change-password-dialog"
+import { AssignProfileDialog } from "./assign-profile-dialog"
+
+interface Profile {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+}
 
 interface User {
   id: number
   name: string
   email: string
-  avatar: string
-  role: string
-  plan: string
-  billing: string
-  status: string
-  joinedDate: string
-  lastLogin: string
+  phone?: string
+  avatar?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  profiles?: Profile[]
 }
 
 interface UserFormValues {
   name: string
   email: string
-  role: string
-  plan: string
-  billing: string
-  status: string
+  password: string
+  password_confirmation: string
+  phone?: string
+  is_active: boolean
 }
 
 interface DataTableProps {
   users: User[]
   onDeleteUser: (id: number) => void
-  onEditUser: (user: User) => void
+  onEditUser: (id: number, user: UserFormValues) => void
   onAddUser: (userData: UserFormValues) => void
+  onRefresh: () => void
 }
 
-export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTableProps) {
+export function DataTable({ users, onDeleteUser, onEditUser, onAddUser, onRefresh }: DataTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
+  
+  // State for dialogs
+  const [changePasswordDialog, setChangePasswordDialog] = useState<{
+    open: boolean
+    user: User | null
+  }>({ open: false, user: null })
+  
+  const [assignProfileDialog, setAssignProfileDialog] = useState<{
+    open: boolean
+    user: User | null
+  }>({ open: false, user: null })
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
-      case "Pending":
-        return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
-      case "Error":
-        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
-      case "Inactive":
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20"
-      default:
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20"
-    }
+  const [editUserDialog, setEditUserDialog] = useState<{
+    open: boolean
+    user: User | null
+  }>({ open: false, user: null })
+
+  const getStatusColor = (isActive: boolean) => {
+    return isActive
+      ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
   }
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Admin":
-        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
-      case "Editor":
-        return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
-      case "Author":
-        return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20"
-      case "Maintainer":
-        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
-      case "Subscriber":
-        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20"
-      default:
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20"
+  const generateAvatar = (name: string) => {
+    const names = name.split(" ")
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase()
     }
+    return name.substring(0, 2).toUpperCase()
+  }
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   const exactFilter = (row: Row<User>, columnId: string, value: string) => {
@@ -157,14 +176,14 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
     },
     {
       accessorKey: "name",
-      header: "User",
+      header: "Usuário",
       cell: ({ row }) => {
         const user = row.original
         return (
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs font-medium">
-                {user.avatar}
+                {user.avatar || generateAvatar(user.name)}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
@@ -176,84 +195,99 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
       },
     },
     {
-      accessorKey: "role",
-      header: "Role",
+      accessorKey: "profiles",
+      header: "Perfis",
       cell: ({ row }) => {
-        const role = row.getValue("role") as string
+        const profiles = row.original.profiles || []
+        if (profiles.length === 0) {
+          return <span className="text-sm text-muted-foreground">Nenhum perfil</span>
+        }
         return (
-          <Badge variant="secondary" className={getRoleColor(role)}>
-            {role}
-          </Badge>
+          <div className="flex flex-wrap gap-1">
+            {profiles.map((profile) => (
+              <Badge
+                key={profile.id}
+                variant="secondary"
+                className="text-xs"
+              >
+                {profile.name}
+              </Badge>
+            ))}
+          </div>
         )
       },
-      filterFn: exactFilter,
     },
     {
-      accessorKey: "plan",
-      header: "Plan",
-      cell: ({ row }) => {
-        const plan = row.getValue("plan") as string
-        return <span className="font-medium">{plan}</span>
-      },
-      filterFn: exactFilter,
-    },
-    {
-      accessorKey: "billing",
-      header: "Billing",
-      cell: ({ row }) => {
-        const billing = row.getValue("billing") as string
-        return <span className="text-sm">{billing}</span>
-      },
-    },
-    {
-      accessorKey: "status",
+      accessorKey: "is_active",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.getValue("status") as string
+        const isActive = row.getValue("is_active") as boolean
         return (
-          <Badge variant="secondary" className={getStatusColor(status)}>
-            {status}
+          <Badge variant="secondary" className={getStatusColor(isActive)}>
+            {isActive ? "Ativo" : "Inativo"}
           </Badge>
         )
       },
       filterFn: exactFilter,
+    },
+    {
+      accessorKey: "created_at",
+      header: "Data de Criação",
+      cell: ({ row }) => {
+        const date = row.getValue("created_at") as string
+        return <span className="text-sm">{formatDate(date)}</span>
+      },
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Data de Alteração",
+      cell: ({ row }) => {
+        const date = row.getValue("updated_at") as string
+        return <span className="text-sm">{formatDate(date)}</span>
+      },
     },
     {
       id: "actions",
-      header: "Actions",
+      header: "Ações",
       cell: ({ row }) => {
         const user = row.original
         return (
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
-              <Eye className="size-4" />
-              <span className="sr-only">View user</span>
-            </Button>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer"
-              onClick={() => onEditUser(user)}
+              onClick={() => setEditUserDialog({ open: true, user })}
+              title="Editar usuário"
             >
               <Pencil className="size-4" />
-              <span className="sr-only">Edit user</span>
+              <span className="sr-only">Editar usuário</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                   <EllipsisVertical className="size-4" />
-                  <span className="sr-only">More actions</span>
+                  <span className="sr-only">Mais ações</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="cursor-pointer">
-                  View Details
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setChangePasswordDialog({ open: true, user })
+                  }
+                >
+                  <Key className="mr-2 size-4" />
+                  Alterar Senha
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Send Email
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Reset Password
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() =>
+                    setAssignProfileDialog({ open: true, user })
+                  }
+                >
+                  <UserCog className="mr-2 size-4" />
+                  Vincular Perfil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -262,7 +296,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
                   onClick={() => onDeleteUser(user.id)}
                 >
                   <Trash2 className="mr-2 size-4" />
-                  Delete User
+                  Excluir Usuário
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -293,133 +327,85 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
     },
   })
 
-  const roleFilter = table.getColumn("role")?.getFilterValue() as string
-  const planFilter = table.getColumn("plan")?.getFilterValue() as string
-  const statusFilter = table.getColumn("status")?.getFilterValue() as string
+  const statusFilter = table.getColumn("is_active")?.getFilterValue() as boolean | undefined
 
   return (
-    <div className="w-full space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center space-x-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-9"
-            />
+    <>
+      <div className="w-full space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 items-center space-x-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar usuários..."
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(String(event.target.value))}
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" className="cursor-pointer" onClick={onRefresh}>
+              <Download className="mr-2 size-4" />
+              Atualizar
+            </Button>
+            <UserFormDialog onAddUser={onAddUser} />
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" className="cursor-pointer">
-            <Download className="mr-2 size-4" />
-            Export
-          </Button>
-          <UserFormDialog onAddUser={onAddUser} />
-        </div>
-      </div>
 
-      <div className="grid gap-2 sm:grid-cols-4 sm:gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="role-filter" className="text-sm font-medium">
-            Role
-          </Label>
-          <Select
-            value={roleFilter || ""}
-            onValueChange={(value) =>
-              table.getColumn("role")?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="role-filter">
-              <SelectValue placeholder="Selecione a Função" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Função</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Author">Autor</SelectItem>
-              <SelectItem value="Editor">Editor</SelectItem>
-              <SelectItem value="Maintainer">Maintainer</SelectItem>
-              <SelectItem value="Subscriber">Subscriber</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid gap-2 sm:grid-cols-2 sm:gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="status-filter" className="text-sm font-medium">
+              Status
+            </Label>
+            <Select
+              value={statusFilter === undefined ? "all" : statusFilter ? "true" : "false"}
+              onValueChange={(value) =>
+                table
+                  .getColumn("is_active")
+                  ?.setFilterValue(value === "all" ? undefined : value === "true")
+              }
+            >
+              <SelectTrigger className="cursor-pointer w-full" id="status-filter">
+                <SelectValue placeholder="Selecione o Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="true">Ativo</SelectItem>
+                <SelectItem value="false">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="column-visibility" className="text-sm font-medium">
+              Visibilidade das Colunas
+            </Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild id="column-visibility">
+                <Button variant="outline" className="cursor-pointer w-full">
+                  Colunas <ChevronDown className="ml-2 size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    )
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="plan-filter" className="text-sm font-medium">
-            Plan
-          </Label>
-          <Select
-            value={planFilter || ""}
-            onValueChange={(value) =>
-              table.getColumn("plan")?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="plan-filter">
-              <SelectValue placeholder="Select Plan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="Basic">Basic</SelectItem>
-              <SelectItem value="Professional">Professional</SelectItem>
-              <SelectItem value="Enterprise">Enterprise</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status-filter" className="text-sm font-medium">
-            Status
-          </Label>
-          <Select
-            value={statusFilter || ""}
-            onValueChange={(value) =>
-              table.getColumn("status")?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="status-filter">
-              <SelectValue placeholder="Select Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Error">Error</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-
-          <Label htmlFor="column-visibility" className="text-sm font-medium">
-            Column Visibility
-          </Label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild id="column-visibility">
-              <Button variant="outline" className="cursor-pointer w-full">
-                Columns <ChevronDown className="ml-2 size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
 
       <div className="rounded-md border">
         <Table>
@@ -476,7 +462,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
 
         <div className="flex items-center space-x-2">
           <Label htmlFor="page-size" className="text-sm font-medium">
-            Show
+            Mostrar
           </Label>
           <Select
             value={`${table.getState().pagination.pageSize}`}
@@ -497,14 +483,14 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
           </Select>
         </div>
         <div className="flex-1 text-sm text-muted-foreground hidden sm:block">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
+          {table.getFilteredSelectedRowModel().rows.length} de{" "}
+          {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
         </div>
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2 hidden sm:block">
-            <p className="text-sm font-medium">Page</p>
+            <p className="text-sm font-medium">Página</p>
             <strong className="text-sm">
-              {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getState().pagination.pageIndex + 1} de{" "}
               {table.getPageCount()}
             </strong>
           </div>
@@ -516,7 +502,7 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
               disabled={!table.getCanPreviousPage()}
               className="cursor-pointer"
             >
-              Previous
+              Anterior
             </Button>
             <Button
               variant="outline"
@@ -525,11 +511,52 @@ export function DataTable({ users, onDeleteUser, onEditUser, onAddUser }: DataTa
               disabled={!table.getCanNextPage()}
               className="cursor-pointer"
             >
-              Next
+              Próxima
             </Button>
           </div>
         </div>
       </div>
     </div>
+
+    {/* Change Password Dialog */}
+    {changePasswordDialog.user && (
+      <ChangePasswordDialog
+        userId={changePasswordDialog.user.id}
+        userName={changePasswordDialog.user.name}
+        open={changePasswordDialog.open}
+        onOpenChange={(open) =>
+          setChangePasswordDialog({ open, user: open ? changePasswordDialog.user : null })
+        }
+        onSuccess={onRefresh}
+      />
+    )}
+
+    {/* Assign Profile Dialog */}
+    {assignProfileDialog.user && (
+      <AssignProfileDialog
+        userId={assignProfileDialog.user.id}
+        userName={assignProfileDialog.user.name}
+        currentProfiles={assignProfileDialog.user.profiles}
+        open={assignProfileDialog.open}
+        onOpenChange={(open) =>
+          setAssignProfileDialog({ open, user: open ? assignProfileDialog.user : null })
+        }
+        onSuccess={onRefresh}
+      />
+    )}
+
+    {/* Edit User Dialog */}
+    {editUserDialog.user && (
+      <UserFormDialog
+        onAddUser={onAddUser}
+        onEditUser={onEditUser}
+        editingUser={editUserDialog.user}
+        open={editUserDialog.open}
+        onOpenChange={(open) =>
+          setEditUserDialog({ open, user: open ? editUserDialog.user : null })
+        }
+      />
+    )}
+  </>
   )
 }

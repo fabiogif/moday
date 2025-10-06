@@ -11,21 +11,19 @@ import { PageLoading } from "@/components/ui/loading-progress"
 
 interface Product {
   id: number
-  identify?: string
   name: string
   description: string
   price: number
-  price_cost?: number
-  category: string
-  stock: number
-  qtd_stock?: number
-  isActive: boolean
-  is_active?: boolean
-  createdAt: string
-  categories?: Array<{
+  categories: Array<{
     identify: string
     name: string
   }>
+  price_cost: number
+  is_active: boolean
+  created_at: string
+  createdAt: string
+  url?: string
+  qtd_stock?: number
 }
 
 interface ProductFormValues {
@@ -74,7 +72,7 @@ export default function ProductsPage() {
       formData.append('name', productData.name)
       formData.append('description', productData.description)
       formData.append('price', productData.price.toString())
-      formData.append('price_cost', productData.price_cost.toString())
+      formData.append('price_cost', productData.price_cost?.toString() || '0')
       formData.append('qtd_stock', productData.qtd_stock.toString())
       
       // Enviar cada categoria individualmente para o Laravel processar como array
@@ -140,7 +138,7 @@ export default function ProductsPage() {
       formData.append('name', product.name)
       formData.append('description', product.description)
       formData.append('price', product.price.toString())
-      formData.append('price_cost', product.price_cost.toString())
+      formData.append('price_cost', product.price_cost?.toString() || '0')
       formData.append('qtd_stock', product.qtd_stock?.toString() || '0')
       
       // Categorias

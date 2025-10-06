@@ -224,7 +224,7 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       accessorKey: "created_at",
       header: "Criado em",
       cell: ({ row }) => {
-        const dateValue = row.getValue("created_at")
+        const dateValue = row.getValue("created_at") as string
         return <div>{dateValue || "Data não disponível"}</div>
       },
     },
@@ -243,7 +243,7 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleViewDetails(product.id || product.identify || '')}>
+              <DropdownMenuItem onClick={() => handleViewDetails(product.id?.toString() || '')}>
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>

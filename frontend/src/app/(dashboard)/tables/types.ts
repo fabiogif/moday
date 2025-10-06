@@ -17,5 +17,5 @@ export interface TableFormValues {
   identify: string
   name: string
   description?: string
-  capacity?: number
+  capacity: number
 }

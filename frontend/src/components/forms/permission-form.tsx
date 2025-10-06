@@ -94,7 +94,7 @@ export function PermissionForm({ onSuccess, initialData }: PermissionFormProps) 
       console.error('Erro ao criar permissão:', error)
       
       // Tratar erros de validação do backend
-      const handled = handleBackendErrors(error, commonFieldMappings)
+      const handled = handleBackendErrors(error, commonFieldMappings as any)
       
       if (!handled) {
         // Se não conseguiu mapear para campos específicos, mostrar erro geral

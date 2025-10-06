@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -38,12 +38,33 @@ interface ProfileFormValues {
   description?: string
 }
 
-interface ProfileFormDialogProps {
-  onAddProfile: (profileData: ProfileFormValues) => void
+interface Profile {
+  id: number
+  name: string
+  description?: string
 }
 
-export function ProfileFormDialog({ onAddProfile }: ProfileFormDialogProps) {
-  const [open, setOpen] = useState(false)
+interface ProfileFormDialogProps {
+  onAddProfile: (profileData: ProfileFormValues) => void
+  onEditProfile?: (id: number, profileData: ProfileFormValues) => void
+  editingProfile?: Profile | null
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  children?: React.ReactNode
+}
+
+export function ProfileFormDialog({ 
+  onAddProfile, 
+  onEditProfile,
+  editingProfile,
+  open: controlledOpen,
+  onOpenChange,
+  children 
+}: ProfileFormDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? (onOpenChange || (() => {})) : setInternalOpen
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -53,25 +74,51 @@ export function ProfileFormDialog({ onAddProfile }: ProfileFormDialogProps) {
     },
   })
 
+  // Reset form when editing profile changes
+  useEffect(() => {
+    if (editingProfile) {
+      form.reset({
+        name: editingProfile.name,
+        description: editingProfile.description || "",
+      })
+    } else {
+      form.reset({
+        name: "",
+        description: "",
+      })
+    }
+  }, [editingProfile, form])
+
   const onSubmit = (data: ProfileFormValues) => {
-    onAddProfile(data)
+    if (editingProfile && onEditProfile) {
+      onEditProfile(editingProfile.id, data)
+    } else {
+      onAddProfile(data)
+    }
     form.reset()
     setOpen(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Perfil
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Perfil
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Novo Perfil</DialogTitle>
+          <DialogTitle>{editingProfile ? 'Editar Perfil' : 'Novo Perfil'}</DialogTitle>
           <DialogDescription>
-            Adicione um novo perfil ao sistema. Preencha os dados abaixo.
+            {editingProfile 
+              ? 'Edite as informações do perfil abaixo.'
+              : 'Adicione um novo perfil ao sistema. Preencha os dados abaixo.'
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -106,7 +153,9 @@ export function ProfileFormDialog({ onAddProfile }: ProfileFormDialogProps) {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit">Criar Perfil</Button>
+              <Button type="submit">
+                {editingProfile ? 'Salvar Alterações' : 'Criar Perfil'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

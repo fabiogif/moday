@@ -35,13 +35,13 @@ const navGroups = [
     label: "Sistema",
     items: [
       {
-        title: "Usuários",
-        url: "/users",
-        icon: Users,
-      },
-      {
         title: "Pedidos",
         url: "/orders",
+        icon: ShoppingCart,
+      },
+      {
+        title: "Quadro de Pedidos",
+        url: "/orders/board",
         icon: ShoppingCart,
       },
       {
@@ -80,20 +80,26 @@ const navGroups = [
     label: "Controle de Acesso",
     items: [
       {
-        title: "Permissões",
-        url: "/permissions",
-        icon: Shield,
-      },
-      {
-        title: "Funções",
-        url: "/roles",
-        icon: UserCog,
+        title: "Usuários",
+        url: "/users",
+        icon: Users,
       },
       {
         title: "Perfis",
         url: "/profiles",
         icon: Settings,
       },
+      {
+        title: "Permissões",
+        url: "/permissions",
+        icon: Shield,
+      },
+      // {
+      //   title: "Funções",
+      //   url: "/roles",
+      //   icon: UserCog,
+      // },
+     
     ],
   },
 ]

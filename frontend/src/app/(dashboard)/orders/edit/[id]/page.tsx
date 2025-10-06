@@ -85,7 +85,7 @@ export default function EditOrderPage() {
   const [error, setError] = useState<string | null>(null)
 
   const { data: orderData, loading: apiLoading, error: apiError } = useAuthenticatedApi<OrderDetails>(
-    orderId ? endpoints.orders.show(orderId) : null
+    orderId ? endpoints.orders.show(orderId) : ''
   )
 
   const { mutate: updateOrder, loading: updating } = useMutation()
@@ -558,7 +558,7 @@ export default function EditOrderPage() {
               <div className="flex justify-between">
                 <span className="text-sm text-muted-foreground">Tipo:</span>
                 <span className="text-sm font-medium">
-                  {order.is_delivery || order.isDelivery ? "Delivery" : "Balcão"}
+                  {order.is_delivery ? "Delivery" : "Balcão"}
                 </span>
               </div>
               {order.table && (

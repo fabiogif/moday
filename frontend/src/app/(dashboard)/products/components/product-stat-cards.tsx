@@ -39,28 +39,33 @@ export function ProductStatCards() {
     )
   }
 
+  // Função auxiliar para obter valores seguros
+  const getSafeValue = (obj: any, path: string, defaultValue: any = 0) => {
+    return path.split('.').reduce((current, key) => current?.[key], obj) ?? defaultValue
+  }
+
   const statCards = [
     {
       title: "Total Produtos",
-      value: stats?.total_products || 0,
+      value: getSafeValue(stats, 'total_products', 0),
       icon: Package,
       description: "Produtos cadastrados"
     },
     {
       title: "Receita Total",
-      value: `R$ ${(stats?.total_revenue || 0).toFixed(2)}`,
+      value: `R$ ${getSafeValue(stats, 'total_revenue', 0).toFixed(2)}`,
       icon: DollarSign,
       description: "Valor total em produtos"
     },
     {
       title: "Produtos Ativos",
-      value: stats?.active_products || 0,
+      value: getSafeValue(stats, 'active_products', 0),
       icon: TrendingUp,
       description: "Produtos com estoque"
     },
     {
       title: "Estoque Baixo",
-      value: stats?.low_stock_products || 0,
+      value: getSafeValue(stats, 'low_stock_products', 0),
       icon: AlertTriangle,
       description: "Produtos com ≤ 3 unidades"
     }

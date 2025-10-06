@@ -22,7 +22,7 @@ interface PaymentMethod {
 interface PaymentMethodFormValues {
   name: string
   description?: string
-  is_active: boolean
+  is_active?: boolean
 }
 
 export default function PaymentMethodsPage() {
@@ -30,6 +30,13 @@ export default function PaymentMethodsPage() {
   const { mutate: createPaymentMethod, loading: creating } = useMutation()
   const { mutate: updatePaymentMethod, loading: updating } = useMutation()
   const { mutate: deletePaymentMethod, loading: deleting } = useMutation()
+
+  // Extrair array de paymentMethods do objeto retornado pela API
+  const paymentMethodsArray: PaymentMethod[] = Array.isArray(paymentMethods) 
+    ? paymentMethods 
+    : paymentMethods && typeof paymentMethods === 'object' && 'paymentMethods' in paymentMethods
+      ? (paymentMethods as any).paymentMethods || []
+      : []
 
   const handleAddPaymentMethod = async (paymentMethodData: PaymentMethodFormValues) => {
     try {
@@ -122,10 +129,10 @@ export default function PaymentMethodsPage() {
         </div>
       </div>
 
-      <StatCards paymentMethods={paymentMethods || []} />
+      <StatCards paymentMethods={paymentMethodsArray} />
 
       <DataTable
-        paymentMethods={paymentMethods || []}
+        paymentMethods={paymentMethodsArray}
         onAdd={handleAddPaymentMethod}
         onEdit={handleEditPaymentMethod}
         onDelete={handleDeletePaymentMethod}

@@ -45,6 +45,13 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
 
   if (!order) return null
 
+  // Type guard para diferenciar entre Order e OrderReceipt
+  const isOrderReceipt = (order: Order | OrderReceipt): order is OrderReceipt => {
+    return 'items' in order && order.items !== undefined
+  }
+
+  const orderItems = isOrderReceipt(order) ? order.items : order.products || []
+
   // Debug: Log completo do pedido recebido
   console.log('ReceiptDialog - Pedido completo:', order)
   console.log('ReceiptDialog - Cliente:', order.client)
@@ -57,7 +64,12 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
     'order.customerName': (order as any).customerName,
     'order.customer?.name': (order as any).customer?.name
   })
-  console.log('ReceiptDialog - Produtos:', order.products || order.items)
+  console.log('ReceiptDialog - Produtos:', orderItems)
+
+  // Get order number from either type
+  const orderNumber = (order as OrderReceipt).orderNumber || (order as Order).identify || 'N/A'
+  const orderDate = (order as OrderReceipt).orderDate || (order as Order).date
+  const isDelivery = (order as OrderReceipt).isDelivery || (order as Order).is_delivery || false
 
   const formatCurrency = (value: number | string | undefined) => {
     // Debug: Log do valor recebido
@@ -96,7 +108,10 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   }
 
   const getFullDeliveryAddress = () => {
-    if (order.useClientAddress && order.client?.address) {
+    const orderReceipt = order as OrderReceipt
+    const orderBase = order as Order
+    
+    if (orderReceipt.useClientAddress && order.client?.address) {
       const parts = [
         order.client?.address,
         order.client?.number,
@@ -104,22 +119,27 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
         order.client?.neighborhood,
         order.client?.city,
         order.client?.state,
-        order.client?.zipCode
+        (order.client as any)?.zip_code || (order.client as any)?.zipCode
       ].filter(Boolean)
       return parts.join(", ")
     }
 
-    if (order.isDelivery && order.deliveryAddress) {
+    if ((orderReceipt.isDelivery || orderBase.is_delivery) && orderReceipt.deliveryAddress) {
       const parts = [
-        order.deliveryAddress,
-        order.deliveryNumber,
-        order.deliveryComplement,
-        order.deliveryNeighborhood,
-        order.deliveryCity,
-        order.deliveryState,
-        order.deliveryZipCode
+        orderReceipt.deliveryAddress,
+        orderReceipt.deliveryNumber,
+        orderReceipt.deliveryComplement,
+        orderReceipt.deliveryNeighborhood,
+        orderReceipt.deliveryCity,
+        orderReceipt.deliveryState,
+        orderReceipt.deliveryZipCode
       ].filter(Boolean)
       return parts.join(", ")
+    }
+    
+    // Tentar usar campos de Order
+    if (orderBase.is_delivery && (orderBase.delivery_address || orderBase.full_delivery_address)) {
+      return orderBase.full_delivery_address || orderBase.delivery_address || "Endereço não informado"
     }
 
     return "Endereço não informado"
@@ -154,7 +174,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Recibo - Pedido #${order.orderNumber || order.identify}</title>
+        <title>Recibo - Pedido #${orderNumber}</title>
         <style>
           body { 
             font-family: Arial, sans-serif; 
@@ -217,10 +237,10 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
         </div>
         
         <div class="order-info">
-          <strong>PEDIDO #${order.orderNumber || order.identify}</strong><br>
-          Data: ${formatDate(order.orderDate || order.date)}<br>
+          <strong>PEDIDO #${orderNumber}</strong><br>
+          Data: ${formatDate(orderDate)}<br>
           Status: ${order.status}<br>
-          ${order.isDelivery ? 'Tipo: Delivery' : 'Tipo: Balcão'}
+          ${isDelivery ? 'Tipo: Delivery' : 'Tipo: Balcão'}
         </div>
         
         <div class="client-info">
@@ -228,7 +248,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
           ${order.client?.name || (order as any).customerName || (order as any).customer?.name || 'N/A'}<br>
           ${order.client?.email || (order as any).customerEmail || (order as any).customer?.email || 'N/A'}<br>
           ${order.client?.phone || (order as any).customerPhone || (order as any).customer?.phone || 'N/A'}
-          ${order.isDelivery ? `<br><br><strong>ENDEREÇO DE ENTREGA:</strong><br>${getFullDeliveryAddress()}` : ''}
+          ${isDelivery ? `<br><br><strong>ENDEREÇO DE ENTREGA:</strong><br>${getFullDeliveryAddress()}` : ''}
         </div>
         
         <table class="items-table">
@@ -241,10 +261,10 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
             </tr>
           </thead>
           <tbody>
-            ${(order.items || order.products || []).map(item => `
+            ${orderItems.map(item => `
               <tr>
                 <td>${item.name}</td>
-                <td>${item.quantity || item.qty || 1}</td>
+                <td>${item.quantity || 1}</td>
                 <td>${formatCurrency(item.price)}</td>
                 <td>${formatCurrency(item.total)}</td>
               </tr>
@@ -286,13 +306,13 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   const handleWhatsApp = () => {
     setIsSharing(true)
     
-    const message = `Olá! Aqui está o recibo do seu pedido #${order.orderNumber || order.identify}:
+    const message = `Olá! Aqui está o recibo do seu pedido #${orderNumber}:
 
-📋 *PEDIDO #${order.orderNumber || order.identify}*
-📅 Data: ${formatDate(order.orderDate || order.date)}
+📋 *PEDIDO #${orderNumber}*
+📅 Data: ${formatDate(orderDate)}
 💰 Total: ${formatCurrency(order.total)}
 
-${(order.items || order.products || []).map(item => `• ${item.name} - ${item.quantity || item.qty || 1}x ${formatCurrency(item.price)} = ${formatCurrency(item.total)}`).join('\n')}
+${orderItems.map(item => `• ${item.name} - ${item.quantity || 1}x ${formatCurrency(item.price)} = ${formatCurrency(item.total)}`).join('\n')}
 
 ${order.comment ? `\n📝 Observações: ${order.comment}` : ''}
 
@@ -318,7 +338,7 @@ Obrigado pela preferência! 🍽️`
     
     const link = document.createElement('a')
     link.href = url
-    link.download = `recibo-pedido-${order.orderNumber || order.identify}.html`
+    link.download = `recibo-pedido-${orderNumber}.html`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -334,7 +354,7 @@ Obrigado pela preferência! 🍽️`
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold">
-              Recibo - Pedido #{order.orderNumber || order.identify}
+              Recibo - Pedido #{orderNumber}
             </DialogTitle>
             <Badge variant="outline">
               {order.status}
@@ -356,9 +376,9 @@ Obrigado pela preferência! 🍽️`
               <div>
                 <h3 className="font-semibold mb-2">Informações do Pedido</h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong>Número:</strong> #{order.orderNumber || order.identify}</p>
-                  <p><strong>Data:</strong> {formatDate(order.orderDate || order.date)}</p>
-                  <p><strong>Tipo:</strong> {order.isDelivery ? 'Delivery' : 'Balcão'}</p>
+                  <p><strong>Número:</strong> #{orderNumber}</p>
+                  <p><strong>Data:</strong> {formatDate(orderDate)}</p>
+                  <p><strong>Tipo:</strong> {isDelivery ? 'Delivery' : 'Balcão'}</p>
                   {order.table && (
                     <p><strong>Mesa:</strong> {order.table.name}</p>
                   )}
@@ -394,12 +414,12 @@ Obrigado pela preferência! 🍽️`
             </div>
 
             {/* Endereço de Entrega */}
-            {order.isDelivery && (
+            {isDelivery && (
               <div>
                 <h3 className="font-semibold mb-2">Endereço de Entrega</h3>
                 <p className="text-sm">{getFullDeliveryAddress()}</p>
-                {order.deliveryNotes && (
-                  <p className="text-sm mt-2"><strong>Observações:</strong> {order.deliveryNotes}</p>
+                {((order as OrderReceipt).deliveryNotes || (order as Order).delivery_notes) && (
+                  <p className="text-sm mt-2"><strong>Observações:</strong> {(order as OrderReceipt).deliveryNotes || (order as Order).delivery_notes}</p>
                 )}
               </div>
             )}
@@ -418,9 +438,9 @@ Obrigado pela preferência! 🍽️`
                     </tr>
                   </thead>
                   <tbody>
-                    {(order.items || order.products || []).map((item, index) => (<tr key={item.id || `item-${index}`} className="border-t">
+                    {orderItems.map((item, index) => (<tr key={item.id || `item-${index}`} className="border-t">
                         <td className="p-3">{item.name}</td>
-                        <td className="p-3 text-center">{item.quantity || item.qty || 1}</td>
+                        <td className="p-3 text-center">{item.quantity || 1}</td>
                         <td className="p-3 text-right">{formatCurrency(item.price)}</td>
                         <td className="p-3 text-right font-medium">{formatCurrency(item.total)}</td>
                       </tr>

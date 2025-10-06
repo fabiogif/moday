@@ -36,7 +36,7 @@ export default function TableDetailsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const { data: tableData, loading: apiLoading, error: apiError } = useAuthenticatedApi<TableData>(
-    tableId ? endpoints.tables.show(tableId) : null
+    tableId ? endpoints.tables.show(tableId) : ''
   )
 
   useEffect(() => {

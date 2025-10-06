@@ -41,7 +41,7 @@ interface PaymentMethod {
 interface PaymentMethodFormValues {
   name: string
   description?: string
-  is_active: boolean
+  is_active?: boolean
 }
 
 const paymentMethodFormSchema = z.object({
@@ -53,7 +53,7 @@ const paymentMethodFormSchema = z.object({
   description: z.string().max(1000, {
     message: "Descrição não pode ter mais de 1000 caracteres.",
   }).optional(),
-  is_active: z.boolean().default(true),
+  is_active: z.boolean().optional().default(true),
 })
 
 interface PaymentMethodFormDialogProps {

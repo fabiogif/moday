@@ -45,7 +45,7 @@ interface PaymentMethod {
 interface PaymentMethodFormValues {
   name: string
   description?: string
-  is_active: boolean
+  is_active?: boolean
 }
 
 interface DataTableProps {

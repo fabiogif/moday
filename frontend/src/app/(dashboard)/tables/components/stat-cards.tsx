@@ -52,31 +52,36 @@ export function StatCards() {
     )
   }
 
+  // Função auxiliar para obter valores seguros
+  const getSafeValue = (obj: any, path: string, defaultValue: any = 0) => {
+    return path.split('.').reduce((current, key) => current?.[key], obj) ?? defaultValue
+  }
+
   const performanceMetrics = [
     {
       title: 'Total Mesas',
-      current: stats.total_tables.toString(),
+      current: getSafeValue(stats, 'total_tables', 0).toString(),
       previous: '0',
       growth: 0,
       icon: Table,
     },
     {
       title: 'Mesas Ocupadas',
-      current: stats.occupied_tables.toString(),
+      current: getSafeValue(stats, 'occupied_tables', 0).toString(),
       previous: '0',
       growth: 0,
       icon: Users,
     },
     {
       title: 'Mesas Disponíveis',
-      current: stats.available_tables.toString(),
+      current: getSafeValue(stats, 'available_tables', 0).toString(),
       previous: '0',
       growth: 0,
       icon: CheckCircle,
     },
     {
       title: 'Taxa de Ocupação',
-      current: `${stats.occupancy_rate}%`,
+      current: `${getSafeValue(stats, 'occupancy_rate', 0)}%`,
       previous: '0%',
       growth: 0,
       icon: TrendingUp,

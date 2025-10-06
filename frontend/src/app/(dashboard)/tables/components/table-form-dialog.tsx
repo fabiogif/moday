@@ -35,10 +35,7 @@ const tableFormSchema = z.object({
     message: "Nome da mesa é obrigatório.",
   }),
   description: z.string().optional(),
-  capacity: z.number({
-    required_error: "Capacidade é obrigatória.",
-    invalid_type_error: "Capacidade deve ser um número.",
-  }).min(1, {
+  capacity: z.number().min(1, {
     message: "Capacidade deve ser pelo menos 1.",
   }).max(20, {
     message: "Capacidade não pode ser maior que 20.",

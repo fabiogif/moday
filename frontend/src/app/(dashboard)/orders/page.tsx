@@ -126,7 +126,7 @@ export default function OrdersPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-destructive">Erro ao carregar pedidos: {error}</div>
+        <div className="text-destructive">Erro ao carregar pedidos:</div>
       </div>
     )
   }
@@ -160,13 +160,13 @@ export default function OrdersPage() {
       </div>
 
       <OrderDetailsDialog
-        order={selectedOrder}
+        order={selectedOrder as any}
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
       />
 
       <ReceiptDialog
-        order={selectedOrder}
+        order={selectedOrder as any}
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
       />

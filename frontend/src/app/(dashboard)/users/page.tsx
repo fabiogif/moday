@@ -3,42 +3,48 @@
 import { useState } from "react"
 import { StatCards } from "./components/stat-cards"
 import { DataTable } from "./components/data-table"
-import { useUsers, useMutation } from "@/hooks/use-api"
+import { UsersPagination } from "./components/users-pagination"
+import { useAuthenticatedUsers, useMutation } from "@/hooks/use-authenticated-api"
 import { endpoints } from "@/lib/api-client"
+import { PageLoading } from "@/components/ui/loading-progress"
+import { toast } from "sonner"
+
+interface Profile {
+  id: number
+  name: string
+  description: string
+  is_active: boolean
+}
 
 interface User {
   id: number
   name: string
   email: string
-  avatar: string
-  role: string
-  plan: string
-  billing: string
-  status: string
-  joinedDate: string
-  lastLogin: string
+  phone?: string
+  avatar?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  profiles?: Profile[]
 }
 
 interface UserFormValues {
   name: string
   email: string
-  role: string
-  plan: string
-  billing: string
-  status: string
+  password: string
+  phone?: string
+  is_active: boolean
 }
 
 export default function UsersPage() {
-  const { data: users, loading, error, refetch } = useUsers()
+  const [currentPage, setCurrentPage] = useState(1)
+  const { data: usersData, loading, error, refetch, isAuthenticated, pagination } = useAuthenticatedUsers(currentPage, 15)
   const { mutate: createUser, loading: creating } = useMutation()
   const { mutate: deleteUser, loading: deleting } = useMutation()
 
-  const generateAvatar = (name: string) => {
-    const names = name.split(" ")
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[1][0]}`.toUpperCase()
-    }
-    return name.substring(0, 2).toUpperCase()
+  const handlePageChange = async (page: number) => {
+    setCurrentPage(page)
+    // O hook será recriado automaticamente com os novos parâmetros
   }
 
   const handleAddUser = async (userData: UserFormValues) => {
@@ -50,7 +56,6 @@ export default function UsersPage() {
       )
       
       if (result) {
-        // Recarregar dados após criação
         await refetch()
       }
     } catch (error) {
@@ -66,7 +71,6 @@ export default function UsersPage() {
       )
       
       if (result) {
-        // Recarregar dados após exclusão
         await refetch()
       }
     } catch (error) {
@@ -74,42 +78,82 @@ export default function UsersPage() {
     }
   }
 
-  const handleEditUser = (user: User) => {
-    // For now, just log the user to edit
-    // In a real app, you'd open an edit dialog
-    console.log("Edit user:", user)
+  const handleEditUser = async (id: number, userData: UserFormValues) => {
+    try {
+      const result = await createUser(
+        endpoints.users.update(id),
+        'PUT',
+        userData
+      )
+      
+      if (result) {
+        await refetch()
+      }
+    } catch (error) {
+      console.error('Erro ao editar usuário:', error)
+    }
+  }
+
+  if (!isAuthenticated) {
+    return <PageLoading />
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Carregando usuários...</div>
-      </div>
-    )
+    return <PageLoading />
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-destructive">Erro ao carregar usuários: {error}</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Erro ao carregar usuários
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Tentar novamente
+          </button>
+        </div>
       </div>
     )
   }
 
+  // Extract users from the response
+  const users = usersData?.users || (Array.isArray(usersData) ? usersData : [])
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="@container/main px-4 lg:px-6">
-        <StatCards />
+    <div className="flex flex-col gap-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Usuários</h1>
+          <p className="text-muted-foreground">
+            Gerencie os usuários do sistema
+          </p>
+        </div>
       </div>
-      
-      <div className="@container/main px-4 lg:px-6 mt-8 lg:mt-12">
-        <DataTable 
-          users={Array.isArray(users) ? users : []}
-          onDeleteUser={handleDeleteUser}
-          onEditUser={handleEditUser}
-          onAddUser={handleAddUser}
+
+      <StatCards />
+
+      <DataTable 
+        users={users}
+        onDeleteUser={handleDeleteUser}
+        onEditUser={handleEditUser}
+        onAddUser={handleAddUser}
+        onRefresh={refetch}
+      />
+
+      {pagination && (
+        <UsersPagination
+          onPageChange={handlePageChange}
+          currentPage={pagination.current_page}
+          totalPages={pagination.last_page}
+          totalItems={pagination.total}
+          itemsPerPage={pagination.per_page}
         />
-      </div>
+      )}
     </div>
   )
 }

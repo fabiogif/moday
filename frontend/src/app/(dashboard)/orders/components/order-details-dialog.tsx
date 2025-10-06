@@ -197,13 +197,13 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
                 <div>
                   <p className="text-sm text-muted-foreground">Tipo</p>
                   <div className="flex items-center gap-2">
-                    {order.is_delivery || order.isDelivery ? (
+                    {order.is_delivery ? (
                       <Truck className="h-4 w-4 text-muted-foreground" />
                     ) : (
                       <Home className="h-4 w-4 text-muted-foreground" />
                     )}
                     <p className="font-medium">
-                      {order.is_delivery || order.isDelivery ? "Delivery" : "Balcão"}
+                      {order.is_delivery ? "Delivery" : "Balcão"}
                     </p>
                   </div>
                 </div>
@@ -219,7 +219,7 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
             </div>
 
             {/* Endereço de Entrega */}
-            {(order.is_delivery || order.isDelivery) && (
+            {order.is_delivery && (
               <>
                 <Separator />
                 <div className="space-y-4">
@@ -229,10 +229,10 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
                   </div>
                   <div className="pl-7">
                     <p className="font-medium">{getFullDeliveryAddress()}</p>
-                    {(order.delivery_notes || order.deliveryNotes) && (
+                    {order.delivery_notes && (
                       <div className="mt-2">
                         <p className="text-sm text-muted-foreground">Observações:</p>
-                        <p className="text-sm">{order.delivery_notes || order.deliveryNotes}</p>
+                        <p className="text-sm">{order.delivery_notes}</p>
                       </div>
                     )}
                   </div>
