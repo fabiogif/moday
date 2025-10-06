@@ -18,6 +18,7 @@ class Permission extends Model
         'module',
         'action',
         'resource',
+        'group',
         'is_active',
         'tenant_id'
     ];
@@ -86,66 +87,10 @@ class Permission extends Model
     }
 
     /**
-     * Scope a query to filter by module.
-     */
-    public function scopeModule($query, $module)
-    {
-        return $query->where('module', $module);
-    }
-
-    /**
-     * Scope a query to filter by action.
-     */
-    public function scopeAction($query, $action)
-    {
-        return $query->where('action', $action);
-    }
-
-    /**
-     * Scope a query to filter by resource.
-     */
-    public function scopeResource($query, $resource)
-    {
-        return $query->where('resource', $resource);
-    }
-
-    /**
      * Scope para permissões de um tenant específico
      */
     public function scopeForTenant($query, $tenantId)
     {
         return $query->where('tenant_id', $tenantId);
-    }
-
-    /**
-     * Check if permission is for a specific module.
-     */
-    public function isForModule(string $module): bool
-    {
-        return $this->module === $module;
-    }
-
-    /**
-     * Check if permission is for a specific action.
-     */
-    public function isForAction(string $action): bool
-    {
-        return $this->action === $action;
-    }
-
-    /**
-     * Check if permission is for a specific resource.
-     */
-    public function isForResource(string $resource): bool
-    {
-        return $this->resource === $resource;
-    }
-
-    /**
-     * Get permission identifier.
-     */
-    public function getIdentifier(): string
-    {
-        return $this->module . '.' . $this->action . '.' . $this->resource;
     }
 }

@@ -33,7 +33,7 @@ class RoleStoreRequest extends FormRequest
                 Rule::unique('roles', 'name')->where('tenant_id', $tenantId)
             ],
             'slug' => [
-                'required',
+                'nullable',
                 'string',
                 'min:3',
                 'max:255',
@@ -57,7 +57,6 @@ class RoleStoreRequest extends FormRequest
             'name.max' => 'O nome não pode ter mais de 255 caracteres.',
             'name.unique' => 'Este nome de role já está em uso.',
             
-            'slug.required' => 'O slug do role é obrigatório.',
             'slug.min' => 'O slug deve ter pelo menos 3 caracteres.',
             'slug.max' => 'O slug não pode ter mais de 255 caracteres.',
             'slug.regex' => 'O slug deve conter apenas letras minúsculas, números, hífens e underscores.',

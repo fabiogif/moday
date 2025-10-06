@@ -4,11 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
 class Role extends Model
 {
     use HasFactory;
 
     protected $fillable = ['name', 'slug', 'description', 'level', 'is_active', 'tenant_id'];
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->slug)) {
+                $model->slug = Str::slug($model->name);
+            }
+        });
+    }
 
     public function users()
     {

@@ -21,8 +21,33 @@ class StoreUpdatePermission extends FormRequest
      */
     public function rules(): array
     {
+        $permissionId = $this->route('permission');
+        
         return [
-            'name' => 'required',
+            'name' => 'required|string|max:255',
+            'slug' => [
+                'nullable',
+                'string',
+                'max:255',
+                'unique:permissions,slug,' . $permissionId,
+                'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'
+            ],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'O nome é obrigatório.',
+            'name.string' => 'O nome deve ser texto.',
+            'name.max' => 'O nome não pode ter mais de 255 caracteres.',
+            'slug.unique' => 'Este slug já está em uso.',
+            'slug.regex' => 'O slug deve conter apenas letras minúsculas, números e hífens.',
         ];
     }
 }

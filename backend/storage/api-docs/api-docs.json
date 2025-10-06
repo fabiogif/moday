@@ -381,7 +381,7 @@
                                     "properties": {
                                         "message": {
                                             "type": "string",
-                                            "example": "Unauthenticated."
+                                            "example": "Não autenticado."
                                         }
                                     },
                                     "type": "object"

@@ -9,6 +9,7 @@
         "darkaonline/l5-swagger": "^9.0",
         "inertiajs/inertia-laravel": "^2.0",
         "laravel/framework": "^11.0",
+        "laravel/reverb": "^1.6",
         "laravel/telescope": "^5.5",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.6",

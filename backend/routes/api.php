@@ -83,6 +83,11 @@ Route::middleware(['auth:api'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
     });
+
+    // Broadcasting authentication
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return \Illuminate\Support\Facades\Broadcast::auth($request);
+    });
 });
 // Rotas públicas (sem autenticação)
 
@@ -184,16 +189,16 @@ Route::middleware(['auth:api'])->group(function () {
     Route::prefix('profiles')->group(function () {
         Route::get('/', [ProfileApiController::class, 'index'])->middleware('throttle:read');
         Route::post('/', [ProfileApiController::class, 'store'])->middleware('throttle:critical');
-        Route::get('/{id}', [ProfileApiController::class, 'show'])->middleware('throttle:read');
-        Route::put('/{id}', [ProfileApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{id}', [ProfileApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/{profile}', [ProfileApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{profile}', [ProfileApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{profile}', [ProfileApiController::class, 'destroy'])->middleware('throttle:critical');
         
         // Gerenciar permissões do perfil
-        Route::get('/{id}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions'])->middleware('throttle:read');
-        Route::get('/{id}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile'])->middleware('throttle:read');
-        Route::post('/{id}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile'])->middleware('throttle:critical');
-        Route::delete('/{id}/permissions/{permissionId}', [PermissionProfileApiController::class, 'detachPermissionFromProfile'])->middleware('throttle:critical');
-        Route::put('/{id}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile'])->middleware('throttle:critical');
+        Route::get('/{profile}/permissions', [PermissionProfileApiController::class, 'getProfilePermissions'])->middleware('throttle:read');
+        Route::get('/{profile}/permissions/available', [PermissionProfileApiController::class, 'getAvailablePermissionsForProfile'])->middleware('throttle:read');
+        Route::post('/{profile}/permissions', [PermissionProfileApiController::class, 'attachPermissionToProfile'])->middleware('throttle:critical');
+        Route::delete('/{profile}/permissions/{permission}', [PermissionProfileApiController::class, 'detachPermissionFromProfile'])->middleware('throttle:critical');
+        Route::put('/{profile}/permissions/sync', [PermissionProfileApiController::class, 'syncPermissionsForProfile'])->middleware('throttle:critical');
     });
 
     // Permissões
@@ -207,9 +212,13 @@ Route::middleware(['auth:api'])->group(function () {
         Route::get('/{id}/profiles', [PermissionProfileApiController::class, 'getPermissionProfiles'])->middleware('throttle:read');
     });
 
-    // Roles
+    // Roles - DEPRECATED: Usar Profiles
+    // Rotas comentadas após migração para User -> Profile -> Permissions
+    // Se precisar, use endpoints de /profile ou /profiles
+    /*
     Route::prefix('role')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\RoleApiController::class, 'index'])->middleware('throttle:read');
+        Route::get('/stats', [\App\Http\Controllers\Api\RoleApiController::class, 'stats'])->middleware('throttle:read');
         Route::post('/', [\App\Http\Controllers\Api\RoleApiController::class, 'store'])->middleware('throttle:critical');
         Route::get('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'show'])->middleware('throttle:read');
         Route::put('/{id}', [\App\Http\Controllers\Api\RoleApiController::class, 'update'])->middleware('throttle:critical');
@@ -219,6 +228,7 @@ Route::middleware(['auth:api'])->group(function () {
         Route::delete('/{id}/permissions/{permissionId}', [\App\Http\Controllers\Api\RoleApiController::class, 'detachPermissionFromRole'])->middleware('throttle:critical');
         Route::put('/{id}/permissions/sync', [\App\Http\Controllers\Api\RoleApiController::class, 'syncPermissionsForRole'])->middleware('throttle:critical');
     });
+    */
 
     // Profile (alias para profiles)
     Route::prefix('profile')->group(function () {

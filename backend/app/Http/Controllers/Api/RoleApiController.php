@@ -163,6 +163,93 @@ class RoleApiController extends Controller
     }
 
     /**
+     * @OA\Get(
+     *     path="/api/role/stats",
+     *     summary="Estatísticas de funções",
+     *     description="Retorna estatísticas detalhadas das funções do sistema",
+     *     tags={"Função"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Estatísticas carregadas com sucesso",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="total_roles", type="integer", example=15, description="Total de funções cadastradas no sistema"),
+     *                 @OA\Property(property="recent_roles", type="integer", example=3, description="Funções criadas nos últimos 30 dias"),
+     *                 @OA\Property(property="admin_roles", type="integer", example=2, description="Funções de administração"),
+     *                 @OA\Property(property="user_roles", type="integer", example=8, description="Funções para usuários")
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Estatísticas carregadas com sucesso")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Não autenticado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Não autenticado.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Acesso negado",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Usuário não possui tenant associado")
+     *         )
+     *     )
+     * )
+     */
+    public function stats(): JsonResponse
+    {
+        try {
+            $user = auth()->user();
+            if (!$user || !$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            // Total de funções
+            $totalRoles = Role::where('tenant_id', $user->tenant_id)->count();
+
+            // Funções recentes (últimos 30 dias)
+            $recentRoles = Role::where('tenant_id', $user->tenant_id)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->count();
+
+            // Funções administrativas (baseado no slug)
+            $adminRoles = Role::where('tenant_id', $user->tenant_id)
+                ->where(function ($query) {
+                    $query->where('slug', 'like', '%admin%')
+                          ->orWhere('slug', 'like', '%manager%')
+                          ->orWhere('name', 'like', '%admin%')
+                          ->orWhere('name', 'like', '%gerente%');
+                })
+                ->count();
+
+            // Funções de usuário (baseado no slug)
+            $userRoles = Role::where('tenant_id', $user->tenant_id)
+                ->where(function ($query) {
+                    $query->where('slug', 'like', '%user%')
+                          ->orWhere('slug', 'like', '%client%')
+                          ->orWhere('name', 'like', '%user%')
+                          ->orWhere('name', 'like', '%cliente%');
+                })
+                ->count();
+
+            $stats = [
+                'total_roles' => $totalRoles,
+                'recent_roles' => $recentRoles,
+                'admin_roles' => $adminRoles,
+                'user_roles' => $userRoles
+            ];
+
+            return ApiResponseClass::sendResponse($stats, 'Estatísticas carregadas com sucesso', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao carregar estatísticas');
+        }
+    }
+
+    /**
      * Obter permissões de um role
      */
     public function getRolePermissions(Role $role): JsonResponse

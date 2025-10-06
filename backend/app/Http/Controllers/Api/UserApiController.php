@@ -99,10 +99,16 @@ class UserApiController extends BaseController
     /**
      * Display the specified user.
      */
-    public function show(User $user): JsonResponse
+    public function show($id): JsonResponse
     {
         try {
             $this->authorizeOrFail('users.show');
+            
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
             
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
@@ -123,9 +129,15 @@ class UserApiController extends BaseController
     /**
      * Update the specified user.
      */
-    public function update(UserUpdateRequest $request, User $user): JsonResponse
+    public function update(UserUpdateRequest $request, $id): JsonResponse
     {
         try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+            
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
@@ -167,9 +179,15 @@ class UserApiController extends BaseController
     /**
      * Remove the specified user.
      */
-    public function destroy(User $user): JsonResponse
+    public function destroy($id): JsonResponse
     {
         try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+            
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
@@ -196,9 +214,15 @@ class UserApiController extends BaseController
     /**
      * Assign profile to user.
      */
-    public function assignProfile(UserAssignProfileRequest $request, User $user): JsonResponse
+    public function assignProfile(UserAssignProfileRequest $request, $id): JsonResponse
     {
         try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+            
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
@@ -227,9 +251,15 @@ class UserApiController extends BaseController
     /**
      * Change user password.
      */
-    public function changePassword(UserChangePasswordRequest $request, User $user): JsonResponse
+    public function changePassword(UserChangePasswordRequest $request, $id): JsonResponse
     {
         try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+            
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
@@ -249,9 +279,15 @@ class UserApiController extends BaseController
     /**
      * Get user permissions.
      */
-    public function getUserPermissions(User $user): JsonResponse
+    public function getUserPermissions($id): JsonResponse
     {
         try {
+            $user = User::find($id);
+            
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+            
             // Verificar se o usuário pertence ao mesmo tenant
             if ($user->tenant_id !== auth()->user()->tenant_id) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);

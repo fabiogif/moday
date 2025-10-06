@@ -41,6 +41,29 @@ readonly class PermissionService
     }
 
     /**
+     * Get all permissions by tenant without pagination
+     */
+    public function getAllPermissionsByTenant(int $tenantId, array $filters = [])
+    {
+        $query = Permission::where('tenant_id', $tenantId);
+        
+        // Apply filters
+        if (isset($filters['name'])) {
+            $query->where('name', 'like', '%' . $filters['name'] . '%');
+        }
+        
+        if (isset($filters['description'])) {
+            $query->where('description', 'like', '%' . $filters['description'] . '%');
+        }
+        
+        if (isset($filters['resource'])) {
+            $query->where('resource', 'like', '%' . $filters['resource'] . '%');
+        }
+        
+        return $query->orderBy('created_at', 'desc')->get();
+    }
+
+    /**
      * Get permission by UUID
      */
     public function getPermissionByUuid(string $uuid, int $tenantId)
@@ -51,6 +74,18 @@ readonly class PermissionService
         if ($permission && $permission->tenant_id !== $tenantId) {
             return null;
         }
+        
+        return $permission;
+    }
+
+    /**
+     * Get permission by ID
+     */
+    public function getPermissionById(string $id, int $tenantId)
+    {
+        $permission = Permission::where('id', $id)
+            ->where('tenant_id', $tenantId)
+            ->first();
         
         return $permission;
     }
@@ -75,6 +110,25 @@ readonly class PermissionService
     }
 
     /**
+     * Update a permission by ID.
+     */
+    public function updatePermissionById(string $id, array $data, int $tenantId)
+    {
+        $permission = $this->getPermissionById($id, $tenantId);
+        
+        if (!$permission) {
+            return null;
+        }
+        
+        $permission->update($data);
+        
+        // Invalidar cache
+        $this->cacheService->invalidatePermissionCache($tenantId);
+        
+        return $permission->fresh();
+    }
+
+    /**
      * Delete a permission.
      */
     public function deletePermission(string $uuid, int $tenantId)
@@ -86,6 +140,27 @@ readonly class PermissionService
         }
         
         $deleted = $this->permissionRepositoryInterface->deletePermission($permission->id);
+        
+        // Invalidar cache
+        if ($deleted) {
+            $this->cacheService->invalidatePermissionCache($tenantId);
+        }
+        
+        return $deleted;
+    }
+
+    /**
+     * Delete a permission by ID.
+     */
+    public function deletePermissionById(string $id, int $tenantId)
+    {
+        $permission = $this->getPermissionById($id, $tenantId);
+        
+        if (!$permission) {
+            return false;
+        }
+        
+        $deleted = $permission->delete();
         
         // Invalidar cache
         if ($deleted) {

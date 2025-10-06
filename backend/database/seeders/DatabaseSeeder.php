@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Tymon\JWTAuth\Payload;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +14,17 @@ class DatabaseSeeder extends Seeder
             // Seeders básicos do sistema
             PlansTableSeeder::class,
             TenantsTableSeeder::class,
+            
+            // Seeders de perfis e permissões
+            ProfileSeeder::class,
+            PermissionSeeder::class,
+            AssignAllPermissionsToProfileSeeder::class,
+            
+            // Seeders de usuários
             UsersTableSeeder::class,
             
-            // Seeders de roles e permissions
+            // Seeders de roles (deprecated)
             RoleSeeder::class,
-            PermissionSeeder::class,
             RolePermissionSeeder::class,
             
             // Seeders de categorias e produtos
@@ -28,6 +35,11 @@ class DatabaseSeeder extends Seeder
             // Seeders de clientes e mesas
             ClientSeeder::class,
             TableSeeder::class,
+            
+            // Seeder do usuário de teste
+            TestUserSeeder::class,
+            
+            PaymentMethodSeeder::class,
         ]);
     }
 }

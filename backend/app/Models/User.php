@@ -148,7 +148,7 @@ class User extends Authenticatable implements JWTSubject
 
 
     /**
-     * Get the permissions for the user (direct and through roles).
+     * Get the permissions for the user (direct and through profiles).
      */
     public function permissions(): BelongsToMany
     {
@@ -156,32 +156,72 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
+     * Check if user has a specific profile.
+     * Uses case-insensitive comparison on profile name.
+     */
+    public function hasProfile(string $profileName): bool
+    {
+        return $this->profiles()
+            ->whereRaw('LOWER(name) = ?', [strtolower($profileName)])
+            ->exists();
+    }
+
+    /**
+     * Check if user has any of the given profiles.
+     */
+    public function hasAnyProfile(array $profiles): bool
+    {
+        $profiles = array_map('strtolower', $profiles);
+        return $this->profiles()
+            ->whereRaw('LOWER(name) IN (' . implode(',', array_fill(0, count($profiles), '?')) . ')', $profiles)
+            ->exists();
+    }
+
+    /**
+     * Check if user has all of the given profiles.
+     */
+    public function hasAllProfiles(array $profiles): bool
+    {
+        $profiles = array_map('strtolower', $profiles);
+        $userProfiles = $this->profiles()
+            ->get()
+            ->map(function ($profile) {
+                return strtolower($profile->name);
+            })
+            ->toArray();
+        return count(array_intersect($profiles, $userProfiles)) === count($profiles);
+    }
+
+    /**
      * Check if user has a specific role.
+     * @deprecated Use hasProfile() instead
      */
     public function hasRole(string $role): bool
     {
-        return $this->roles()->where('slug', $role)->exists();
+        // Fallback: try to find as profile
+        return $this->hasProfile($role);
     }
 
     /**
      * Check if user has any of the given roles.
+     * @deprecated Use hasAnyProfile() instead
      */
     public function hasAnyRole(array $roles): bool
     {
-        return $this->roles()->whereIn('slug', $roles)->exists();
+        return $this->hasAnyProfile($roles);
     }
 
     /**
      * Check if user has all of the given roles.
+     * @deprecated Use hasAllProfiles() instead
      */
     public function hasAllRoles(array $roles): bool
     {
-        $userRoles = $this->roles()->pluck('slug')->toArray();
-        return count(array_intersect($roles, $userRoles)) === count($roles);
+        return $this->hasAllProfiles($roles);
     }
 
     /**
-     * Check if user has a specific permission (direct or through roles).
+     * Check if user has a specific permission (direct or through profiles).
      */
     public function hasPermissionTo(string $permission): bool
     {
@@ -190,8 +230,8 @@ class User extends Authenticatable implements JWTSubject
             return true;
         }
 
-        // Check permissions through roles
-        return $this->roles()
+        // Check permissions through profiles
+        return $this->profiles()
             ->whereHas('permissions', function ($query) use ($permission) {
                 $query->where('slug', $permission);
             })
@@ -208,8 +248,8 @@ class User extends Authenticatable implements JWTSubject
             return true;
         }
 
-        // Check permissions through roles
-        return $this->roles()
+        // Check permissions through profiles
+        return $this->profiles()
             ->whereHas('permissions', function ($query) use ($permissions) {
                 $query->whereIn('slug', $permissions);
             })
@@ -226,42 +266,72 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Get all permissions for the user (direct + through roles).
+     * Get all permissions for the user (direct + through profiles).
      */
     public function getAllPermissions()
     {
         $directPermissions = $this->permissions;
-        $rolePermissions = $this->roles()->with('permissions')->get()
+        $profilePermissions = $this->profiles()->with('permissions')->get()
             ->pluck('permissions')
             ->flatten();
 
-        return $directPermissions->merge($rolePermissions)->unique('id');
+        return $directPermissions->merge($profilePermissions)->unique('id');
     }
 
     /**
-     * Assign a role to the user.
+     * Assign a profile to the user.
      */
-    public function assignRole(Role $role): void
+    public function assignProfile(Profile $profile): void
     {
-        if (!$this->hasRole($role->slug)) {
-            $this->roles()->attach($role);
+        if (!$this->hasProfile($profile->name)) {
+            $this->profiles()->attach($profile);
         }
     }
 
     /**
+     * Assign a role to the user.
+     * @deprecated Use assignProfile() instead
+     */
+    public function assignRole(Role $role): void
+    {
+        // This method is deprecated
+        // Use assignProfile() instead
+    }
+
+    /**
+     * Remove a profile from the user.
+     */
+    public function removeProfile(Profile $profile): void
+    {
+        $this->profiles()->detach($profile);
+    }
+
+    /**
+     * Sync profiles for the user.
+     */
+    public function syncProfiles(array $profiles): void
+    {
+        $this->profiles()->sync($profiles);
+    }
+
+    /**
      * Remove a role from the user.
+     * @deprecated Use removeProfile() instead
      */
     public function removeRole(Role $role): void
     {
-        $this->roles()->detach($role);
+        // This method is deprecated
+        // Use removeProfile() instead
     }
 
     /**
      * Sync roles for the user.
+     * @deprecated Use syncProfiles() instead
      */
     public function syncRoles(array $roles): void
     {
-        $this->roles()->sync($roles);
+        // This method is deprecated
+        // Use syncProfiles() instead
     }
 
     /**
@@ -283,27 +353,27 @@ class User extends Authenticatable implements JWTSubject
     }
 
     /**
-     * Check if user is super admin.
+     * Check if user is super admin (via profile).
      */
     public function isSuperAdmin(): bool
     {
-        return $this->hasRole('super-admin') || $this->hasRole('super_admin');
+        return $this->hasProfile('super-admin') || $this->hasProfile('super_admin');
     }
 
     /**
-     * Check if user is admin.
+     * Check if user is admin (via profile).
      */
     public function isAdmin(): bool
     {
-        return $this->hasRole('admin') || $this->isSuperAdmin();
+        return $this->hasProfile('admin') || $this->isSuperAdmin();
     }
 
     /**
-     * Check if user is manager.
+     * Check if user is manager (via profile).
      */
     public function isManager(): bool
     {
-        return $this->hasRole('manager') || $this->isAdmin();
+        return $this->hasProfile('manager') || $this->isAdmin();
     }
 
     /**

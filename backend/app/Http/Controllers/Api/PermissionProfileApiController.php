@@ -19,11 +19,15 @@ class PermissionProfileApiController extends Controller
     /**
      * Get permissions for a specific profile.
      */
-    public function getProfilePermissions(Profile $profile): JsonResponse
+    public function getProfilePermissions($profileId): JsonResponse
     {
         try {
-            // Verificar se o perfil pertence ao mesmo tenant
-            if ($profile->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar o perfil do tenant atual
+            $profile = Profile::where('id', $profileId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$profile) {
                 return ApiResponseClass::sendResponse(null, 'Perfil não encontrado', 404);
             }
             
@@ -43,11 +47,15 @@ class PermissionProfileApiController extends Controller
     /**
      * Get available permissions for a profile (not already assigned).
      */
-    public function getAvailablePermissionsForProfile(Profile $profile): JsonResponse
+    public function getAvailablePermissionsForProfile($profileId): JsonResponse
     {
         try {
-            // Verificar se o perfil pertence ao mesmo tenant
-            if ($profile->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar o perfil do tenant atual
+            $profile = Profile::where('id', $profileId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$profile) {
                 return ApiResponseClass::sendResponse(null, 'Perfil não encontrado', 404);
             }
             
@@ -71,11 +79,15 @@ class PermissionProfileApiController extends Controller
     /**
      * Attach permission to profile.
      */
-    public function attachPermissionToProfile(Request $request, Profile $profile): JsonResponse
+    public function attachPermissionToProfile(Request $request, $profileId): JsonResponse
     {
         try {
-            // Verificar se o perfil pertence ao mesmo tenant
-            if ($profile->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar o perfil do tenant atual
+            $profile = Profile::where('id', $profileId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$profile) {
                 return ApiResponseClass::sendResponse(null, 'Perfil não encontrado', 404);
             }
             
@@ -111,16 +123,24 @@ class PermissionProfileApiController extends Controller
     /**
      * Detach permission from profile.
      */
-    public function detachPermissionFromProfile(Profile $profile, Permission $permission): JsonResponse
+    public function detachPermissionFromProfile($profileId, $permissionId): JsonResponse
     {
         try {
-            // Verificar se o perfil pertence ao mesmo tenant
-            if ($profile->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar o perfil do tenant atual
+            $profile = Profile::where('id', $profileId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$profile) {
                 return ApiResponseClass::sendResponse(null, 'Perfil não encontrado', 404);
             }
             
-            // Verificar se a permissão pertence ao mesmo tenant
-            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar a permissão
+            $permission = Permission::where('id', $permissionId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$permission) {
                 return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
             }
             
@@ -145,11 +165,15 @@ class PermissionProfileApiController extends Controller
     /**
      * Sync permissions for profile (replace all permissions).
      */
-    public function syncPermissionsForProfile(PermissionProfileSyncRequest $request, Profile $profile): JsonResponse
+    public function syncPermissionsForProfile(PermissionProfileSyncRequest $request, $profileId): JsonResponse
     {
         try {
-            // Verificar se o perfil pertence ao mesmo tenant
-            if ($profile->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar o perfil do tenant atual
+            $profile = Profile::where('id', $profileId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$profile) {
                 return ApiResponseClass::sendResponse(null, 'Perfil não encontrado', 404);
             }
             
@@ -186,11 +210,15 @@ class PermissionProfileApiController extends Controller
     /**
      * Get profiles for a specific permission.
      */
-    public function getPermissionProfiles(Permission $permission): JsonResponse
+    public function getPermissionProfiles($permissionId): JsonResponse
     {
         try {
-            // Verificar se a permissão pertence ao mesmo tenant
-            if ($permission->tenant_id !== auth()->user()->tenant_id) {
+            // Buscar a permissão do tenant atual
+            $permission = Permission::where('id', $permissionId)
+                ->where('tenant_id', auth()->user()->tenant_id)
+                ->first();
+            
+            if (!$permission) {
                 return ApiResponseClass::sendResponse(null, 'Permissão não encontrada', 404);
             }
             

@@ -14,14 +14,21 @@ class TenantsTableSeeder extends Seeder
     {
         $plan = Plan::first();
 
+        if (!$plan) {
+            $this->command->error('❌ Nenhum plano encontrado. Execute PlansTableSeeder primeiro.');
+            return;
+        }
 
-        $plan->tenants()->create([
-            'cnpj' => '07768662000155',
-            'name' => 'Empresa Dev',
-            'url' => 'empresadev',
-            'email' => 'empresadev@empresadev.com.br',
-        ]);
+        $tenant = $plan->tenants()->firstOrCreate(
+            ['name' => 'Empresa Dev'],
+            [
+                'cnpj' => '07768662000155',
+                'name' => 'Empresa Dev',
+                'url' => 'empresadev',
+                'email' => 'empresadev@empresadev.com.br',
+            ]
+        );
 
-
+        $this->command->info("✅ Tenant: " . ($tenant->wasRecentlyCreated ? 'criado' : 'já existe') . " - {$tenant->name}");
     }
 }

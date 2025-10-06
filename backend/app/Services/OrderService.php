@@ -90,6 +90,13 @@ readonly class OrderService
        // Invalidate cache after creating order
        $this->cacheService->invalidateOrderCache($tenantId);
 
+       // Dispatch broadcasting event for new order (graceful fallback if broadcasting fails)
+       try {
+           \App\Events\OrderCreated::dispatch($order);
+       } catch (\Exception $e) {
+           \Log::warning('Failed to broadcast OrderCreated event: ' . $e->getMessage());
+       }
+
        return $order;
     }
 
@@ -361,6 +368,9 @@ readonly class OrderService
             throw new \Exception('Não autorizado a atualizar este pedido');
         }
 
+        // Armazenar o status anterior para broadcasting
+        $oldStatus = $order->status;
+
         // Preparar dados para atualização
         $updateData = [];
 
@@ -411,6 +421,17 @@ readonly class OrderService
         // Invalidar cache relacionado
         $this->cacheService->invalidateOrderCache($tenantId);
         $this->cacheService->invalidateOrderDataCache($tenantId);
+
+        // Dispatch broadcasting events (graceful fallback if broadcasting fails)
+        try {
+            if (isset($data['status']) && $oldStatus !== $data['status']) {
+                \App\Events\OrderStatusUpdated::dispatch($updatedOrder, $oldStatus, $data['status']);
+            } else {
+                \App\Events\OrderUpdated::dispatch($updatedOrder);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to broadcast order update event: ' . $e->getMessage());
+        }
 
         return $updatedOrder;
     }

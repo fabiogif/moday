@@ -22,7 +22,7 @@ class OrderFactory extends Factory
            'tenant_id' => Tenant::factory(),
             'identify' => uniqid().Str::random(10),
             'total'=> 90.99,
-            'status'=> 'Em Andamento',
+            'status'=> 'Preparo',
         ];
     }
 }

@@ -21,7 +21,6 @@ class ProfileApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $perPage = min($request->get('per_page', 15), 100);
             $filters = $request->only(['name', 'description', 'is_active']);
             
             $query = Profile::with(['permissions', 'tenant'])
@@ -40,16 +39,11 @@ class ProfileApiController extends Controller
                 $query->where('is_active', $filters['is_active']);
             }
             
-            $profiles = $query->paginate($perPage);
+            // Buscar todos os perfis sem paginação
+            $profiles = $query->get();
             
             return ApiResponseClass::sendResponse([
-                'profiles' => ProfileResource::collection($profiles->items()),
-                'pagination' => [
-                    'current_page' => $profiles->currentPage(),
-                    'last_page' => $profiles->lastPage(),
-                    'per_page' => $profiles->perPage(),
-                    'total' => $profiles->total(),
-                ]
+                'profiles' => ProfileResource::collection($profiles)
             ], 'Perfis recuperados com sucesso');
             
         } catch (\Exception $e) {

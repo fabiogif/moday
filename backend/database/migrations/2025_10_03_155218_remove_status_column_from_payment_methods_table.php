@@ -49,10 +49,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('payment_methods', function (Blueprint $table) {
-            $table->string('status')->default('active');
-            $table->string('flag')->nullable();
-            $table->index(['tenant_id', 'status']);
-        });
+        // Add status column back if it doesn't exist
+        if (!Schema::hasColumn('payment_methods', 'status')) {
+            Schema::table('payment_methods', function (Blueprint $table) {
+                $table->string('status')->default('active');
+            });
+        }
+        
+        // Add flag column back if it doesn't exist
+        if (!Schema::hasColumn('payment_methods', 'flag')) {
+            Schema::table('payment_methods', function (Blueprint $table) {
+                $table->string('flag')->nullable();
+            });
+        }
     }
 };

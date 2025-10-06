@@ -29,19 +29,13 @@ class PermissionApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
             }
 
-            $perPage = min($request->get('per_page', 15), 100);
             $filters = $request->only(['name', 'description', 'resource']);
             
-            $permissions = $this->permissionService->getPermissionsByTenant($tenantId, $filters, $perPage);
+            // Buscar todas as permissões sem paginação
+            $permissions = $this->permissionService->getAllPermissionsByTenant($tenantId, $filters);
             
             return ApiResponseClass::sendResponse([
-                'permissions' => PermissionResource::collection($permissions->items()),
-                'pagination' => [
-                    'current_page' => $permissions->currentPage(),
-                    'last_page' => $permissions->lastPage(),
-                    'per_page' => $permissions->perPage(),
-                    'total' => $permissions->total(),
-                ]
+                'permissions' => PermissionResource::collection($permissions)
             ], 'Permissões listadas com sucesso', 200);
 
         } catch (\Exception $ex) {
@@ -85,7 +79,7 @@ class PermissionApiController extends Controller
     /**
      * Display the specified permission.
      */
-    public function show(string $uuid): JsonResponse
+    public function show(string $id): JsonResponse
     {
         try {
             $tenantId = auth()->user()?->tenant_id;
@@ -94,7 +88,7 @@ class PermissionApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
             }
 
-            $permission = $this->permissionService->getPermissionByUuid($uuid, $tenantId);
+            $permission = $this->permissionService->getPermissionById($id, $tenantId);
 
             if (!$permission) {
                 return ApiResponseClass::sendResponse('', 'Permissão não encontrada', 404);
@@ -114,7 +108,7 @@ class PermissionApiController extends Controller
     /**
      * Update the specified permission in storage.
      */
-    public function update(PermissionUpdateRequest $request, string $uuid): JsonResponse
+    public function update(PermissionUpdateRequest $request, string $id): JsonResponse
     {
         try {
             $tenantId = auth()->user()?->tenant_id;
@@ -123,7 +117,7 @@ class PermissionApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
             }
 
-            $permission = $this->permissionService->updatePermission($uuid, [
+            $permission = $this->permissionService->updatePermissionById($id, [
                 'name' => $request->name,
                 'description' => $request->description,
                 'resource' => $request->resource,
@@ -151,7 +145,7 @@ class PermissionApiController extends Controller
     /**
      * Remove the specified permission from storage.
      */
-    public function destroy(string $uuid): JsonResponse
+    public function destroy(string $id): JsonResponse
     {
         try {
             $tenantId = auth()->user()?->tenant_id;
@@ -160,7 +154,7 @@ class PermissionApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
             }
 
-            $deleted = $this->permissionService->deletePermission($uuid, $tenantId);
+            $deleted = $this->permissionService->deletePermissionById($id, $tenantId);
 
             if (!$deleted) {
                 return ApiResponseClass::sendResponse('', 'Permissão não encontrada', 404);

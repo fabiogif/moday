@@ -73,4 +73,28 @@ class ProfileFactory extends Factory
             'is_active' => false,
         ]);
     }
+
+    /**
+     * Configure the model factory to assign all permissions after creation.
+     */
+    public function configure()
+    {
+        return $this->afterCreating(function (Profile $profile) {
+            // Buscar todas as permissões do tenant do profile
+            $allPermissions = \App\Models\Permission::where('tenant_id', $profile->tenant_id)->get();
+            
+            if ($allPermissions->isNotEmpty()) {
+                $permissionIds = $allPermissions->pluck('id')->toArray();
+                $profile->permissions()->attach($permissionIds);
+            }
+        });
+    }
+
+    /**
+     * Create a profile with all permissions.
+     */
+    public function withAllPermissions(): static
+    {
+        return $this->configure();
+    }
 }
