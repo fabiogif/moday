@@ -8,6 +8,7 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\Auth\RegisterApiController,
     Api\CategoryApiController,
     Api\ClientApiController,
+    Api\ClientAuthController,
     Api\PlanApiController,
     Api\DetailPlanApiController,
     Api\TableApiController,
@@ -23,7 +24,9 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\UserStatsApiController,
     Api\PaymentMethodApiController,
     Api\DashboardApiController,
-    Api\CsrfTokenController};
+    Api\DashboardMetricsController,
+    Api\CsrfTokenController,
+    Api\PublicStoreController};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -152,6 +155,16 @@ Route::middleware(['auth:api'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardApiController::class, 'index'])->middleware('throttle:read');
+    
+    // Dashboard Metrics (Enhanced)
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/metrics', [DashboardMetricsController::class, 'getMetricsOverview'])->middleware('throttle:read');
+        Route::get('/sales-performance', [DashboardMetricsController::class, 'getSalesPerformance'])->middleware('throttle:read');
+        Route::get('/recent-transactions', [DashboardMetricsController::class, 'getRecentTransactions'])->middleware('throttle:read');
+        Route::get('/top-products', [DashboardMetricsController::class, 'getTopProducts'])->middleware('throttle:read');
+        Route::get('/realtime-updates', [DashboardMetricsController::class, 'getRealtimeUpdates'])->middleware('throttle:read');
+        Route::post('/clear-cache', [DashboardMetricsController::class, 'clearCache'])->middleware('throttle:write');
+    });
 });
 
 // Cliente (movido para dentro do middleware auth:api)
@@ -255,6 +268,35 @@ Route::middleware(['auth:api'])->group(function () {
         Route::put('/{uuid}', [PaymentMethodApiController::class, 'update'])->middleware('throttle:critical');
         Route::delete('/{uuid}', [PaymentMethodApiController::class, 'destroy'])->middleware('throttle:critical');
     });
+});
+
+// ============================================================================
+// PUBLIC STORE ROUTES (NO AUTHENTICATION REQUIRED)
+// ============================================================================
+
+Route::prefix('store/{slug}')->group(function () {
+    // Get store information
+    Route::get('/info', [PublicStoreController::class, 'getStoreInfo']);
+    
+    // Get store products
+    Route::get('/products', [PublicStoreController::class, 'getProducts']);
+    
+    // Client Authentication
+    Route::post('/auth/register', [ClientAuthController::class, 'register'])
+        ->middleware('throttle:5,1'); // 5 registrations per minute
+    
+    Route::post('/auth/login', [ClientAuthController::class, 'login'])
+        ->middleware('throttle:10,1'); // 10 login attempts per minute
+    
+    Route::middleware('auth:client')->group(function () {
+        Route::get('/auth/me', [ClientAuthController::class, 'me']);
+        Route::post('/auth/logout', [ClientAuthController::class, 'logout']);
+        Route::get('/orders', [ClientAuthController::class, 'getOrders']);
+    });
+    
+    // Create public order
+    Route::post('/orders', [PublicStoreController::class, 'createOrder'])
+        ->middleware('throttle:10,1'); // 10 requests per minute
 });
 
 

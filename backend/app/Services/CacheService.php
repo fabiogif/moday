@@ -9,28 +9,34 @@ use Carbon\Carbon;
 class CacheService
 {
     /**
-     * Cache TTL configurations (in minutes)
+     * Cache TTL configurations (in seconds)
      */
     private const CACHE_TTL = [
-        'client_stats' => 30,      // 30 minutes
-        'product_stats' => 30,    // 30 minutes
-        'order_stats' => 15,      // 15 minutes
-        'category_stats' => 60,   // 1 hour
-        'table_stats' => 60,     // 1 hour
-        'payment_method_stats' => 60, // 1 hour
-        'order_data' => 10,      // 10 minutes
-        'dashboard_data' => 20,  // 20 minutes
+        'client_stats' => 1800,      // 30 minutes
+        'product_stats' => 1800,    // 30 minutes
+        'order_stats' => 900,      // 15 minutes
+        'category_stats' => 3600,   // 1 hour
+        'table_stats' => 3600,     // 1 hour
+        'payment_method_stats' => 3600, // 1 hour
+        'order_data' => 600,      // 10 minutes
+        'dashboard_data' => 1200,  // 20 minutes
         // Cache para listagens
-        'client_list' => 15,       // 15 minutes
-        'product_list' => 15,      // 15 minutes
-        'order_list' => 10,       // 10 minutes
-        'category_list' => 30,     // 30 minutes
-        'table_list' => 30,       // 30 minutes
-        'payment_method_list' => 30, // 30 minutes
-        'user_list' => 20,        // 20 minutes
-        'profile_list' => 60,     // 1 hour
-        'permission_list' => 120, // 2 hours
-        'role_list' => 60,        // 1 hour
+        'client_list' => 900,       // 15 minutes
+        'product_list' => 900,      // 15 minutes
+        'order_list' => 600,       // 10 minutes
+        'category_list' => 1800,     // 30 minutes
+        'table_list' => 1800,       // 30 minutes
+        'payment_method_list' => 1800, // 30 minutes
+        'user_list' => 1200,        // 20 minutes
+        'profile_list' => 3600,     // 1 hour
+        'permission_list' => 7200, // 2 hours
+        'role_list' => 3600,        // 1 hour
+        // Novos caches para dashboard
+        'dashboard_revenue' => 300,  // 5 minutes
+        'dashboard_metrics' => 300,  // 5 minutes
+        'sales_performance' => 600,  // 10 minutes
+        'recent_transactions' => 300, // 5 minutes
+        'top_products' => 600,       // 10 minutes
     ];
 
     /**
@@ -38,7 +44,12 @@ class CacheService
      */
     public function remember(string $key, int $ttl, callable $callback)
     {
-        return Cache::remember($key, $ttl, $callback);
+        try {
+            return Cache::remember($key, $ttl, $callback);
+        } catch (\Exception $e) {
+            Log::error("Cache error for key {$key}: " . $e->getMessage());
+            return $callback();
+        }
     }
 
     /**
@@ -250,6 +261,61 @@ class CacheService
         return $this->remember($cacheKey, $ttl, $callback);
     }
 
+    /**
+     * Get cached dashboard revenue data
+     */
+    public function getDashboardRevenue(int $tenantId, callable $callback)
+    {
+        $cacheKey = "dashboard_revenue_{$tenantId}";
+        $ttl = self::CACHE_TTL['dashboard_revenue'];
+        
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached dashboard metrics
+     */
+    public function getDashboardMetrics(int $tenantId, callable $callback)
+    {
+        $cacheKey = "dashboard_metrics_{$tenantId}";
+        $ttl = self::CACHE_TTL['dashboard_metrics'];
+        
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached sales performance data
+     */
+    public function getSalesPerformance(int $tenantId, callable $callback)
+    {
+        $cacheKey = "sales_performance_{$tenantId}";
+        $ttl = self::CACHE_TTL['sales_performance'];
+        
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached recent transactions
+     */
+    public function getRecentTransactions(int $tenantId, callable $callback)
+    {
+        $cacheKey = "recent_transactions_{$tenantId}";
+        $ttl = self::CACHE_TTL['recent_transactions'];
+        
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached top products
+     */
+    public function getTopProducts(int $tenantId, callable $callback)
+    {
+        $cacheKey = "top_products_{$tenantId}";
+        $ttl = self::CACHE_TTL['top_products'];
+        
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
 
     /**
      * Invalidate client-related cache
@@ -324,6 +390,19 @@ class CacheService
         Cache::forget("dashboard_data_{$tenantId}");
     }
 
+    /**
+     * Invalidate dashboard metrics cache
+     */
+    public function invalidateDashboardCache(int $tenantId): void
+    {
+        Cache::forget("dashboard_revenue_{$tenantId}");
+        Cache::forget("dashboard_metrics_{$tenantId}");
+        Cache::forget("sales_performance_{$tenantId}");
+        Cache::forget("recent_transactions_{$tenantId}");
+        Cache::forget("top_products_{$tenantId}");
+        Cache::forget("dashboard_data_{$tenantId}");
+    }
+
 
     /**
      * Invalidate all order data cache for a tenant
@@ -350,6 +429,7 @@ class CacheService
         $this->invalidateTableCache($tenantId);
         $this->invalidatePaymentMethodCache($tenantId);
         $this->invalidatePermissionCache($tenantId);
+        $this->invalidateDashboardCache($tenantId);
     }
 
     /**
@@ -357,29 +437,34 @@ class CacheService
      */
     private function invalidateCacheByPattern(string $pattern): void
     {
-        // This is a simplified implementation
-        // In production, you should use Redis SCAN command
-        // or maintain a registry of cache keys
-        
         try {
-            // For Redis store, try to get Redis connection
             $store = Cache::getStore();
-            if (method_exists($store, 'getRedis') && $store->getRedis()) {
+            
+            // Check if we're using Redis store
+            if (method_exists($store, 'getRedis')) {
                 $redis = $store->getRedis();
-                $keys = $redis->keys($pattern);
                 
-                if (!empty($keys)) {
-                    $redis->del($keys);
-                }
+                // Use SCAN instead of KEYS for better performance
+                $cursor = '0';
+                do {
+                    $result = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+                    $cursor = $result[0];
+                    $keys = $result[1] ?? [];
+                    
+                    if (!empty($keys)) {
+                        foreach ($keys as $key) {
+                            Cache::forget(str_replace(config('cache.prefix') . ':', '', $key));
+                        }
+                    }
+                } while ($cursor !== '0');
             } else {
-                // Fallback: clear all cache if pattern matching is not available
-                Log::info("Cache pattern invalidation not supported, clearing all cache");
-                Cache::flush();
+                // Fallback: For non-Redis stores, we can't use pattern matching
+                Log::info("Cache pattern invalidation not supported for current driver");
             }
         } catch (\Exception $e) {
-            // Log error but don't throw exception
             Log::warning("Failed to invalidate cache pattern: {$pattern}", [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

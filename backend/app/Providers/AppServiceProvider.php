@@ -11,6 +11,7 @@ use App\Models\Client;
 use App\Models\Table;
 use App\Models\Tenant;
 use App\Models\PaymentMethod;
+use App\Models\Order;
 use App\Observers\ProductObserver;
 use App\Observers\PlanObserver;
 use App\Observers\CategoryObserver;
@@ -18,6 +19,7 @@ use App\Observers\ClientObserver;
 use App\Observers\TableObserver;
 use App\Observers\TenantObserver;
 use App\Observers\PaymentMethodObserver;
+use App\Observers\OrderObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         Table::observe(TableObserver::class);
         Tenant::observe(TenantObserver::class);
         PaymentMethod::observe(PaymentMethodObserver::class);
+        Order::observe(OrderObserver::class);
 
         // Configurações para ambiente de produção
         if ($this->app->environment('production')) {

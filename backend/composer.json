@@ -13,6 +13,7 @@
         "laravel/telescope": "^5.5",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.6",
+        "predis/predis": "^3.2",
         "tymon/jwt-auth": "^2.0",
         "vlucas/phpdotenv": "^5.6"
     },

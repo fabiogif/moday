@@ -20,7 +20,7 @@ class CheckPermission
         if (!$user) {
             return response()->json([
                 'message' => 'Não autenticado.',
-                'error' => 'UNAUTHENTICATED'
+                'error' => 'Não autenticado.'
             ], 401);
         }
 

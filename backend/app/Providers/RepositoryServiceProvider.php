@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Repositories\contracts\{CategoryRepositoryInterface,
     ClientRepositoryInterface,
+    DashboardRepositoryInterface,
     EvaluationRepositoryInterface,
     OrderRepositoryInterface,
     PaymentMethodRepositoryInterface,
@@ -12,7 +13,8 @@ use App\Repositories\contracts\{CategoryRepositoryInterface,
     ProductRepositoryInterface,
     TableRepositoryInterface,
     TenantRepositoryInterface};
-use App\Repositories\{EvaluationRepository,
+use App\Repositories\{DashboardRepository,
+    EvaluationRepository,
     OrderRepository,
     PaymentMethodRepository,
     PermissionRepository,
@@ -42,6 +44,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(EvaluationRepositoryInterface::class, EvaluationRepository::class);
         $this->app->bind(PaymentMethodRepositoryInterface::class, PaymentMethodRepository::class);
         $this->app->bind(PermissionRepositoryInterface::class, PermissionRepository::class);
+        $this->app->bind(DashboardRepositoryInterface::class, DashboardRepository::class);
 
     }
 

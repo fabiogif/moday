@@ -23,6 +23,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             'identify' => $identify,
             'total' => $total,
             'status' => $status,
+            'origin' => 'admin', // Default origin is admin panel
             'tenant_id' => $tenantId,
             'comment' => $comment,
         ];

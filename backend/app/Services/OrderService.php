@@ -93,6 +93,9 @@ readonly class OrderService
        // Dispatch broadcasting event for new order (graceful fallback if broadcasting fails)
        try {
            \App\Events\OrderCreated::dispatch($order);
+           
+           // Dispatch dashboard metrics update
+           $this->dispatchDashboardUpdate($tenantId);
        } catch (\Exception $e) {
            \Log::warning('Failed to broadcast OrderCreated event: ' . $e->getMessage());
        }
@@ -429,6 +432,9 @@ readonly class OrderService
             } else {
                 \App\Events\OrderUpdated::dispatch($updatedOrder);
             }
+            
+            // Dispatch dashboard metrics update
+            $this->dispatchDashboardUpdate($tenantId);
         } catch (\Exception $e) {
             \Log::warning('Failed to broadcast order update event: ' . $e->getMessage());
         }
@@ -436,4 +442,27 @@ readonly class OrderService
         return $updatedOrder;
     }
 
+    /**
+     * Dispatch dashboard metrics update
+     */
+    private function dispatchDashboardUpdate(int $tenantId): void
+    {
+        try {
+            $currentMonth = \Carbon\Carbon::now()->startOfMonth();
+            
+            $metrics = [
+                'total_orders' => \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('created_at', '>=', $currentMonth)
+                    ->count(),
+                'total_revenue' => \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('created_at', '>=', $currentMonth)
+                    ->sum('total'),
+                'timestamp' => now()->toISOString()
+            ];
+
+            \App\Events\DashboardMetricsUpdated::dispatch($tenantId, $metrics);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to dispatch dashboard update: ' . $e->getMessage());
+        }
+    }
 }

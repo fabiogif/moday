@@ -15,7 +15,8 @@ class Order extends Model
         'client_id', 
         'table_id', 
         'total', 
-        'status', 
+        'status',
+        'origin',
         'comment',
         'is_delivery',
         'use_client_address',
@@ -26,7 +27,9 @@ class Order extends Model
         'delivery_neighborhood',
         'delivery_number',
         'delivery_complement',
-        'delivery_notes'
+        'delivery_notes',
+        'payment_method',
+        'shipping_method'
     ];
 
     protected $casts = [

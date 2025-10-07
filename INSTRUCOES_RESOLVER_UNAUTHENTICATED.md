@@ -2,7 +2,7 @@
 
 ## Problema
 
-O erro "Erro ao carregar pedidos: Unauthenticated" está ocorrendo porque há um token antigo e inválido armazenado no navegador.
+O erro "Erro ao carregar pedidos: 11" está ocorrendo porque há um token antigo e inválido armazenado no navegador.
 
 ## Causa
 
