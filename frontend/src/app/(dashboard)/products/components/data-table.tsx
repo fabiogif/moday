@@ -146,10 +146,32 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       accessorKey: "name",
       header: "Nome",
       cell: ({ row }) => (
-        <div>
-          <div className="font-medium">{row.getValue("name")}</div>
-          <div className="text-sm text-muted-foreground max-w-[200px] truncate">
-            {row.original.description}
+        <div className="flex items-center gap-3">
+          {/* Product Image Thumbnail */}
+          <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+            {row.original.url ? (
+              <img
+                src={row.original.url}
+                alt={row.getValue("name")}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.parentElement!.innerHTML = '<div class="flex h-full w-full items-center justify-center text-xs text-muted-foreground">Sem imagem</div>'
+                }}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                Sem imagem
+              </div>
+            )}
+          </div>
+          {/* Product Info */}
+          <div className="min-w-0 flex-1">
+            <div className="font-medium truncate">{row.getValue("name")}</div>
+            <div className="text-sm text-muted-foreground max-w-[200px] truncate">
+              {row.original.description}
+            </div>
           </div>
         </div>
       ),

@@ -12,11 +12,12 @@ import { PageLoading } from "@/components/ui/loading-progress"
 import { Order } from "./types"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
 export default function OrdersPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: orders, loading, error, refetch } = useOrders()
   
   // Debug: Log dos pedidos recebidos
@@ -48,6 +49,20 @@ export default function OrdersPage() {
       resetRefresh()
     }
   }, [shouldRefresh, refetch, resetRefresh])
+
+  // Handle auto-opening order details from URL parameter
+  useEffect(() => {
+    const viewOrderId = searchParams.get('view')
+    if (viewOrderId && orders && Array.isArray(orders)) {
+      const orderToView = orders.find((order: Order) => order.identify === viewOrderId)
+      if (orderToView) {
+        setSelectedOrder(orderToView)
+        setDetailsOpen(true)
+        // Clean up URL parameter
+        router.replace('/orders')
+      }
+    }
+  }, [searchParams, orders, router])
 
   const handleDeleteOrder = async (id: number) => {
     try {

@@ -3,7 +3,7 @@
  * Inclui autenticação JWT, tratamento de erros e cache
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 interface ApiResponse<T = any> {
   success: boolean
@@ -35,8 +35,8 @@ class ApiClient {
 
   private loadToken() {
     if (typeof window !== 'undefined') {
-      // Primeiro tenta pegar do localStorage
-      this.token = localStorage.getItem('auth_token')
+      // Primeiro tenta pegar do localStorage (usando a mesma chave do AuthContext)
+      this.token = localStorage.getItem('auth-token')
       
       // Se não encontrar, tenta pegar do cookie
       if (!this.token) {
@@ -56,7 +56,7 @@ class ApiClient {
   setToken(token: string) {
     this.token = token
     if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', token)
+      localStorage.setItem('auth-token', token)
       // Também salvar no cookie para sincronizar com AuthContext
       document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}`
     }
@@ -78,7 +78,7 @@ class ApiClient {
   clearToken() {
     this.token = null
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth-token')
       // Também remover do cookie
       document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     }

@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { apiClient } from '@/lib/api-client'
 
 interface User {
   id: string
@@ -69,6 +70,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setToken(savedToken)
           setIsAuthenticated(true)
           
+          // Also set the token in apiClient
+          apiClient.setToken(savedToken)
+          
           if (process.env.NODE_ENV === 'development') {
             console.log('AuthContext: Autenticação restaurada com sucesso')
           }
@@ -86,7 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +106,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw new Error(error.message || 'Erro ao fazer login')
       }
 
-      const data = await response.json()
+      const result = await response.json()
+      const data = result.data // Extract the data object from the response
       
       if (process.env.NODE_ENV === 'development') {
         console.log('AuthContext: Login bem-sucedido')
@@ -117,6 +123,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.setItem('auth-user', JSON.stringify(data.user))
       localStorage.setItem('auth-token', data.token)
       
+      // Also set the token in apiClient
+      apiClient.setToken(data.token)
+      
       // Também salvar no cookie para compatibilidade
       document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}`
     } catch (error) {
@@ -128,8 +137,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       // Chamar logout no backend
-      await fetch('/api/auth/logout', {
+      await fetch(`${apiUrl}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -142,6 +152,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(null)
       setToken(null)
       setIsAuthenticated(false)
+      
+      // Clear token from apiClient
+      apiClient.clearToken()
       
       // Remover dados do localStorage
       localStorage.removeItem('auth-user')
@@ -162,6 +175,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setToken(tokenValue)
     setIsAuthenticated(true)
     localStorage.setItem('auth-token', tokenValue)
+    // Also set in apiClient
+    apiClient.setToken(tokenValue)
   }
 
   const value: AuthContextType = {

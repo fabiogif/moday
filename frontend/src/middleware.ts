@@ -16,14 +16,17 @@ export function middleware(request: NextRequest) {
 
   // Rotas protegidas que precisam de autenticação
   const protectedRoutes = [
-    '/dashboard-2',
+    '/dashboard',
     '/users',
     '/orders',
     '/categories',
     '/products',
     '/tables',
     '/clients',
-    '/reports'
+    '/reports',
+    '/permissions',
+    '/profiles',
+    '/settings'
   ]
 
   // Se está em uma rota pública, permitir acesso
@@ -38,9 +41,9 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Se tem token e está tentando acessar login, redirecionar para dashboard-2
+  // Se tem token e está tentando acessar login, redirecionar para dashboard
   if (token && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard-2', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return NextResponse.next()

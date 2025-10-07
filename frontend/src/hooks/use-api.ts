@@ -201,7 +201,7 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = localStorage.getItem('auth-token')
         if (token) {
           apiClient.setToken(token)
       const response = await apiClient.get('/api/auth/me')

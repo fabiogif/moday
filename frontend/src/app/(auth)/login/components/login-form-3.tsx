@@ -50,7 +50,7 @@ export function LoginForm3({
       await login(data.email, data.password)
       console.log('Login realizado com sucesso!')
       toast.success("Login realizado com sucesso!")
-      router.push("/dashboard-2")
+      router.push("/dashboard")
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login"
       

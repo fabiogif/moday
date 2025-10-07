@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 export const createEchoInstance = (token: string) => {
   return new Echo({
     broadcaster: 'reverb',
-    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY || 'moday-app-key',
+    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY as string,
     wsHost: process.env.NEXT_PUBLIC_REVERB_HOST || 'localhost',
     wsPort: process.env.NEXT_PUBLIC_REVERB_PORT ? parseInt(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
     wssPort: process.env.NEXT_PUBLIC_REVERB_PORT ? parseInt(process.env.NEXT_PUBLIC_REVERB_PORT) : 8080,
@@ -40,10 +40,16 @@ export const initializeEcho = () => {
   }
 
   const token = localStorage.getItem('token')
+  const appKey = process.env.NEXT_PUBLIC_REVERB_APP_KEY
   
   if (!token) {
     // Usuário não está autenticado ainda - isso é normal durante o carregamento
     console.info('Echo: Waiting for authentication...')
+    return null
+  }
+
+  if (!appKey) {
+    console.warn('Echo: NEXT_PUBLIC_REVERB_APP_KEY is not set; realtime disabled')
     return null
   }
 
