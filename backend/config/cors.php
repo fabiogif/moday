@@ -19,11 +19,14 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
+    'allowed_origins' => array_filter([
         'http://localhost:3000',
-        'http://localhost:3001', 
-        'https://seudominio.com'
-    ],
+        'http://localhost:3001',
+        'https://localhost:3000',
+        'https://localhost:3001',
+        env('FRONTEND_URL'),
+        env('ADDITIONAL_CORS_ORIGIN'),
+    ]),
 
     'allowed_origins_patterns' => [],
 
@@ -32,7 +35,10 @@ return [
         'Authorization',
         'Content-Type',
         'X-Requested-With',
-        'X-CSRF-TOKEN'
+        'X-CSRF-TOKEN',
+        'Origin',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers'
     ],
 
     'exposed_headers' => [],
