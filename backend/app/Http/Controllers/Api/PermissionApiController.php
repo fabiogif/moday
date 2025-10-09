@@ -170,4 +170,37 @@ class PermissionApiController extends Controller
             return ApiResponseClass::rollback($ex, 'Erro ao excluir permissão');
         }
     }
+
+    /**
+     * Check if a permission is being used by profiles.
+     */
+    public function checkUsage(string $id): JsonResponse
+    {
+        try {
+            $tenantId = auth()->user()?->tenant_id;
+            
+            if (!$tenantId) {
+                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $permission = $this->permissionService->getPermissionById($id, $tenantId);
+
+            if (!$permission) {
+                return ApiResponseClass::sendResponse('', 'Permissão não encontrada', 404);
+            }
+
+            // Get the count of profiles using this permission
+            $profilesCount = $permission->profiles()->count();
+            $inUse = $profilesCount > 0;
+
+            return ApiResponseClass::sendResponse([
+                'in_use' => $inUse,
+                'profiles_count' => $profilesCount,
+                'can_delete' => !$inUse
+            ], 'Verificação de uso da permissão realizada com sucesso', 200);
+
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao verificar uso da permissão');
+        }
+    }
 }
