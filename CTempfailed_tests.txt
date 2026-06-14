@@ -1,0 +1,194 @@
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridRateLimiterTest[22m [90m>[39m can increment attempts                                           [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridRateLimiterTest[22m [90m>[39m detects too many attempts                                        [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridRateLimiterTest[22m [90m>[39m retrieves retries left                                           [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridRateLimiterTest[22m [90m>[39m can clear attempts                                               [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridRateLimiterTest[22m [90m>[39m cleanup removes expired records                                  [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridSessionHandlerTest[22m [90m>[39m can write and read session                                    [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridSessionHandlerTest[22m [90m>[39m writes to database                                            [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridSessionHandlerTest[22m [90m>[39m can destroy session                                           [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridSessionHandlerTest[22m [90m>[39m garbage collection removes old sessions                       [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\HybridSessionHandlerTest[22m [90m>[39m returns empty for non existent session                        [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\RedisHelperTest[22m [90m>[39m redis helper detects available redis                                   [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\RedisHelperTest[22m [90m>[39m redis helper returns correct drivers when available                    [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\RedisHelperTest[22m [90m>[39m redis helper reset                                                     [41;1m Error [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m login com credenciais validas retorna sucesso    [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m login com credenciais invalidas retorna erro     [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m login com usuario inativo retorna erro           [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m registro com dados validos cria usuario          [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m login atualiza ultimo acesso                     [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m login armazena dados no cache                    [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m has permission verifica permissoes corretamente  [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m invalidate user cache remove dados do cache      [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\AuthServiceTest[22m [90m>[39m update profile atualiza dados e cache            [41;1m ArgumentCountError [49;22m  
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\ProductRecommendationServiceTest[22m [90m>[39m retorna produtos mais vendidos quando carrinho vaz…   
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\ProductRecommendationServiceTest[22m [90m>[39m retorna produtos frequentemente pedidos juntos        
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\ProductRecommendationServiceTest[22m [90m>[39m retorna produtos mais vendidos com filtro de dias     
+  [41;1m FAILED [49;22m [1mTests\Unit\Services\ProductRecommendationServiceTest[22m [90m>[39m limpa cache de recomendacoes                          
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can list accounts payable                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can create an account payable                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it validates required fields                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it validates due date must be after or equal issue date                
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it validates amount must be positive                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can filter accounts payable by status                               
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can filter accounts payable by supplier                             
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can update an account payable                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can delete an account payable                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can mark account payable as paid                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can register partial payment                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can get due alerts                                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can get stats                                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it prevents accessing account payable from another tenant              
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it validates status field                                              
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountPayableApiTest[22m [90m>[39m it can create account payable with installments                        
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can list accounts receivable                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can create an account receivable                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it validates required fields                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it validates due date must be after or equal issue date             
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it validates amount must be positive                                
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can filter accounts receivable by status                         
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can filter accounts receivable by client                         
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can update an account receivable                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can delete an account receivable                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can mark account receivable as received                          
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can register partial receipt                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can get accounts receivable from order                           
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can get stats                                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it prevents accessing account receivable from another tenant        
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it validates status field                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can create account receivable with installments                  
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can link account receivable to order                             
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can create account receivable with discount                      
+  [41;1m FAILED [49;22m [1mTests\Feature\AccountReceivableApiTest[22m [90m>[39m it can create account receivable with interest and fine             
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode listar produtos do tenant                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m catalog lista apenas produtos ativos com estoque                          
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode criar produto com sucesso                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode atualizar produto existente                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode atualizar produto com nova imagem                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m nao pode atualizar produto de outro tenant                                
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m validacao falha ao criar produto sem campos obrigatorios                  
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m validacao falha ao atualizar produto com preco invalido                   
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode deletar produto                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m nao pode deletar produto de outro tenant                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode buscar produto por id                                                
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m retorna erro ao buscar produto inexistente                                
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode obter estatisticas de produtos                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m nome do produto deve ser unico por tenant                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode atualizar produto mantendo mesmo nome                                
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductApiTest[22m [90m>[39m pode atualizar categorias do produto                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode criar produto com imagem jpg                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode criar produto com imagem png                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode criar produto sem imagem                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m valida tamanho maximo da imagem                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m valida tipo de arquivo da imagem                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode atualizar produto com nova imagem                            
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode atualizar produto sem alterar imagem                         
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m imagem e salva no diretorio correto do tenant                     
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m url da imagem e salva corretamente no banco                       
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode criar produto com imagem gif                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m pode criar produto com imagem svg                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m multiplos produtos podem ter imagens com mesmo nome original      
+  [41;1m FAILED [49;22m [1mTests\Feature\Api\ProductImageUploadTest[22m [90m>[39m nao pode fazer upload para produto de outro tenant                
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can list bank accounts                                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can create a bank account                                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it validates required fields when creating                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can show a bank account                                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it cannot show account from another tenant                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can update a bank account                                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can delete a bank account                                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it cannot delete primary account                                             
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can set an account as primary                                             
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it cannot set inactive account as primary                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can verify an account                                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can list available banks                                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m it can view account logs                                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\BankAccountTest[22m [90m>[39m only tenant users can access their accounts                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryBasicTest[22m [90m>[39m pode criar categoria com sucesso                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryBasicTest[22m [90m>[39m valida campos obrigatorios para categoria                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryBasicTest[22m [90m>[39m pode listar categorias                                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m criar categoria sucesso                                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m listar categorias                                                         
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m buscar categoria por id                                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m atualizar categoria                                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m deletar categoria                                                         
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryManualTest[22m [90m>[39m validacao campos obrigatorios                                             
+  [41;1m FAILED [49;22m [1mTests\Feature\CategorySimpleTest[22m [90m>[39m pode criar categoria com sucesso                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\CategorySimpleTest[22m [90m>[39m pode listar categorias                                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode criar categoria com sucesso                                                
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m valida campos obrigatorios para categoria                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode listar categorias                                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode buscar categoria por identify                                              
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode atualizar categoria                                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode deletar categoria                                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m nao pode acessar categoria de outro tenant                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m valida unicidade do nome da categoria por tenant                                
+  [41;1m FAILED [49;22m [1mTests\Feature\CategoryTest[22m [90m>[39m pode criar categoria com mesmo nome em tenants diferentes                       
+  [41;1m FAILED [49;22m [1mTests\Feature\ClientCpfFlowTest[22m [90m>[39m admin panel check cpf returns existing client                              
+  [41;1m FAILED [49;22m [1mTests\Feature\ClientCpfFlowTest[22m [90m>[39m admin panel check cpf returns not found                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\ClientCpfFlowTest[22m [90m>[39m admin panel check cpf isolates by tenant                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m pode obter metricas de pedidos ultimos 7 dias                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m pedidos sao filtrados por tenant                              
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m pode obter lista de clientes                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m clientes sao filtrados por tenant                             
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m pedidos tem campo status valido                               
+  [41;1m FAILED [49;22m [1mTests\Feature\Dashboard\DashboardMetricsTest[22m [90m>[39m clientes tem campo created at valido                          
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m can save delivery pickup settings                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m can enable only pickup                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m can enable only delivery                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m pickup discount can be configured                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m delivery minimum order can be configured                          
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m delivery free above can be configured                             
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m can save all settings together                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\DeliveryPickupSettingsTest[22m [90m>[39m can update partial settings                                       
+  [41;1m FAILED [49;22m [1mTests\Feature\Distribtec\Integration\Phase1\Uc04PurchaseReceivePartialTest[22m [90m>[39m uc04 partial receive keeps s…   
+  [41;1m FAILED [49;22m [1mTests\Feature\Email\MailcowIntegrationTest[22m [90m>[39m oci smtp host is configured                                     
+  [41;1m FAILED [49;22m [1mTests\Feature\Email\MailcowIntegrationTest[22m [90m>[39m smtp port is 587 for starttls                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\Email\MailcowIntegrationTest[22m [90m>[39m smtp encryption is tls                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\Email\MailcowIntegrationTest[22m [90m>[39m from address is noreply                                         
+  [41;1m FAILED [49;22m [1mTests\Feature\Email\MailcowIntegrationTest[22m [90m>[39m all four mailboxes have albatec domain                          
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can list events for tenant                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can filter events by date range                                                 
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can get event stats                                                             
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can get upcoming events                                                         
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can create event with clients                                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m cannot create event with clients from other tenant                              
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can update event                                                                
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m cannot update event from other tenant                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can delete event                                                                
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m cannot delete event from other tenant                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m validation requires future date for new events                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m validation requires all mandatory fields                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\EventApiTest[22m [90m>[39m can create event and send notifications                                         
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can list expenses                                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can create an expense                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it validates required fields                                                  
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it validates due date must be after or equal issue date                       
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it validates amount must be positive                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can filter expenses by status                                              
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can filter expenses by category                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can update an expense                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it prevents changing paid status back to pending                              
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can delete an expense                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it can get expense stats                                                      
+  [41;1m FAILED [49;22m [1mTests\Feature\ExpenseApiTest[22m [90m>[39m it prevents accessing expense from another tenant                             
+  [41;1m FAILED [49;22m [1mTests\Feature\FileUploadServiceTest[22m [90m>[39m pode fazer upload multiplo                                             
+  [41;1m FAILED [49;22m [1mTests\Feature\FileUploadServiceTest[22m [90m>[39m pode deletar arquivo                                                   
+  [41;1m FAILED [49;22m [1mTests\Feature\FileUploadServiceTest[22m [90m>[39m pode deletar multiplos arquivos                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\FileUploadServiceTest[22m [90m>[39m obtem estatisticas de storage                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\FileUploadServiceTest[22m [90m>[39m gera nome unico para arquivo                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it can list all categories                                          
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it can filter categories by type                                    
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it can create a category                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it validates required fields                                        
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it validates type must be receita or despesa                        
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it validates color format                                           
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it prevents duplicate name within same type                         
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it allows same name for different types                             
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it can update a category                                            
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it can delete a category without relations                          
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it prevents deleting category with expenses                         
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it returns 404 for nonexistent category                             
+  [41;1m FAILED [49;22m [1mTests\Feature\FinancialCategoryApiTest[22m [90m>[39m it prevents accessing category from another tenant                  
+  [41;1m FAILED [49;22m [1mTests\Feature\Integration\UserIntegrationTest[22m [90m>[39m usuario com tenant acessa dados corretos                     
+  [41;1m FAILED [49;22m [1mTests\Feature\Integration\UserIntegrationTest[22m [90m>[39m usuario com permissoes acessa dados corretos                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Integration\UserIntegrationTest[22m [90m>[39m multiplos usuarios do mesmo tenant funcionam                 
+  [41;1m FAILED [49;22m [1mTests\Feature\Integrations\IfoodOrderIngestionTest[22m [90m>[39m it persists ifood order with… [41;1m BadMethodCallException [49;22m  

@@ -1,0 +1,29 @@
+name: backend-moday
+services:
+- name: backend
+  environment_slug: php
+  github:
+    branch: main
+    deploy_on_push: true
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  routes:
+  - path: /
+  run_command: bash start.sh
+  envs:
+  - key: APP_NAME
+    scope: RUN_TIME
+    value: "Laravel"
+  - key: APP_ENV
+    scope: RUN_TIME
+    value: "production"
+  - key: APP_DEBUG
+    scope: RUN_TIME
+    value: "false"
+  - key: APP_URL
+    scope: RUN_TIME
+    value: "https://orca-app-7hejo.ondigitalocean.app"
+  - key: FRONTEND_URL
+    scope: RUN_TIME
+    value: "https://clownfish-app-rr5rv.ondigitalocean.app"

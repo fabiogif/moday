@@ -1,0 +1,78 @@
+services:
+    laravel.test:
+        build:
+            context: ./vendor/laravel/sail/runtimes/8.3
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '1000'
+                WWWUSER: '1000'
+        image: sail-8.3/app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        ports:
+            - '80:80'
+            - '5173:5173'
+        environment:
+            WWWUSER: '1000'
+            WWWGROUP: '1000'
+            LARAVEL_SAIL: 1
+            XDEBUG_MODE: 'develop,debug'
+            XDEBUG_CONFIG: 'client_host=host.docker.internal'
+            IGNITION_LOCAL_SITES_PATH: '/var/www/html'
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - redis
+        working_dir: /var/www/html
+        command: >
+            bash -c "
+                git config --global --add safe.directory /var/www/html &&
+                composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-reqs &&
+                php artisan key:generate --force &&
+                php -S 0.0.0.0:80 -t public
+            "
+
+    mysql:
+        image: 'mysql:8.0.32'
+        ports:
+            - '3306:3306'
+        environment:
+            MYSQL_ROOT_PASSWORD: 'password'
+            MYSQL_DATABASE: 'laravel'
+            MYSQL_USER: 'sail'
+            MYSQL_PASSWORD: 'password'
+        volumes:
+            - 'mysql-data:/var/lib/mysql'
+        networks:
+            - sail
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+            retries: 3
+            timeout: 5s
+        command: --default-authentication-plugin=mysql_native_password
+
+    redis:
+        image: 'redis:alpine'
+        ports:
+            - '6379:6379'
+        volumes:
+            - 'redis-data:/data'
+        networks:
+            - sail
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            retries: 3
+            timeout: 5s
+
+networks:
+    sail:
+        driver: bridge
+
+volumes:
+    mysql-data:
+        driver: local
+    redis-data:
+        driver: local

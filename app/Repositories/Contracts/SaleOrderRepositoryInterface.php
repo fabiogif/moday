@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Repositories\Contracts;
+
+use App\Models\SaleOrder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+
+interface SaleOrderRepositoryInterface
+{
+    public function paginateForTenant(int $tenantId, ?string $status, int $perPage): LengthAwarePaginator;
+
+    public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder;
+
+    public function create(array $data): SaleOrder;
+
+    public function update(SaleOrder $order, array $data): SaleOrder;
+
+    public function deleteWithItems(SaleOrder $order): void;
+}

@@ -1,0 +1,71 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║                     🚀 DEPLOY FIX NOW                             ║
+║            Fix: details_plan table does not exist                 ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────┐
+│ OPTION 1: CONSOLE (FASTEST - 2 minutes) ⚡                        │
+└───────────────────────────────────────────────────────────────────┘
+
+1. Go to: https://cloud.digitalocean.com/apps
+2. Click: orca-app-7hejo (backend)
+3. Click: "Console" tab
+4. Run command:
+
+   php artisan migrate --force
+
+5. Test:
+
+   curl https://orca-app-7hejo.ondigitalocean.app/api/plans
+
+✅ DONE!
+
+┌───────────────────────────────────────────────────────────────────┐
+│ OPTION 2: GIT PUSH (AUTO-DEPLOY - 5 minutes)                     │
+└───────────────────────────────────────────────────────────────────┘
+
+git add .
+git commit -m "fix: auto-run migrations + rename detail_plans table"
+git push origin main
+
+Digital Ocean will auto-deploy and run migrations.
+
+┌───────────────────────────────────────────────────────────────────┐
+│ WHAT WAS FIXED                                                    │
+└───────────────────────────────────────────────────────────────────┘
+
+✅ Created migration to rename detail_plans → details_plan
+✅ Updated start.sh to auto-run migrations
+✅ Modified .do/app.yaml to use start.sh
+✅ Modified .platform.app.yaml to run migrations
+✅ Migration already tested locally - works!
+
+┌───────────────────────────────────────────────────────────────────┐
+│ FILES CHANGED                                                     │
+└───────────────────────────────────────────────────────────────────┘
+
+Modified:
+  • .do/app.yaml (run_command → bash start.sh)
+  • .platform.app.yaml (added migrate --force)
+
+New:
+  • start.sh (auto-migration script)
+  • rename_detail_plans_table.sql (SQL backup)
+  • Documentation files
+
+Already committed:
+  • database/migrations/2025_10_14_004457_rename_detail_plans_to_details_plan_table.php
+
+┌───────────────────────────────────────────────────────────────────┐
+│ VERIFICATION                                                      │
+└───────────────────────────────────────────────────────────────────┘
+
+After deployment, this should work:
+
+curl https://orca-app-7hejo.ondigitalocean.app/api/plans
+
+Expected: JSON with plans data (no error)
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  👉 RECOMMENDATION: Use OPTION 1 (Console) for immediate fix     ║
+╚═══════════════════════════════════════════════════════════════════╝
