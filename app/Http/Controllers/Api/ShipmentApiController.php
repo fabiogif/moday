@@ -6,6 +6,7 @@ use App\Classes\ApiResponseClass;
 use App\Exceptions\StockException;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Models\ShipmentOccurrence;
 use App\Services\AuthTenantService;
 use App\Services\Logistics\DeliveryRouteService;
 use App\Services\Logistics\ShipmentService;
@@ -63,7 +64,7 @@ class ShipmentApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $shipment = Shipment::forTenant($tenantId)
-                ->with(['carrier', 'saleOrders.client'])
+                ->with(['carrier', 'saleOrders.client', 'occurrences'])
                 ->find($id);
 
             if (!$shipment) {
@@ -158,6 +159,39 @@ class ShipmentApiController extends Controller
         }
     }
 
+    public function storeOccurrence(Request $request, int $id): JsonResponse
+    {
+        try {
+            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $shipment = Shipment::forTenant($tenantId)->find($id);
+            if (!$shipment) {
+                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+            }
+
+            $validated = $request->validate([
+                'type'         => 'required|in:delay,damage,refused,absent,other',
+                'description'  => 'required|string|max:1000',
+                'sale_order_id' => 'nullable|integer',
+            ]);
+
+            $occurrence = ShipmentOccurrence::create([
+                'shipment_id'   => $shipment->id,
+                'sale_order_id' => $validated['sale_order_id'] ?? null,
+                'type'          => $validated['type'],
+                'description'   => $validated['description'],
+                'occurred_at'   => now(),
+                'created_by'    => $user->id,
+            ]);
+
+            return ApiResponseClass::sendResponse($occurrence, 'Ocorrência registrada', 201);
+        } catch (\Illuminate\Validation\ValidationException $ex) {
+            return response()->json(['success' => false, 'message' => $ex->getMessage(), 'errors' => $ex->errors()], 422);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao registrar ocorrência');
+        }
+    }
+
     public function deliver(Request $request, int $id): JsonResponse
     {
         try {
@@ -188,6 +222,14 @@ class ShipmentApiController extends Controller
 
     private function formatShipmentDetail(Shipment $shipment): array
     {
+        $occurrenceTypeLabels = [
+            'delay'   => 'Atraso',
+            'damage'  => 'Avaria',
+            'refused' => 'Recusa',
+            'absent'  => 'Ausência',
+            'other'   => 'Outro',
+        ];
+
         return [
             'id' => $shipment->id,
             'identify' => $shipment->identify,
@@ -200,6 +242,8 @@ class ShipmentApiController extends Controller
             'estimated_duration_minutes' => $shipment->estimated_duration_minutes,
             'delivery_cost' => $shipment->delivery_cost,
             'cost_per_delivery' => $shipment->cost_per_delivery,
+            'total_weight_kg' => $shipment->total_weight_kg,
+            'total_volume_m3' => $shipment->total_volume_m3,
             'optimized_route' => $shipment->optimized_route,
             'route_polyline' => $shipment->route_polyline,
             'carrier' => $shipment->carrier,
@@ -221,6 +265,13 @@ class ShipmentApiController extends Controller
                     'delivery_window_end' => $order->pivot->delivery_window_end,
                     'delivery_zipcode' => $order->pivot->delivery_zipcode,
                 ],
+            ])->values(),
+            'occurrences' => ($shipment->relationLoaded('occurrences') ? $shipment->occurrences : collect())->map(fn ($o) => [
+                'id' => $o->id,
+                'type' => $o->type,
+                'type_label' => $occurrenceTypeLabels[$o->type] ?? $o->type,
+                'description' => $o->description,
+                'occurred_at' => $o->occurred_at?->format('d/m/Y H:i'),
             ])->values(),
         ];
     }

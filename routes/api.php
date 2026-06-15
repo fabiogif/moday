@@ -467,6 +467,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/sales-performance', [DashboardMetricsController::class, 'getSalesPerformance'])->middleware('throttle:read');
         Route::get('/recent-transactions', [DashboardMetricsController::class, 'getRecentTransactions'])->middleware('throttle:read');
         Route::get('/top-products', [DashboardMetricsController::class, 'getTopProducts'])->middleware('throttle:read');
+        Route::get('/profit', [DashboardMetricsController::class, 'getProfit'])->middleware('throttle:read');
         Route::get('/realtime-updates', [DashboardMetricsController::class, 'getRealtimeUpdates'])->middleware('throttle:read');
         Route::post('/clear-cache', [DashboardMetricsController::class, 'clearCache'])->middleware('throttle:write');
     });
@@ -713,6 +714,8 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::post('/{id}/deliver', [\App\Http\Controllers\Api\ShipmentApiController::class, 'deliver'])->middleware(['acl.permission:shipments.deliver', 'throttle:critical']);
+        Route::post('/{id}/occurrences', [\App\Http\Controllers\Api\ShipmentApiController::class, 'storeOccurrence'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
+        Route::get('/{id}/pdf', [\App\Http\Controllers\Api\ShipmentPdfController::class, 'show'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
         Route::delete('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'destroy'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
     });
 

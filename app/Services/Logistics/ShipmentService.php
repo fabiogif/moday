@@ -5,6 +5,7 @@ namespace App\Services\Logistics;
 use App\Exceptions\StockException;
 use App\Models\Driver;
 use App\Models\SaleOrder;
+use App\Models\SaleOrderItem;
 use App\Models\Shipment;
 use App\Models\Vehicle;
 use App\Services\Audit\AuditService;
@@ -76,6 +77,29 @@ class ShipmentService
                     ];
                 }
                 $shipment->saleOrders()->sync($syncData);
+
+                // Calculate total weight and volume from order items
+                $totalWeightKg = 0.0;
+                $totalVolumeM3 = 0.0;
+                $items = SaleOrderItem::with('product')
+                    ->whereIn('sale_order_id', $resolvedIds)
+                    ->get();
+                foreach ($items as $item) {
+                    $product = $item->product;
+                    if (!$product) continue;
+                    $qty = (float) $item->quantity;
+                    if ((float) $product->weight > 0) {
+                        $totalWeightKg += $qty * (float) $product->weight;
+                    }
+                    if ((float) $product->height > 0 && (float) $product->width > 0 && (float) $product->depth > 0) {
+                        $volPerUnit = ((float) $product->height * (float) $product->width * (float) $product->depth) / 1_000_000;
+                        $totalVolumeM3 += $qty * $volPerUnit;
+                    }
+                }
+                $shipment->update([
+                    'total_weight_kg' => $totalWeightKg > 0 ? round($totalWeightKg, 3) : null,
+                    'total_volume_m3' => $totalVolumeM3 > 0 ? round($totalVolumeM3, 4) : null,
+                ]);
             }
 
             $this->auditService->log($tenantId, $userId, 'shipment.created', 'shipment', $shipment->id, [

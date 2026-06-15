@@ -14,6 +14,7 @@ class Shipment extends Model
         'pod_reference', 'notes', 'created_by',
         'region', 'optimized_route', 'route_polyline', 'estimated_km',
         'estimated_duration_minutes', 'delivery_cost', 'cost_per_delivery',
+        'total_weight_kg', 'total_volume_m3',
     ];
 
     protected function casts(): array
@@ -26,6 +27,8 @@ class Shipment extends Model
             'estimated_duration_minutes' => 'integer',
             'delivery_cost'     => 'decimal:2',
             'cost_per_delivery' => 'decimal:2',
+            'total_weight_kg'   => 'decimal:3',
+            'total_volume_m3'   => 'decimal:4',
         ];
     }
 
@@ -68,6 +71,11 @@ class Shipment extends Model
                 'delivery_zipcode',
             ])
             ->orderBy('shipment_sale_order.delivery_sequence');
+    }
+
+    public function occurrences()
+    {
+        return $this->hasMany(ShipmentOccurrence::class)->latest();
     }
 
     public function scopeForTenant($query, int $tenantId)
