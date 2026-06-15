@@ -143,6 +143,31 @@ class DashboardRepository implements DashboardRepositoryInterface
             ->toArray();
     }
 
+    public function getProfitMetrics(int $tenantId, string $startDate, string $endDate): array
+    {
+        $result = DB::table('order_product')
+            ->join('products', 'order_product.product_id', '=', 'products.id')
+            ->join('orders', 'order_product.order_id', '=', 'orders.id')
+            ->where('products.tenant_id', $tenantId)
+            ->whereBetween('orders.created_at', [$startDate, $endDate])
+            ->where('orders.status', '!=', 'Cancelado')
+            ->selectRaw('
+                SUM(order_product.price * order_product.qty) as revenue,
+                SUM(COALESCE(products.price_cost, 0) * order_product.qty) as cost
+            ')
+            ->first();
+
+        $revenue = (float) ($result->revenue ?? 0);
+        $cost    = (float) ($result->cost ?? 0);
+
+        return [
+            'revenue' => $revenue,
+            'cost'    => $cost,
+            'profit'  => $revenue - $cost,
+            'margin'  => $revenue > 0 ? round((($revenue - $cost) / $revenue) * 100, 1) : 0,
+        ];
+    }
+
     public function getTopProducts(int $tenantId, string $startDate, int $limit = 10): array
     {
         return DB::table('order_product')

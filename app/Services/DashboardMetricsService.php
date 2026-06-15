@@ -91,6 +91,11 @@ readonly class DashboardMetricsService
                 $lastMonthConversion['conversion_rate']
             );
 
+            // Average Ticket
+            $currentAvgTicket = $totalOrders > 0 ? $currentRevenue / $totalOrders : 0;
+            $lastMonthAvgTicket = $lastMonthOrders > 0 ? $lastMonthRevenue / $lastMonthOrders : 0;
+            $avgTicketGrowth = $this->calculateGrowth($currentAvgTicket, $lastMonthAvgTicket);
+
             return [
                 'total_revenue' => $this->buildRevenueMetric(
                     $currentRevenue,
@@ -105,9 +110,9 @@ readonly class DashboardMetricsService
                     $totalOrders,
                     $ordersGrowth
                 ),
-                'conversion_rate' => $this->buildConversionMetric(
-                    $currentConversion['conversion_rate'],
-                    $conversionGrowth
+                'average_ticket' => $this->buildAverageTicketMetric(
+                    $currentAvgTicket,
+                    $avgTicketGrowth
                 )
             ];
         });
@@ -177,6 +182,41 @@ readonly class DashboardMetricsService
                 'formatted_total_revenue' => 'R$ ' . number_format($totalRevenue, 2, ',', '.')
             ];
         });
+    }
+
+    /**
+     * Get profit metrics (revenue, cost, profit, margin)
+     */
+    public function getProfit(int $tenantId): array
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        $lastMonth    = Carbon::now()->subMonth()->startOfMonth();
+
+        $current = $this->dashboardRepository->getProfitMetrics(
+            $tenantId,
+            $currentMonth->toDateTimeString(),
+            Carbon::now()->toDateTimeString()
+        );
+
+        $previous = $this->dashboardRepository->getProfitMetrics(
+            $tenantId,
+            $lastMonth->toDateTimeString(),
+            $currentMonth->toDateTimeString()
+        );
+
+        $profitGrowth = $this->calculateGrowth($current['profit'], $previous['profit']);
+
+        return [
+            'revenue'        => $current['revenue'],
+            'cost'           => $current['cost'],
+            'profit'         => $current['profit'],
+            'margin'         => $current['margin'],
+            'formatted_revenue' => 'R$ ' . number_format($current['revenue'], 2, ',', '.'),
+            'formatted_cost'    => 'R$ ' . number_format($current['cost'], 2, ',', '.'),
+            'formatted_profit'  => 'R$ ' . number_format($current['profit'], 2, ',', '.'),
+            'profit_growth'     => $profitGrowth,
+            'trend'             => $profitGrowth >= 0 ? 'up' : 'down',
+        ];
     }
 
     /**
@@ -267,6 +307,23 @@ readonly class DashboardMetricsService
             'trend' => $growth >= 0 ? 'up' : 'down',
             'subtitle' => 'Aumento constante do desempenho',
             'description' => 'Atende às projeções de conversão'
+        ];
+    }
+
+    /**
+     * Build average ticket metric array
+     */
+    private function buildAverageTicketMetric(float $avgTicket, float $growth): array
+    {
+        return [
+            'value' => round($avgTicket, 2),
+            'formatted' => 'R$ ' . number_format($avgTicket, 2, ',', '.'),
+            'growth' => $growth,
+            'trend' => $growth >= 0 ? 'up' : 'down',
+            'subtitle' => $growth >= 0
+                ? 'Ticket médio em alta'
+                : 'Ticket médio em queda',
+            'description' => 'Valor médio por pedido no mês'
         ];
     }
 

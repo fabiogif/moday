@@ -61,7 +61,7 @@ readonly class SalesPerformanceService
             'period' => [
                 'start_date' => $startDate,
                 'end_date' => $endDate,
-                'days' => $duration + 1,
+                'days' => $duration,
             ],
             'indicators' => [
                 'total_sales' => [

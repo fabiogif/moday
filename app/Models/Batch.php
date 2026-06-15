@@ -75,7 +75,8 @@ class Batch extends Model
 
     public function scopeExpiringSoon($query, int $days = 30)
     {
-        return $query->where('expiry_date', '<=', Carbon::now()->addDays($days))
+        return $query->where('status', 'available')
+            ->where('expiry_date', '<=', Carbon::now()->addDays($days))
             ->where('expiry_date', '>=', Carbon::now())
             ->where('quantity_available', '>', 0);
     }

@@ -19,4 +19,6 @@ interface DashboardRepositoryInterface
     public function getRecentTransactions(int $tenantId, int $limit = 10): array;
     
     public function getTopProducts(int $tenantId, string $startDate, int $limit = 10): array;
+
+    public function getProfitMetrics(int $tenantId, string $startDate, string $endDate): array;
 }

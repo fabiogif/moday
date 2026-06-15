@@ -103,7 +103,10 @@ class SaleOrder extends Model
 
     public function scopeByStatus($query, string $status)
     {
-        return $query->where('status', $status);
+        $statuses = array_map('trim', explode(',', $status));
+        return count($statuses) > 1
+            ? $query->whereIn('status', $statuses)
+            : $query->where('status', $status);
     }
 
     public function scopeNotArchived($query)

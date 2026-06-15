@@ -71,6 +71,22 @@ class DashboardMetricsController extends Controller
     }
 
     /**
+     * Get profit metrics
+     */
+    public function getProfit(DashboardMetricsRequest $request): JsonResponse
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $profit = $this->dashboardMetricsService->getProfit($tenantId);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $profit,
+            'message' => 'Lucro calculado com sucesso',
+        ]);
+    }
+
+    /**
      * Get realtime updates status
      */
     public function getRealtimeUpdates(DashboardMetricsRequest $request): JsonResponse
