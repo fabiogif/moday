@@ -87,6 +87,8 @@ class ShipmentApiController extends Controller
 
             $validated = $request->validate([
                 'carrier_id'               => 'nullable|integer',
+                'vehicle_id'               => 'nullable|integer',
+                'driver_id'                => 'nullable|integer',
                 'route_name'               => 'nullable|string|max:255',
                 'driver_name'              => 'nullable|string|max:255',
                 'vehicle_plate'            => 'nullable|string|max:20',
@@ -131,6 +133,28 @@ class ShipmentApiController extends Controller
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao expedir romaneio');
+        }
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        try {
+            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $shipment = Shipment::forTenant($tenantId)->find($id);
+            if (!$shipment) {
+                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+            }
+
+            if ($shipment->status === 'dispatched') {
+                return ApiResponseClass::sendResponse(null, 'Romaneio em trânsito não pode ser removido', 422);
+            }
+
+            $shipment->delete();
+
+            return ApiResponseClass::sendResponse(null, 'Romaneio removido com sucesso', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao remover romaneio');
         }
     }
 

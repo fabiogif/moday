@@ -8,7 +8,8 @@ use Illuminate\Support\Str;
 class Shipment extends Model
 {
     protected $fillable = [
-        'tenant_id', 'uuid', 'identify', 'carrier_id', 'route_name', 'status',
+        'tenant_id', 'uuid', 'identify', 'carrier_id', 'vehicle_id', 'driver_id',
+        'route_name', 'status',
         'driver_name', 'vehicle_plate', 'shipped_at', 'delivered_at',
         'pod_reference', 'notes', 'created_by',
         'region', 'optimized_route', 'route_polyline', 'estimated_km',
@@ -40,6 +41,16 @@ class Shipment extends Model
     public function carrier()
     {
         return $this->belongsTo(Carrier::class);
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class);
     }
 
     public function tenant()

@@ -3,8 +3,10 @@
 namespace App\Services\Logistics;
 
 use App\Exceptions\StockException;
+use App\Models\Driver;
 use App\Models\SaleOrder;
 use App\Models\Shipment;
+use App\Models\Vehicle;
 use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
 
@@ -30,12 +32,34 @@ class ShipmentService
 
             $resolvedIds = array_values(array_unique($resolvedIds));
 
+            // Resolve vehicle and driver snapshots for historical record
+            $vehicleId   = $data['vehicle_id'] ?? null;
+            $driverId    = $data['driver_id'] ?? null;
+            $vehiclePlate = $data['vehicle_plate'] ?? null;
+            $driverName   = $data['driver_name'] ?? null;
+
+            if ($vehicleId) {
+                $vehicle = Vehicle::forTenant($tenantId)->find($vehicleId);
+                if ($vehicle) {
+                    $vehiclePlate = $vehicle->plate;
+                }
+            }
+
+            if ($driverId) {
+                $driver = Driver::forTenant($tenantId)->find($driverId);
+                if ($driver) {
+                    $driverName = $driver->name;
+                }
+            }
+
             $shipment = Shipment::create([
                 'tenant_id'     => $tenantId,
                 'carrier_id'    => $data['carrier_id'] ?? null,
+                'vehicle_id'    => $vehicleId,
+                'driver_id'     => $driverId,
                 'route_name'    => $data['route_name'] ?? null,
-                'driver_name'   => $data['driver_name'] ?? null,
-                'vehicle_plate' => $data['vehicle_plate'] ?? null,
+                'driver_name'   => $driverName,
+                'vehicle_plate' => $vehiclePlate,
                 'notes'         => $data['notes'] ?? null,
                 'created_by'    => $userId,
                 'status'        => 'draft',

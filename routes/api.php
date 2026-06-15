@@ -713,6 +713,23 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::post('/{id}/deliver', [\App\Http\Controllers\Api\ShipmentApiController::class, 'deliver'])->middleware(['acl.permission:shipments.deliver', 'throttle:critical']);
+        Route::delete('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'destroy'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+    });
+
+    // Logística — Veículos
+    Route::prefix('vehicles')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\VehicleApiController::class, 'index'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\VehicleApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+        Route::put('/{id}', [\App\Http\Controllers\Api\VehicleApiController::class, 'update'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+        Route::delete('/{id}', [\App\Http\Controllers\Api\VehicleApiController::class, 'destroy'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+    });
+
+    // Logística — Motoristas
+    Route::prefix('drivers')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\DriverApiController::class, 'index'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\DriverApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+        Route::put('/{id}', [\App\Http\Controllers\Api\DriverApiController::class, 'update'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+        Route::delete('/{id}', [\App\Http\Controllers\Api\DriverApiController::class, 'destroy'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
     });
 
     // Logística — Roteirização de Entregas

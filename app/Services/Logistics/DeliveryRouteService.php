@@ -80,6 +80,11 @@ class DeliveryRouteService
         float $fuelPricePerL = self::DEFAULT_FUEL_PRICE,
         float $driverCostKm = self::DEFAULT_DRIVER_COST_KM,
     ): array {
+        // Use vehicle-specific fuel efficiency if available
+        if ($shipment->vehicle_id && $shipment->vehicle?->km_per_liter > 0) {
+            $kmPerLiter = (float) $shipment->vehicle->km_per_liter;
+        }
+
         $km = (float) ($shipment->estimated_km ?? 0);
 
         if ($km <= 0) {
