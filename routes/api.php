@@ -743,6 +743,10 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::delete('/{id}', [\App\Http\Controllers\Api\DriverApiController::class, 'destroy'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
     });
 
+    // Logística — Métricas e KPIs
+    Route::get('/logistics/metrics', [\App\Http\Controllers\Api\LogisticsMetricsController::class, 'index'])
+        ->middleware(['acl.permission:shipments.index', 'throttle:read']);
+
     // Logística — Roteirização de Entregas
     Route::prefix('deliveries')->middleware('plan.feature:delivery_routing')->group(function () {
         Route::get('/suggest-groups', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'suggestGroups'])->middleware('throttle:read');
