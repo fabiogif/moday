@@ -5,6 +5,7 @@ namespace App\Services\Sale;
 use App\Exceptions\CreditException;
 use App\Exceptions\RegulatoryException;
 use App\Exceptions\StockException;
+use App\Models\Client;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Events\SaleOrderConfirmedEvent;
@@ -50,6 +51,9 @@ class SaleOrderService
         $status   = $validated['status'] ?? 'orcamento';
         $clientId = $validated['client_id'] ?? null;
         unset($validated['items']);
+
+        $shippingData = $this->resolveShippingAddress($tenantId, $validated);
+        $validated    = array_merge($validated, $shippingData);
 
         $items = $this->priceTableService->applyPricesToItems($clientId, $items);
 
@@ -103,6 +107,14 @@ class SaleOrderService
         $order = $this->saleOrderRepository->findForTenant($tenantId, $id);
         if (!$order) {
             return null;
+        }
+
+        if ($this->hasShippingInput($data)) {
+            $shippingData = $this->resolveShippingAddress($tenantId, array_merge(
+                $order->only(['client_id', 'shipping_address', 'shipping_city', 'shipping_state', 'shipping_zipcode', 'use_client_address']),
+                $data
+            ));
+            $data = array_merge($data, $shippingData);
         }
 
         $updated = $this->saleOrderRepository->update($order, $data);
@@ -245,5 +257,98 @@ class SaleOrderService
             'subtotal'         => $gross - ($gross * $discPct / 100),
             'tax_amount'       => 0,
         ]);
+    }
+
+    private function hasShippingInput(array $data): bool
+    {
+        return array_key_exists('use_client_address', $data)
+            || array_key_exists('shipping_address', $data)
+            || array_key_exists('shipping_city', $data)
+            || array_key_exists('shipping_state', $data)
+            || array_key_exists('shipping_zipcode', $data);
+    }
+
+    /**
+     * @return array{
+     *     use_client_address: bool,
+     *     shipping_address: ?array,
+     *     shipping_city: ?string,
+     *     shipping_state: ?string,
+     *     shipping_zipcode: ?string
+     * }
+     */
+    private function resolveShippingAddress(int $tenantId, array $data): array
+    {
+        $useClientAddress = (bool) ($data['use_client_address'] ?? false);
+
+        if ($useClientAddress) {
+            $clientId = $data['client_id'] ?? null;
+            if (!$clientId) {
+                throw new \DomainException('Informe o cliente para usar o endereço cadastrado.');
+            }
+
+            $client = Client::query()
+                ->where('tenant_id', $tenantId)
+                ->find($clientId);
+
+            if (!$client || !$client->hasCompleteAddress()) {
+                throw new \DomainException('Cliente sem endereço completo cadastrado.');
+            }
+
+            return [
+                'use_client_address' => true,
+                'shipping_address'   => [
+                    'street'       => $client->address,
+                    'number'       => $client->number,
+                    'neighborhood' => $client->neighborhood,
+                    'complement'   => $client->complement,
+                ],
+                'shipping_city'    => $client->city,
+                'shipping_state'   => $client->state,
+                'shipping_zipcode' => $client->zip_code,
+            ];
+        }
+
+        $shippingAddress = $this->normalizeShippingAddress($data['shipping_address'] ?? null);
+        $hasAnyShipping  = $shippingAddress
+            || !empty($data['shipping_city'])
+            || !empty($data['shipping_state'])
+            || !empty($data['shipping_zipcode']);
+
+        if (!$hasAnyShipping) {
+            return [
+                'use_client_address' => false,
+                'shipping_address'   => null,
+                'shipping_city'      => null,
+                'shipping_state'     => null,
+                'shipping_zipcode'   => null,
+            ];
+        }
+
+        if (empty($shippingAddress['street'] ?? null) || empty($data['shipping_city']) || empty($data['shipping_state'])) {
+            throw new \DomainException('Informe logradouro, cidade e estado para o endereço de entrega.');
+        }
+
+        return [
+            'use_client_address' => false,
+            'shipping_address'   => $shippingAddress,
+            'shipping_city'      => $data['shipping_city'] ?? null,
+            'shipping_state'     => $data['shipping_state'] ?? null,
+            'shipping_zipcode'   => $data['shipping_zipcode'] ?? null,
+        ];
+    }
+
+    private function normalizeShippingAddress(mixed $address): ?array
+    {
+        if (!is_array($address)) {
+            return null;
+        }
+
+        return array_filter([
+            'street'       => $address['street'] ?? $address['logradouro'] ?? null,
+            'number'       => $address['number'] ?? $address['numero'] ?? null,
+            'neighborhood' => $address['neighborhood'] ?? $address['bairro'] ?? null,
+            'complement'   => $address['complement'] ?? $address['complemento'] ?? null,
+        ], fn ($value) => $value !== null && $value !== '');
     }
 }

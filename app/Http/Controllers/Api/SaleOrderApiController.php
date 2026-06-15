@@ -71,6 +71,15 @@ class SaleOrderApiController extends Controller
                 'items.*.unit_price'       => 'nullable|numeric|min:0',
                 'items.*.item_type'        => 'sometimes|string|in:venda,bonificacao',
                 'items.*.discount_percent' => ['sometimes', 'numeric', 'min:0', 'max:100', $discountRule],
+                'use_client_address'       => 'sometimes|boolean',
+                'shipping_address'         => 'nullable|array',
+                'shipping_address.street'    => 'nullable|string|max:255',
+                'shipping_address.number'    => 'nullable|string|max:30',
+                'shipping_address.neighborhood' => 'nullable|string|max:120',
+                'shipping_address.complement'   => 'nullable|string|max:120',
+                'shipping_city'            => 'nullable|string|max:120',
+                'shipping_state'           => 'nullable|string|max:2',
+                'shipping_zipcode'         => 'nullable|string|max:20',
             ]);
 
             $items = $validated['items'] ?? [];
@@ -79,6 +88,8 @@ class SaleOrderApiController extends Controller
 
             return ApiResponseClass::sendResponse($order, 'Pedido de venda criado com sucesso', 201);
         } catch (StockException|CreditException|RegulatoryException $ex) {
+            return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
+        } catch (\DomainException $ex) {
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao criar pedido de venda');
@@ -118,6 +129,15 @@ class SaleOrderApiController extends Controller
                 'prescription_verified'  => 'sometimes|boolean',
                 'notes'                  => 'nullable|string',
                 'nfe_number'             => 'nullable|string|max:50',
+                'use_client_address'     => 'sometimes|boolean',
+                'shipping_address'       => 'nullable|array',
+                'shipping_address.street'    => 'nullable|string|max:255',
+                'shipping_address.number'    => 'nullable|string|max:30',
+                'shipping_address.neighborhood' => 'nullable|string|max:120',
+                'shipping_address.complement'   => 'nullable|string|max:120',
+                'shipping_city'          => 'nullable|string|max:120',
+                'shipping_state'         => 'nullable|string|max:2',
+                'shipping_zipcode'       => 'nullable|string|max:20',
             ]);
 
             $order = $this->saleOrderService->update($tenantId, $id, $validated);
@@ -126,6 +146,8 @@ class SaleOrderApiController extends Controller
             }
 
             return ApiResponseClass::sendResponse($order, 'Pedido atualizado com sucesso', 200);
+        } catch (\DomainException $ex) {
+            return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar pedido');
         }

@@ -154,6 +154,84 @@ class SaleOrderApiTest extends TestCase
             ->assertJsonPath('data.total', '90.00');
     }
 
+    #[Test]
+    public function it_creates_a_sale_order_with_client_address(): void
+    {
+        $client = Client::factory()->create([
+            'tenant_id'    => $this->tenant->id,
+            'address'      => 'Rua das Flores',
+            'number'       => '100',
+            'neighborhood' => 'Centro',
+            'city'         => 'São Paulo',
+            'state'        => 'SP',
+            'zip_code'     => '01310-100',
+        ]);
+
+        $product = Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'price'     => 25.00,
+        ]);
+
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', [
+                'client_id'          => $client->id,
+                'use_client_address' => true,
+                'items'              => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity'   => 1,
+                        'unit_price' => 25.00,
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.use_client_address', true)
+            ->assertJsonPath('data.shipping_city', 'São Paulo')
+            ->assertJsonPath('data.shipping_state', 'SP')
+            ->assertJsonPath('data.shipping_zipcode', '01310-100')
+            ->assertJsonPath('data.shipping_address.street', 'Rua das Flores');
+
+        $this->assertDatabaseHas('sale_orders', [
+            'client_id'          => $client->id,
+            'use_client_address' => true,
+            'shipping_city'      => 'São Paulo',
+        ]);
+    }
+
+    #[Test]
+    public function it_creates_a_sale_order_with_custom_delivery_address(): void
+    {
+        $client = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id, 'price' => 40.00]);
+
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', [
+                'client_id'          => $client->id,
+                'use_client_address' => false,
+                'shipping_address'   => [
+                    'street'       => 'Av. Paulista',
+                    'number'       => '500',
+                    'neighborhood' => 'Bela Vista',
+                ],
+                'shipping_city'    => 'São Paulo',
+                'shipping_state'   => 'SP',
+                'shipping_zipcode' => '01311-000',
+                'items'            => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity'   => 1,
+                        'unit_price' => 40.00,
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.use_client_address', false)
+            ->assertJsonPath('data.shipping_address.street', 'Av. Paulista')
+            ->assertJsonPath('data.shipping_zipcode', '01311-000');
+    }
+
     // -------------------------------------------------------------------------
     // SHOW
     // -------------------------------------------------------------------------
