@@ -90,8 +90,9 @@ class DeliveryRouteApiTest extends TestCase
 
         $result = app(DeliveryRouteService::class)->optimizeRoute($shipment->fresh(['saleOrders.client', 'tenant']));
 
-        $this->assertSame('heuristic', $result['provider']);
-        $this->assertGreaterThanOrEqual(0, $result['estimated_km']);
+        $this->assertSame('estimated', $result['provider']);
+        $this->assertGreaterThan(0, $result['estimated_km']);
+        $this->assertGreaterThan(0, $result['estimated_duration_minutes']);
         $this->assertDatabaseHas('shipments', [
             'id' => $shipment->id,
         ]);

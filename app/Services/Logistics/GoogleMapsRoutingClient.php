@@ -116,9 +116,14 @@ class GoogleMapsRoutingClient
                     'longitude' => $stop['lng'],
                 ],
             ],
-        ], $stops);
+        ], array_values(array_filter($stops, fn (array $s) => is_numeric($s['lat'] ?? null) && is_numeric($s['lng'] ?? null))));
 
-        $lastStop = end($stops);
+        if ($intermediates === []) {
+            throw new RuntimeException('Nenhuma parada com coordenadas válidas para roteirização.');
+        }
+
+        $validStops = array_values(array_filter($stops, fn (array $s) => is_numeric($s['lat'] ?? null) && is_numeric($s['lng'] ?? null)));
+        $lastStop = $validStops[count($validStops) - 1];
 
         $body = [
             'origin' => [
@@ -137,10 +142,10 @@ class GoogleMapsRoutingClient
                     ],
                 ],
             ],
-            'intermediates' => count($stops) > 1 ? array_slice($intermediates, 0, -1) : [],
+            'intermediates' => count($validStops) > 1 ? array_slice($intermediates, 0, -1) : [],
             'travelMode' => 'DRIVE',
             'routingPreference' => 'TRAFFIC_AWARE_OPTIMAL',
-            'optimizeWaypointOrder' => count($stops) > 1,
+            'optimizeWaypointOrder' => count($validStops) > 1,
             'departureTime' => now()->addMinutes(5)->toIso8601String(),
             'computeAlternativeRoutes' => false,
             'languageCode' => 'pt-BR',
@@ -167,7 +172,7 @@ class GoogleMapsRoutingClient
         }
 
         $optimizedIndexes = $route['optimizedIntermediateWaypointIndex'] ?? [];
-        $orderedStopIds = $this->resolveStopOrder($stops, $optimizedIndexes);
+        $orderedStopIds = $this->resolveStopOrder($validStops, $optimizedIndexes);
 
         $legs = [];
         foreach ($route['legs'] ?? [] as $leg) {
@@ -222,12 +227,20 @@ class GoogleMapsRoutingClient
         return array_values($orderedIds);
     }
 
-    private function parseDurationSeconds(string $duration): int
+    private function parseDurationSeconds(mixed $duration): int
     {
-        if (preg_match('/(\d+)s/', $duration, $matches)) {
+        if (is_array($duration)) {
+            return (int) ($duration['seconds'] ?? 0);
+        }
+
+        if (is_numeric($duration)) {
+            return (int) $duration;
+        }
+
+        if (is_string($duration) && preg_match('/(\d+)s/', $duration, $matches)) {
             return (int) $matches[1];
         }
 
-        return (int) $duration;
+        return 0;
     }
 }

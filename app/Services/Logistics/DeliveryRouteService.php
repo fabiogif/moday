@@ -6,7 +6,6 @@ use App\Models\SaleOrder;
 use App\Models\Shipment;
 use App\Models\Tenant;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -14,6 +13,8 @@ class DeliveryRouteService
 {
     private const CEP_REGION_PREFIX_LENGTH = 3;
     private const AVG_KM_PER_STOP = 3.0;
+    private const ROAD_FACTOR = 1.35;
+    private const AVG_SPEED_KMH = 35.0;
     private const DEFAULT_KM_PER_LITER = 10.0;
     private const DEFAULT_FUEL_PRICE = 6.50;
     private const DEFAULT_DRIVER_COST_KM = 0.50;
@@ -131,11 +132,11 @@ class DeliveryRouteService
     private function optimizeWithGoogle(Shipment $shipment): array
     {
         $tenantId = (int) $shipment->tenant_id;
-        $depot = $this->resolveDepotCoordinates($shipment->tenant);
+        $depot = $this->resolveDepotCoordinatesSafe($shipment->tenant);
 
         $stopData = [];
         foreach ($shipment->saleOrders as $order) {
-            $coords = $this->resolveOrderCoordinates($tenantId, $order);
+            $coords = $this->resolveOrderCoordinatesSafe($tenantId, $order);
             $stopData[] = [
                 'sale_order_id' => $order->id,
                 'identify' => $order->identify,
@@ -153,23 +154,52 @@ class DeliveryRouteService
             return $this->emptyRouteResult($shipment);
         }
 
-        $googleStops = array_map(fn (array $s) => [
+        $googleStops = array_values(array_filter(array_map(fn (array $s) => [
             'lat' => $s['lat'],
             'lng' => $s['lng'],
             'sale_order_id' => $s['sale_order_id'],
-        ], $stopData);
+        ], $stopData), fn (array $s) => $s['lat'] !== null && $s['lng'] !== null));
 
-        $route = $this->googleMaps->computeOptimizedRoute($depot, $googleStops);
+        $fallbackMetrics = $this->estimateMetricsFromPath($depot, $stopData);
+
+        try {
+            $route = $this->googleMaps->computeOptimizedRoute($depot, $googleStops);
+        } catch (\Throwable $ex) {
+            Log::warning('Google Routes API unavailable, using coordinate estimate', [
+                'shipment_id' => $shipment->id,
+                'error' => $ex->getMessage(),
+            ]);
+            $route = [
+                'ordered_stop_ids' => array_column($stopData, 'sale_order_id'),
+                'total_distance_meters' => (int) round($fallbackMetrics['km'] * 1000),
+                'total_duration_seconds' => $fallbackMetrics['duration_minutes'] * 60,
+                'polyline' => null,
+                'legs' => $fallbackMetrics['legs'],
+            ];
+        }
+
+        if (($route['total_distance_meters'] ?? 0) <= 0 && $fallbackMetrics['km'] > 0) {
+            $route['total_distance_meters'] = (int) round($fallbackMetrics['km'] * 1000);
+            $route['total_duration_seconds'] = $fallbackMetrics['duration_minutes'] * 60;
+            $route['legs'] = $fallbackMetrics['legs'];
+        }
 
         $orderedStops = $this->reorderStopsByIds($stopData, $route['ordered_stop_ids']);
         $orderedStops = $this->applyWindowAwareOrdering($orderedStops, $route['legs']);
 
-        $routeSummary = $this->buildRouteSummary($orderedStops, $route['legs']);
-        $estimatedKm = round($route['total_distance_meters'] / 1000, 2);
-        $durationMinutes = (int) ceil($route['total_duration_seconds'] / 60);
+        $legs = $route['legs'] !== [] ? $route['legs'] : $fallbackMetrics['legs'];
+        $routeSummary = $this->buildRouteSummary($orderedStops, $legs);
+        $estimatedKm = round(($route['total_distance_meters'] ?? 0) / 1000, 2);
+        if ($estimatedKm <= 0) {
+            $estimatedKm = $fallbackMetrics['km'];
+        }
+        $durationMinutes = (int) ceil(($route['total_duration_seconds'] ?? 0) / 60);
+        if ($durationMinutes <= 0) {
+            $durationMinutes = $fallbackMetrics['duration_minutes'];
+        }
         $region = $this->dominantRegionLabel($orderedStops);
 
-        $this->persistRoute($shipment, $orderedStops, $routeSummary, $estimatedKm, $durationMinutes, $route['polyline'], $region);
+        $this->persistRoute($shipment, $orderedStops, $routeSummary, $estimatedKm, $durationMinutes, $route['polyline'] ?? null, $region);
 
         return [
             'shipment_id' => $shipment->id,
@@ -177,30 +207,20 @@ class DeliveryRouteService
             'estimated_km' => $estimatedKm,
             'estimated_duration_minutes' => $durationMinutes,
             'optimized_route' => $shipment->fresh()->optimized_route,
-            'route_polyline' => $route['polyline'],
+            'route_polyline' => $route['polyline'] ?? null,
             'window_violations' => count(array_filter($routeSummary, fn ($s) => $s['window_violation'] ?? false)),
-            'provider' => 'google',
+            'provider' => ($route['polyline'] ?? null) ? 'google' : 'estimated',
         ];
     }
 
     private function optimizeWithHeuristic(Shipment $shipment): array
     {
         $tenantId = (int) $shipment->tenant_id;
+        $depot = $this->resolveDepotCoordinatesSafe($shipment->tenant);
 
         $stops = $shipment->saleOrders->map(function (SaleOrder $order) use ($tenantId) {
             $pivot = $order->pivot;
-            $lat = $this->normalizeCoordinate($order->shipping_latitude);
-            $lng = $this->normalizeCoordinate($order->shipping_longitude);
-
-            if (($lat === null || $lng === null) && $this->googleMaps->isConfigured()) {
-                try {
-                    $coords = $this->resolveOrderCoordinates($tenantId, $order);
-                    $lat = $coords['lat'];
-                    $lng = $coords['lng'];
-                } catch (\Throwable) {
-                    // Mantém null — mapa exibirá só localização do usuário
-                }
-            }
+            $coords = $this->resolveOrderCoordinatesSafe($tenantId, $order);
 
             return [
                 'sale_order_id' => $order->id,
@@ -210,8 +230,8 @@ class DeliveryRouteService
                 'delivery_window_start' => $pivot->delivery_window_start ?? $order->delivery_window_start,
                 'delivery_window_end' => $pivot->delivery_window_end ?? $order->delivery_window_end,
                 'order_total' => (float) $order->total,
-                'lat' => $lat,
-                'lng' => $lng,
+                'lat' => $coords['lat'],
+                'lng' => $coords['lng'],
             ];
         });
 
@@ -221,21 +241,29 @@ class DeliveryRouteService
             return ($window ? '0_' . $window : '1_') . '_' . str_replace('-', '', $zip);
         })->values()->all();
 
-        $estimatedKm = count($sorted) > 1 ? $this->estimateKmHeuristic(collect($sorted)) : 0.0;
-        $routeSummary = $this->buildRouteSummary($sorted, []);
+        $metrics = $this->estimateMetricsFromPath($depot, $sorted);
+        $routeSummary = $this->buildRouteSummary($sorted, $metrics['legs']);
         $region = $this->dominantRegionLabel($sorted);
 
-        $this->persistRoute($shipment, $sorted, $routeSummary, $estimatedKm, null, null, $region);
+        $this->persistRoute(
+            $shipment,
+            $sorted,
+            $routeSummary,
+            $metrics['km'],
+            $metrics['duration_minutes'],
+            null,
+            $region,
+        );
 
         return [
             'shipment_id' => $shipment->id,
             'stops' => count($routeSummary),
-            'estimated_km' => $estimatedKm,
-            'estimated_duration_minutes' => $shipment->fresh()->estimated_duration_minutes,
+            'estimated_km' => $metrics['km'],
+            'estimated_duration_minutes' => $metrics['duration_minutes'],
             'optimized_route' => $shipment->fresh()->optimized_route,
             'route_polyline' => null,
             'window_violations' => 0,
-            'provider' => 'heuristic',
+            'provider' => 'estimated',
         ];
     }
 
@@ -251,10 +279,12 @@ class DeliveryRouteService
         $summary = [];
 
         foreach ($stops as $index => $stop) {
-            $legDuration = $legs[$index]['duration_seconds'] ?? 0;
             if ($index > 0) {
-                $currentTime = $currentTime->copy()->addSeconds($legDuration)->addMinutes($serviceMinutes);
+                $currentTime = $currentTime->copy()->addMinutes($serviceMinutes);
             }
+
+            $legDuration = $legs[$index]['duration_seconds'] ?? 0;
+            $currentTime = $currentTime->copy()->addSeconds($legDuration);
 
             $windowStart = $stop['delivery_window_start'] ?? null;
             $windowEnd = $stop['delivery_window_end'] ?? null;
@@ -332,6 +362,108 @@ class DeliveryRouteService
     }
 
     /** @return array{lat: float, lng: float} */
+    private function resolveDepotCoordinatesSafe(?Tenant $tenant): array
+    {
+        try {
+            return $this->resolveDepotCoordinates($tenant);
+        } catch (\Throwable $ex) {
+            Log::warning('Depot geocode failed, using default center', ['error' => $ex->getMessage()]);
+            return ['lat' => -23.5505, 'lng' => -46.6333];
+        }
+    }
+
+    /** @return array{lat: ?float, lng: ?float} */
+    private function resolveOrderCoordinatesSafe(int $tenantId, SaleOrder $order): array
+    {
+        try {
+            $coords = $this->resolveOrderCoordinates($tenantId, $order);
+            return [
+                'lat' => $this->normalizeCoordinate($coords['lat']),
+                'lng' => $this->normalizeCoordinate($coords['lng']),
+            ];
+        } catch (\Throwable $ex) {
+            Log::warning('Order geocode failed', [
+                'sale_order_id' => $order->id,
+                'error' => $ex->getMessage(),
+            ]);
+            return [
+                'lat' => $this->normalizeCoordinate($order->shipping_latitude),
+                'lng' => $this->normalizeCoordinate($order->shipping_longitude),
+            ];
+        }
+    }
+
+    /**
+     * Estima km, tempo e pernas da rota a partir de coordenadas (Haversine + fator de via).
+     *
+     * @param  array{lat: float, lng: float}  $depot
+     * @param  array<int, array<string, mixed>>  $stops
+     * @return array{km: float, duration_minutes: int, legs: array<int, array{duration_seconds: int, distance_meters: int}>}
+     */
+    private function estimateMetricsFromPath(array $depot, array $stops): array
+    {
+        $serviceMinutes = (int) config('services.google_maps.service_time_minutes', 10);
+        $coordStops = [];
+
+        foreach ($stops as $stop) {
+            $lat = $this->normalizeCoordinate($stop['lat'] ?? null);
+            $lng = $this->normalizeCoordinate($stop['lng'] ?? null);
+            if ($lat !== null && $lng !== null) {
+                $coordStops[] = ['lat' => $lat, 'lng' => $lng];
+            }
+        }
+
+        if ($coordStops === []) {
+            $stopCount = count($stops);
+            $pairs = max(0, $stopCount - 1);
+            $km = $stopCount > 0 ? round(($pairs * self::AVG_KM_PER_STOP) + 8.0, 2) : 0.0;
+            $travelMinutes = (int) ceil(($km / self::AVG_SPEED_KMH) * 60);
+            $durationMinutes = max($travelMinutes + ($stopCount * $serviceMinutes), $serviceMinutes);
+
+            return ['km' => $km, 'duration_minutes' => $durationMinutes, 'legs' => []];
+        }
+
+        $path = array_merge([$depot], $coordStops);
+        $totalKm = 0.0;
+        $legs = [];
+
+        for ($i = 1; $i < count($path); $i++) {
+            $km = $this->haversineKm(
+                $path[$i - 1]['lat'],
+                $path[$i - 1]['lng'],
+                $path[$i]['lat'],
+                $path[$i]['lng'],
+            ) * self::ROAD_FACTOR;
+
+            $totalKm += $km;
+            $legs[] = [
+                'distance_meters' => (int) round($km * 1000),
+                'duration_seconds' => (int) ceil(($km / self::AVG_SPEED_KMH) * 3600),
+            ];
+        }
+
+        $travelMinutes = (int) ceil(($totalKm / self::AVG_SPEED_KMH) * 60);
+        $durationMinutes = max($travelMinutes + (count($stops) * $serviceMinutes), 1);
+
+        return [
+            'km' => round($totalKm, 2),
+            'duration_minutes' => $durationMinutes,
+            'legs' => $legs,
+        ];
+    }
+
+    private function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadiusKm = 6371.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLng = deg2rad($lng2 - $lng1);
+        $a = sin($dLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
+
+        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
+    }
+
+    /** @return array{lat: float, lng: float} */
     private function resolveDepotCoordinates(?Tenant $tenant): array
     {
         if (!$tenant) {
@@ -345,6 +477,10 @@ class DeliveryRouteService
             $tenant->zipcode,
             'Brasil',
         ])));
+
+        if ($query === '' || $query === 'Brasil') {
+            return ['lat' => -23.5505, 'lng' => -46.6333];
+        }
 
         return $this->googleMaps->geocode((int) $tenant->id, $query);
     }
@@ -379,6 +515,10 @@ class DeliveryRouteService
                 $order->shipping_zipcode,
                 'Brasil',
             ])));
+        }
+
+        if ($query === '' || $query === 'Brasil') {
+            $query = trim(($order->shipping_zipcode ?? '') . ', Brasil');
         }
 
         $coords = $this->googleMaps->geocode($tenantId, $query);
@@ -475,12 +615,6 @@ class DeliveryRouteService
             'delivery_window_end' => $order->delivery_window_end,
             'suggested_sequence' => $sequence,
         ];
-    }
-
-    private function estimateKmHeuristic(Collection $stops): float
-    {
-        $pairs = max(0, $stops->count() - 1);
-        return round(($pairs * self::AVG_KM_PER_STOP) + 20.0, 2);
     }
 
     private function timeToday(string $time): Carbon
