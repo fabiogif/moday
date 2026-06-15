@@ -11,7 +11,7 @@ class Shipment extends Model
         'tenant_id', 'uuid', 'identify', 'carrier_id', 'vehicle_id', 'driver_id',
         'route_name', 'status',
         'driver_name', 'vehicle_plate', 'shipped_at', 'delivered_at',
-        'pod_reference', 'notes', 'created_by',
+        'pod_reference', 'delivery_token', 'notes', 'created_by',
         'region', 'optimized_route', 'route_polyline', 'estimated_km',
         'estimated_duration_minutes', 'delivery_cost', 'cost_per_delivery',
         'total_weight_kg', 'total_volume_m3',
@@ -69,6 +69,14 @@ class Shipment extends Model
                 'delivery_window_start',
                 'delivery_window_end',
                 'delivery_zipcode',
+                'pod_photo_path',
+                'pod_signature_path',
+                'pod_delivered_at',
+                'pod_recipient_name',
+                'pod_latitude',
+                'pod_longitude',
+                'pod_status',
+                'pod_notes',
             ])
             ->orderBy('shipment_sale_order.delivery_sequence');
     }

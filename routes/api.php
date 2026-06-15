@@ -95,6 +95,14 @@ Route::post('/webhooks/mercadopago/preapproval', \App\Http\Controllers\Api\Merca
 Route::post('/landing-analytics', fn() => response()->json(['ok' => true]))
     ->middleware('throttle:120,1');
 
+// POD Digital — Comprovante de Entrega (público, sem JWT)
+Route::prefix('delivery')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\Api\PodController::class, 'show'])
+        ->middleware('throttle:read');
+    Route::post('/{token}/orders/{orderId}/pod', [\App\Http\Controllers\Api\PodController::class, 'submitPod'])
+        ->middleware('throttle:critical');
+});
+
 
 // Route OPTIONS removida - deixar o GlobalCorsMiddleware tratar
 

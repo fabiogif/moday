@@ -129,7 +129,11 @@ class ShipmentApiController extends Controller
 
             $shipment = $this->shipmentService->dispatch($shipment, $user->id);
 
-            return ApiResponseClass::sendResponse($shipment, 'Romaneio expedido', 200);
+            return ApiResponseClass::sendResponse(
+                $this->formatShipmentDetail($shipment),
+                'Romaneio expedido',
+                200
+            );
         } catch (StockException $ex) {
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
@@ -237,6 +241,7 @@ class ShipmentApiController extends Controller
             'driver_name' => $shipment->driver_name,
             'vehicle_plate' => $shipment->vehicle_plate,
             'status' => $shipment->status,
+            'delivery_token' => $shipment->delivery_token,
             'region' => $shipment->region,
             'estimated_km' => $shipment->estimated_km,
             'estimated_duration_minutes' => $shipment->estimated_duration_minutes,
@@ -264,6 +269,12 @@ class ShipmentApiController extends Controller
                     'delivery_window_start' => $order->pivot->delivery_window_start,
                     'delivery_window_end' => $order->pivot->delivery_window_end,
                     'delivery_zipcode' => $order->pivot->delivery_zipcode,
+                    'pod_status' => $order->pivot->pod_status,
+                    'pod_recipient_name' => $order->pivot->pod_recipient_name,
+                    'pod_delivered_at' => $order->pivot->pod_delivered_at
+                        ? \Carbon\Carbon::parse($order->pivot->pod_delivered_at)->format('d/m/Y H:i')
+                        : null,
+                    'pod_notes' => $order->pivot->pod_notes,
                 ],
             ])->values(),
             'occurrences' => ($shipment->relationLoaded('occurrences') ? $shipment->occurrences : collect())->map(fn ($o) => [

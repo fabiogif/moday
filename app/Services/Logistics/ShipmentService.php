@@ -10,6 +10,7 @@ use App\Models\Shipment;
 use App\Models\Vehicle;
 use App\Services\Audit\AuditService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ShipmentService
 {
@@ -159,13 +160,14 @@ class ShipmentService
         }
 
         $shipment->update([
-            'status'     => 'dispatched',
-            'shipped_at' => now(),
+            'status'         => 'dispatched',
+            'shipped_at'     => now(),
+            'delivery_token' => Str::random(48),
         ]);
 
         $this->auditService->log($shipment->tenant_id, $userId, 'shipment.dispatched', 'shipment', $shipment->id);
 
-        return $shipment->fresh(['carrier', 'saleOrders']);
+        return $shipment->fresh(['carrier', 'saleOrders.client', 'occurrences']);
     }
 
     public function deliver(Shipment $shipment, int $userId, ?string $podReference = null): Shipment

@@ -41,6 +41,17 @@ class FileUploadService
             'allowed_types' => ['pdf', 'doc', 'docx', 'txt'],
             'path_prefix' => 'documents',
         ],
+        'pod' => [
+            'disk' => 'public',
+            'max_size' => 5120, // 5MB
+            'allowed_types' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_width' => 2048,
+            'max_height' => 2048,
+            'quality' => 80,
+            'path_prefix' => 'pod/{tenant_uuid}',
+            'use_hash_name' => true,
+            'visibility' => 'public',
+        ],
     ];
 
     /**
