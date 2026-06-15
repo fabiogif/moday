@@ -7,6 +7,7 @@ use App\Exceptions\StockException;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Services\AuthTenantService;
+use App\Services\Logistics\DeliveryRouteService;
 use App\Services\Logistics\ShipmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class ShipmentApiController extends Controller
     public function __construct(
         private readonly AuthTenantService $authTenantService,
         private readonly ShipmentService $shipmentService,
+        private readonly DeliveryRouteService $deliveryRouteService,
     ) {}
 
     public function index(): JsonResponse
@@ -55,6 +57,29 @@ class ShipmentApiController extends Controller
         }
     }
 
+    public function show(int $id): JsonResponse
+    {
+        try {
+            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $shipment = Shipment::forTenant($tenantId)
+                ->with(['carrier', 'saleOrders.client'])
+                ->find($id);
+
+            if (!$shipment) {
+                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+            }
+
+            return ApiResponseClass::sendResponse(
+                $this->formatShipmentDetail($shipment),
+                'Romaneio recuperado',
+                200
+            );
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao recuperar romaneio');
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {
@@ -68,11 +93,20 @@ class ShipmentApiController extends Controller
                 'notes'                    => 'nullable|string',
                 'sale_order_ids'           => 'sometimes|array',
                 'sale_order_ids.*'         => 'required',
+                'auto_optimize'            => 'sometimes|boolean',
             ]);
 
             $shipment = $this->shipmentService->create($tenantId, $user->id, $validated);
 
-            return ApiResponseClass::sendResponse($shipment, 'Romaneio criado', 201);
+            if ($request->boolean('auto_optimize')) {
+                $this->deliveryRouteService->optimizeRoute($shipment->fresh(['saleOrders.client', 'tenant']));
+            }
+
+            return ApiResponseClass::sendResponse(
+                $this->formatShipmentDetail($shipment->fresh(['carrier', 'saleOrders.client'])),
+                'Romaneio criado',
+                201
+            );
         } catch (StockException $ex) {
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
@@ -126,5 +160,44 @@ class ShipmentApiController extends Controller
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao confirmar entrega');
         }
+    }
+
+    private function formatShipmentDetail(Shipment $shipment): array
+    {
+        return [
+            'id' => $shipment->id,
+            'identify' => $shipment->identify,
+            'route_name' => $shipment->route_name,
+            'driver_name' => $shipment->driver_name,
+            'vehicle_plate' => $shipment->vehicle_plate,
+            'status' => $shipment->status,
+            'region' => $shipment->region,
+            'estimated_km' => $shipment->estimated_km,
+            'estimated_duration_minutes' => $shipment->estimated_duration_minutes,
+            'delivery_cost' => $shipment->delivery_cost,
+            'cost_per_delivery' => $shipment->cost_per_delivery,
+            'optimized_route' => $shipment->optimized_route,
+            'route_polyline' => $shipment->route_polyline,
+            'carrier' => $shipment->carrier,
+            'sale_orders' => $shipment->saleOrders->map(fn ($order) => [
+                'id' => $order->id,
+                'identify' => $order->identify,
+                'status' => $order->status,
+                'shipping_city' => $order->shipping_city,
+                'shipping_state' => $order->shipping_state,
+                'shipping_zipcode' => $order->shipping_zipcode,
+                'client' => $order->client ? [
+                    'name' => $order->client->name,
+                    'company_name' => $order->client->company_name,
+                    'trade_name' => $order->client->trade_name,
+                ] : null,
+                'pivot' => [
+                    'delivery_sequence' => $order->pivot->delivery_sequence,
+                    'delivery_window_start' => $order->pivot->delivery_window_start,
+                    'delivery_window_end' => $order->pivot->delivery_window_end,
+                    'delivery_zipcode' => $order->pivot->delivery_zipcode,
+                ],
+            ])->values(),
+        ];
     }
 }

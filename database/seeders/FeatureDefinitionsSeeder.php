@@ -97,12 +97,23 @@ class FeatureDefinitionsSeeder extends Seeder
 
     private function detectTier(Plan $plan): string
     {
-        if (str_contains(strtolower($plan->url ?? ''), 'enterprise')) return 'enterprise';
-        if (str_contains(strtolower($plan->url ?? ''), 'profissional')) return 'professional';
-        if (str_contains(strtolower($plan->url ?? ''), 'professional')) return 'professional';
+        $haystack = strtolower(($plan->url ?? '') . ' ' . ($plan->name ?? ''));
+
+        if (str_contains($haystack, 'enterprise')) {
+            return 'enterprise';
+        }
+        if (str_contains($haystack, 'profissional') || str_contains($haystack, 'professional')) {
+            return 'professional';
+        }
+
         // Decide by price as fallback
-        if ((float) $plan->price >= 600) return 'enterprise';
-        if ((float) $plan->price >= 300) return 'professional';
+        if ((float) $plan->price >= 600) {
+            return 'enterprise';
+        }
+        if ((float) $plan->price >= 300) {
+            return 'professional';
+        }
+
         return 'basic';
     }
 }

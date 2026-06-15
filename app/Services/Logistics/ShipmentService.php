@@ -42,7 +42,16 @@ class ShipmentService
             ]);
 
             if (!empty($resolvedIds)) {
-                $shipment->saleOrders()->sync($resolvedIds);
+                $syncData = [];
+                $orders = SaleOrder::whereIn('id', $resolvedIds)->get(['id', 'shipping_zipcode', 'delivery_window_start', 'delivery_window_end']);
+                foreach ($orders as $order) {
+                    $syncData[$order->id] = [
+                        'delivery_zipcode' => $order->shipping_zipcode,
+                        'delivery_window_start' => $order->delivery_window_start,
+                        'delivery_window_end' => $order->delivery_window_end,
+                    ];
+                }
+                $shipment->saleOrders()->sync($syncData);
             }
 
             $this->auditService->log($tenantId, $userId, 'shipment.created', 'shipment', $shipment->id, [

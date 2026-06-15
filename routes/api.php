@@ -708,6 +708,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     // Logística — Romaneios / Expedição
     Route::prefix('shipments')->group(function () {
         Route::get('/pending-orders', [\App\Http\Controllers\Api\ShipmentApiController::class, 'pendingOrders'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
+        Route::get('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'show'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
         Route::get('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'index'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);

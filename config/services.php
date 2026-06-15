@@ -56,4 +56,9 @@ return [
         'billing_mode'   => env('MP_BILLING_MODE', 'legacy'),
     ],
 
+    'google_maps' => [
+        'api_key'              => env('GOOGLE_MAPS_API_KEY'),
+        'service_time_minutes' => (int) env('GOOGLE_MAPS_SERVICE_TIME_MINUTES', 10),
+    ],
+
 ];

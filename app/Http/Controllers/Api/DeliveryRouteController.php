@@ -9,6 +9,7 @@ use App\Services\AuthTenantService;
 use App\Services\Logistics\DeliveryRouteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class DeliveryRouteController extends Controller
 {
@@ -103,21 +104,42 @@ class DeliveryRouteController extends Controller
 
             $validated = $request->validate([
                 'window_start' => ['required', 'date_format:H:i'],
-                'window_end'   => ['required', 'date_format:H:i', 'after:window_start'],
+                'window_end'   => ['required', 'date_format:H:i'],
             ]);
 
+            if ($validated['window_end'] <= $validated['window_start']) {
+                return ApiResponseClass::validationError([
+                    'window_end' => ['O horário final deve ser posterior ao horário inicial.'],
+                ], 'Janela de entrega inválida');
+            }
+
             $shipment = Shipment::forTenant($tenantId)->findOrFail($shipmentId);
+
+            $linked = $shipment->saleOrders()->where('sale_orders.id', $orderId)->exists();
+            if (!$linked) {
+                return ApiResponseClass::sendResponse(null, 'Pedido não pertence a este romaneio', 404);
+            }
 
             $this->routeService->setDeliveryWindow(
                 $shipment,
                 $orderId,
-                $validated['window_start'],
-                $validated['window_end'],
+                $this->normalizeTime($validated['window_start']),
+                $this->normalizeTime($validated['window_end']),
             );
 
             return ApiResponseClass::sendResponse(null, 'Janela de entrega definida', 200);
+        } catch (ValidationException $ex) {
+            return ApiResponseClass::validationError(
+                $ex->errors(),
+                'Janela de entrega inválida'
+            );
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao definir janela de entrega');
         }
+    }
+
+    private function normalizeTime(string $time): string
+    {
+        return strlen($time) === 5 ? "{$time}:00" : $time;
     }
 }

@@ -8,8 +8,9 @@
 /storage/*.key
 /vendor
 .env
-.env.backup
-.env.production
+.env.*
+!.env.example
+!.env.production.example
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
@@ -20,3 +21,6 @@ yarn-error.log
 /.idea
 /.vscode
 *.md
+.DS_Store
+.config/
+/-
