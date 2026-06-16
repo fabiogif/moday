@@ -25,6 +25,7 @@ class PublicOrderService
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly ProductRepositoryInterface $productRepository,
         private readonly OrderEmailService $orderEmailService,
+        private readonly CacheService $cacheService,
     ) {}
 
     /**
@@ -93,11 +94,25 @@ class PublicOrderService
             // Attach products and update stock
             $this->attachProductsAndUpdateStock($order, $calculation['products']);
 
+            // Invalida cache de pedidos para que a listagem no dashboard reflita imediatamente
+            $this->cacheService->invalidateOrderCache($tenant->id);
+
             // Register coupon redemption if applicable
             $this->couponService->registerRedemption($couponResult['coupon'], $order, $client->id ?? null);
 
             // Load relationships needed for WhatsApp message
             $order->load('paymentMethod');
+
+            // Broadcast evento de novo pedido + atualiza dashboard em tempo real
+            try {
+                \App\Events\OrderCreated::dispatch($order);
+                $this->dispatchDashboardUpdate($tenant->id);
+            } catch (\Exception $e) {
+                \Log::warning('PublicOrderService: falha ao disparar evento OrderCreated', [
+                    'order_id' => $order->id,
+                    'error'    => $e->getMessage(),
+                ]);
+            }
 
             // Generate WhatsApp data
             $whatsAppData = $this->generateWhatsAppData($order, $client, $tenant);
@@ -283,6 +298,29 @@ class PublicOrderService
         }
 
         return 'Em Preparo';
+    }
+
+    private function dispatchDashboardUpdate(int $tenantId): void
+    {
+        try {
+            $currentMonth = \Carbon\Carbon::now()->startOfMonth();
+
+            $metrics = [
+                'total_orders'  => \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('created_at', '>=', $currentMonth)
+                    ->count(),
+                'total_revenue' => \App\Models\Order::where('tenant_id', $tenantId)
+                    ->where('created_at', '>=', $currentMonth)
+                    ->sum('total'),
+                'timestamp'     => now()->toISOString(),
+            ];
+
+            \App\Events\DashboardMetricsUpdated::dispatch($tenantId, $metrics);
+        } catch (\Exception $e) {
+            \Log::warning('PublicOrderService: falha ao atualizar métricas do dashboard', [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
