@@ -183,13 +183,26 @@ class PublicOrderService
             'comment'          => $delivery['notes'] ?? null,
         ], $deliveryData));
 
-        // Attach products via pivot
+        // Attach products via pivot (aggregate quantities for duplicate products)
+        $aggregated = [];
         foreach ($calculation['products'] as $product) {
+            $pid = $product['product_id'];
+            if (isset($aggregated[$pid])) {
+                $aggregated[$pid]['qty'] += (float) $product['quantity'];
+            } else {
+                $aggregated[$pid] = [
+                    'product_id' => $pid,
+                    'qty'        => (float) $product['quantity'],
+                    'price'      => (float) $product['price'],
+                ];
+            }
+        }
+        foreach ($aggregated as $item) {
             OrderProduct::create([
                 'order_id'   => $order->id,
-                'product_id' => $product['product_id'],
-                'qty'        => (float) $product['quantity'],
-                'price'      => (float) $product['price'],
+                'product_id' => $item['product_id'],
+                'qty'        => $item['qty'],
+                'price'      => $item['price'],
             ]);
         }
 
