@@ -149,6 +149,9 @@ class DeliveryRouteService
                 'lat' => $coords['lat'],
                 'lng' => $coords['lng'],
                 'shipping_zipcode' => $order->pivot->delivery_zipcode ?? $order->shipping_zipcode,
+                'shipping_city' => $order->shipping_city,
+                'shipping_state' => $order->shipping_state,
+                'shipping_address' => $this->formatAddressString($order->shipping_address),
                 'delivery_window_start' => $order->pivot->delivery_window_start ?? $order->delivery_window_start,
                 'delivery_window_end' => $order->pivot->delivery_window_end ?? $order->delivery_window_end,
                 'order_total' => (float) $order->total,
@@ -232,6 +235,9 @@ class DeliveryRouteService
                 'identify' => $order->identify,
                 'client_name' => $order->client?->company_name ?? $order->client?->name ?? 'Sem cliente',
                 'shipping_zipcode' => $pivot->delivery_zipcode ?? $order->shipping_zipcode,
+                'shipping_city' => $order->shipping_city,
+                'shipping_state' => $order->shipping_state,
+                'shipping_address' => $this->formatAddressString($order->shipping_address),
                 'delivery_window_start' => $pivot->delivery_window_start ?? $order->delivery_window_start,
                 'delivery_window_end' => $pivot->delivery_window_end ?? $order->delivery_window_end,
                 'order_total' => (float) $order->total,
@@ -300,11 +306,21 @@ class DeliveryRouteService
                 $windowViolation = $currentTime->greaterThan($endTime);
             }
 
+            $addressParts = array_filter([
+                $stop['shipping_address'] ?? null,
+                $stop['shipping_city'] ?? null,
+                $stop['shipping_state'] ?? null,
+            ]);
+            $address = $addressParts
+                ? implode(', ', $addressParts) . ($stop['shipping_zipcode'] ? ' — CEP ' . $stop['shipping_zipcode'] : '')
+                : ($stop['shipping_zipcode'] ? 'CEP ' . $stop['shipping_zipcode'] : null);
+
             $summary[] = [
                 'sequence' => $index + 1,
                 'sale_order_id' => $stop['sale_order_id'],
                 'identify' => $stop['identify'],
                 'client' => $stop['client_name'],
+                'address' => $address,
                 'zipcode' => $stop['shipping_zipcode'] ?? null,
                 'lat' => $this->normalizeCoordinate($stop['lat'] ?? null),
                 'lng' => $this->normalizeCoordinate($stop['lng'] ?? null),
@@ -625,6 +641,20 @@ class DeliveryRouteService
     private function timeToday(string $time): Carbon
     {
         return Carbon::today()->setTimeFromTimeString(substr($time, 0, 5));
+    }
+
+    private function formatAddressString(mixed $address): ?string
+    {
+        if (is_array($address)) {
+            $parts = array_filter([
+                $address['street'] ?? $address['logradouro'] ?? null,
+                $address['number'] ?? $address['numero'] ?? null,
+                $address['neighborhood'] ?? $address['bairro'] ?? null,
+            ]);
+            return $parts ? implode(', ', $parts) : null;
+        }
+
+        return is_string($address) && $address !== '' ? $address : null;
     }
 
     private function normalizeCoordinate(mixed $value): ?float

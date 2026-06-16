@@ -25,6 +25,7 @@ use App\Ports\Integrations\Ifood\IfoodOrderPort;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -86,6 +87,25 @@ class AppServiceProvider extends ServiceProvider
         Tenant::observe(TenantObserver::class);
         PaymentMethod::observe(PaymentMethodObserver::class);
         Order::observe(OrderObserver::class);
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::connection()->getPdo()->sqliteCreateFunction('DATE_FORMAT', function ($date, $format) {
+                $formatMap = [
+                    '%Y' => 'Y',
+                    '%y' => 'y',
+                    '%m' => 'm',
+                    '%d' => 'd',
+                    '%H' => 'H',
+                    '%i' => 'i',
+                    '%s' => 's',
+                    '%b' => 'M',
+                    '%M' => 'F',
+                ];
+                $phpFormat = str_replace(array_keys($formatMap), array_values($formatMap), $format);
+                $dt = new \DateTimeImmutable($date);
+                return $dt->format($phpFormat);
+            });
+        }
 
         if ($this->app->environment('production')) {
             \URL::forceScheme('https');

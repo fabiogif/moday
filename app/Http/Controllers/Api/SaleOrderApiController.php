@@ -102,14 +102,42 @@ class SaleOrderApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $order = $this->saleOrderService->find($tenantId, $id, [
-                'client', 'items.product', 'items.batch', 'approvedBy:id,name',
+                'client', 'items.product', 'items.batch', 'approvedBy:id,name', 'shipments',
             ]);
 
             if (!$order) {
                 return ApiResponseClass::sendResponse(null, 'Pedido não encontrado', 404);
             }
 
-            return ApiResponseClass::sendResponse($order, 'Pedido recuperado com sucesso', 200);
+            $orderData = $order->toArray();
+            $orderData['shipments'] = $order->shipments->map(function ($shipment) {
+                $pivot = $shipment->pivot;
+                return [
+                    'id'          => $shipment->id,
+                    'identify'    => $shipment->identify,
+                    'status'      => $shipment->status,
+                    'driver_name' => $shipment->driver_name,
+                    'vehicle_plate' => $shipment->vehicle_plate,
+                    'shipped_at'  => $shipment->shipped_at?->format('d/m/Y H:i'),
+                    'delivered_at' => $shipment->delivered_at?->format('d/m/Y H:i'),
+                    'pod' => [
+                        'status'         => $pivot->pod_status,
+                        'recipient_name' => $pivot->pod_recipient_name,
+                        'delivered_at'   => $pivot->pod_delivered_at
+                            ? \Carbon\Carbon::parse($pivot->pod_delivered_at)->format('d/m/Y H:i')
+                            : null,
+                        'notes'          => $pivot->pod_notes,
+                        'photo_url'      => $pivot->pod_photo_path
+                            ? url(\Illuminate\Support\Facades\Storage::disk('public')->url($pivot->pod_photo_path))
+                            : null,
+                        'signature_url'  => $pivot->pod_signature_path
+                            ? url(\Illuminate\Support\Facades\Storage::disk('public')->url($pivot->pod_signature_path))
+                            : null,
+                    ],
+                ];
+            })->values()->toArray();
+
+            return ApiResponseClass::sendResponse($orderData, 'Pedido recuperado com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao buscar pedido');
         }

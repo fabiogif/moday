@@ -98,6 +98,9 @@ class AuthService
             // Atualiza o último login
             $user->updateLastLogin();
 
+            // Carrega perfis para que o frontend possa checar permissões
+            $user->loadMissing('profiles');
+
             // Cache dos dados do usuário pelo período do token
             Cache::put("user_data_{$user->id}", $user, config('jwt.ttl', 120) * 60);
 

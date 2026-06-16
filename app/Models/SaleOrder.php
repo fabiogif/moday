@@ -96,6 +96,26 @@ class SaleOrder extends Model
         return $this->hasMany(SaleOrderItem::class);
     }
 
+    public function shipments()
+    {
+        return $this->belongsToMany(Shipment::class, 'shipment_sale_order')
+            ->withPivot([
+                'delivery_sequence',
+                'delivery_window_start',
+                'delivery_window_end',
+                'delivery_zipcode',
+                'pod_photo_path',
+                'pod_signature_path',
+                'pod_delivered_at',
+                'pod_recipient_name',
+                'pod_latitude',
+                'pod_longitude',
+                'pod_status',
+                'pod_notes',
+            ])
+            ->orderByDesc('shipment_sale_order.id');
+    }
+
     public function scopeForTenant($query, int $tenantId)
     {
         return $query->where('tenant_id', $tenantId);

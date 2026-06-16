@@ -12,6 +12,7 @@ use App\Services\Logistics\DeliveryRouteService;
 use App\Services\Logistics\ShipmentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ShipmentApiController extends Controller
 {
@@ -64,7 +65,7 @@ class ShipmentApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $shipment = Shipment::forTenant($tenantId)
-                ->with(['carrier', 'saleOrders.client', 'occurrences'])
+                ->with(['carrier', 'saleOrders.client', 'occurrences', 'tenant'])
                 ->find($id);
 
             if (!$shipment) {
@@ -114,6 +115,50 @@ class ShipmentApiController extends Controller
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao criar romaneio');
+        }
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        try {
+            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $shipment = Shipment::forTenant($tenantId)
+                ->with(['carrier', 'saleOrders.client', 'occurrences'])
+                ->find($id);
+
+            if (!$shipment) {
+                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+            }
+
+            if ($shipment->status === 'dispatched') {
+                return response()->json(['success' => false, 'message' => 'Romaneios em trânsito não podem ser editados'], 422);
+            }
+
+            if ($shipment->status === 'delivered' && !$user->hasProfile('administrador')) {
+                return response()->json(['success' => false, 'message' => 'Apenas administradores podem editar romaneios entregues'], 403);
+            }
+
+            $validated = $request->validate([
+                'route_name'    => 'nullable|string|max:255',
+                'driver_name'   => 'nullable|string|max:255',
+                'vehicle_plate' => 'nullable|string|max:20',
+                'notes'         => 'nullable|string',
+                'vehicle_id'    => 'nullable|integer',
+                'driver_id'     => 'nullable|integer',
+            ]);
+
+            $shipment->update($validated);
+
+            return ApiResponseClass::sendResponse(
+                $this->formatShipmentDetail($shipment->fresh(['carrier', 'saleOrders.client', 'occurrences'])),
+                'Romaneio atualizado',
+                200
+            );
+        } catch (\Illuminate\Validation\ValidationException $ex) {
+            return response()->json(['success' => false, 'message' => $ex->getMessage(), 'errors' => $ex->errors()], 422);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao atualizar romaneio');
         }
     }
 
@@ -234,6 +279,15 @@ class ShipmentApiController extends Controller
             'other'   => 'Outro',
         ];
 
+        $depotAddress = null;
+        if ($shipment->relationLoaded('tenant') && $shipment->tenant) {
+            $t = $shipment->tenant;
+            $parts = array_filter([$t->address, $t->city, $t->state, $t->zipcode]);
+            if ($parts) {
+                $depotAddress = implode(', ', $parts);
+            }
+        }
+
         return [
             'id' => $shipment->id,
             'identify' => $shipment->identify,
@@ -251,11 +305,13 @@ class ShipmentApiController extends Controller
             'total_volume_m3' => $shipment->total_volume_m3,
             'optimized_route' => $shipment->optimized_route,
             'route_polyline' => $shipment->route_polyline,
+            'depot_address' => $depotAddress,
             'carrier' => $shipment->carrier,
             'sale_orders' => $shipment->saleOrders->map(fn ($order) => [
                 'id' => $order->id,
                 'identify' => $order->identify,
                 'status' => $order->status,
+                'shipping_address' => $order->shipping_address,
                 'shipping_city' => $order->shipping_city,
                 'shipping_state' => $order->shipping_state,
                 'shipping_zipcode' => $order->shipping_zipcode,
@@ -275,6 +331,12 @@ class ShipmentApiController extends Controller
                         ? \Carbon\Carbon::parse($order->pivot->pod_delivered_at)->format('d/m/Y H:i')
                         : null,
                     'pod_notes' => $order->pivot->pod_notes,
+                    'pod_photo_url' => $order->pivot->pod_photo_path
+                        ? url(Storage::disk('public')->url($order->pivot->pod_photo_path))
+                        : null,
+                    'pod_signature_url' => $order->pivot->pod_signature_path
+                        ? url(Storage::disk('public')->url($order->pivot->pod_signature_path))
+                        : null,
                 ],
             ])->values(),
             'occurrences' => ($shipment->relationLoaded('occurrences') ? $shipment->occurrences : collect())->map(fn ($o) => [

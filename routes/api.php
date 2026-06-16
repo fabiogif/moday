@@ -720,6 +720,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'show'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
         Route::get('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'index'])->middleware(['acl.permission:shipments.index', 'throttle:read']);
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+        Route::put('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'update'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::post('/{id}/deliver', [\App\Http\Controllers\Api\ShipmentApiController::class, 'deliver'])->middleware(['acl.permission:shipments.deliver', 'throttle:critical']);
         Route::post('/{id}/occurrences', [\App\Http\Controllers\Api\ShipmentApiController::class, 'storeOccurrence'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
