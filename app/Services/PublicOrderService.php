@@ -22,11 +22,13 @@ class PublicOrderService
         private readonly PaymentMethodRepositoryInterface $paymentMethodRepository,
         private readonly CacheService $cacheService,
         private readonly NotificationService $notificationService,
+        private readonly OrderEmailService $orderEmailService,
     ) {}
 
     public function createOrder(array $validatedData, Tenant $tenant): array
     {
-        return DB::transaction(function () use ($validatedData, $tenant) {
+        // Transação cobre apenas operações críticas de banco de dados
+        [$saleOrder, $client, $couponResult] = DB::transaction(function () use ($validatedData, $tenant) {
             $client = $this->clientService->createOrUpdateClient(
                 $validatedData['client'],
                 $tenant,
@@ -62,26 +64,35 @@ class PublicOrderService
 
             $this->cacheService->invalidateSaleOrderCache($tenant->id);
 
-            // Também cria um registro na tabela orders para aparecer no dashboard
-            $this->createDashboardOrder($saleOrder, $client, $tenant, $validatedData, $paymentMethod, $couponResult, $calculation);
+            try {
+                $this->createDashboardOrder($saleOrder, $client, $tenant, $validatedData, $paymentMethod, $couponResult, $calculation);
+            } catch (\Exception $e) {
+                \Log::error('PublicOrderService: createDashboardOrder failed', [
+                    'sale_order_id' => $saleOrder->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
+            }
 
-            $saleOrder->loadMissing('items.product');
-
-            // Notifica usuários do tenant sobre o novo pedido
-            $this->notifyTenantUsers($saleOrder, $client, $tenant);
-
-            $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
-
-            return [
-                'order'           => $saleOrder,
-                'subtotal'        => $couponResult['subtotal'],
-                'discount_amount' => $couponResult['discount_amount'],
-                'total'           => $couponResult['final_total'],
-                'coupon_code'     => $couponResult['coupon']?->code,
-                'whatsapp_message' => $whatsAppData['message'],
-                'whatsapp_link'    => $whatsAppData['link'],
-            ];
+            return [$saleOrder, $client, $couponResult];
         });
+
+        // Efeitos colaterais fora da transação para não corromper o commit
+        $saleOrder->loadMissing('items.product');
+        $this->sendCompletionEmail($tenant, $saleOrder);
+        $this->notifyTenantUsers($saleOrder, $client, $tenant);
+        $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
+
+        return [
+            'order'           => $saleOrder,
+            'subtotal'        => $couponResult['subtotal'],
+            'discount_amount' => $couponResult['discount_amount'],
+            'total'           => $couponResult['final_total'],
+            'coupon_code'     => $couponResult['coupon']?->code,
+            'whatsapp_message' => $whatsAppData['message'],
+            'whatsapp_link'    => $whatsAppData['link'],
+        ];
     }
 
     private function createSaleOrder(
@@ -140,10 +151,13 @@ class PublicOrderService
     ): void {
         $delivery = $validatedData['delivery'] ?? [];
 
-        $deliveryData = [];
+        $deliveryData = [
+            'is_delivery'     => !empty($delivery['is_delivery']),
+            'origin'          => 'store',
+            'shipping_method' => $validatedData['shipping_method'] ?? null,
+        ];
         if (!empty($delivery['is_delivery'])) {
-            $deliveryData = [
-                'is_delivery'           => true,
+            $deliveryData = array_merge($deliveryData, [
                 'delivery_address'      => $delivery['address'] ?? null,
                 'delivery_city'         => $delivery['city'] ?? null,
                 'delivery_state'        => $delivery['state'] ?? null,
@@ -153,10 +167,7 @@ class PublicOrderService
                 'delivery_complement'   => $delivery['complement'] ?? null,
                 'delivery_notes'        => $delivery['notes'] ?? null,
                 'use_client_address'    => false,
-                'origin'                => 'store',
-            ];
-        } else {
-            $deliveryData['origin'] = 'store';
+            ]);
         }
 
         $initialStatus = OrderStatus::where('tenant_id', $tenant->id)
@@ -207,6 +218,26 @@ class PublicOrderService
         }
 
         $this->cacheService->invalidateOrderCache($tenant->id);
+    }
+
+    private function sendCompletionEmail(Tenant $tenant, SaleOrder $saleOrder): void
+    {
+        try {
+            if ($tenant->plan && $tenant->plan->has_order_completion_email) {
+                $order = Order::where('identify', $saleOrder->identify)
+                    ->where('tenant_id', $tenant->id)
+                    ->first();
+
+                if ($order) {
+                    $this->orderEmailService->sendOrderCompletedEmail($order);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('PublicOrderService: falha ao enviar e-mail de confirmação', [
+                'sale_order_id' => $saleOrder->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function buildShippingData(array $delivery): array

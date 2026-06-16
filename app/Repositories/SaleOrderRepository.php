@@ -12,7 +12,7 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
     {
         $query = SaleOrder::forTenant($tenantId)
             ->notArchived()
-            ->with(['client:id,company_name,trade_name'])
+            ->with(['client:id,name,company_name,trade_name'])
             ->latest('ordered_at');
 
         if ($status) {

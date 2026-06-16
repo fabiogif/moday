@@ -12,6 +12,7 @@ use App\Models\Plan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
+use App\Services\OrderEmailService;
 use Tests\TestCase;
 
 class PublicStoreControllerTest extends TestCase
@@ -171,7 +172,6 @@ class PublicStoreControllerTest extends TestCase
             'is_active' => true,
         ]);
         $product = Product::create([
-            'uuid' => 'prod-1',
             'name' => 'Produto A',
             'price' => 10.0,
             'price_cost' => 5.0,
@@ -179,6 +179,7 @@ class PublicStoreControllerTest extends TestCase
             'tenant_id' => $tenant->id,
             'is_active' => true,
         ]);
+        $productUuid = $product->uuid;
 
         app()->bind(PublicStoreRepositoryInterface::class, function () use ($tenant) {
             return new class($tenant) implements PublicStoreRepositoryInterface {
@@ -212,8 +213,8 @@ class PublicStoreControllerTest extends TestCase
                 'phone' => '11999999999'
             ],
             'products' => [
-                ['uuid' => 'prod-1', 'quantity' => 1],
-                ['uuid' => 'prod-1', 'quantity' => 2],
+                ['uuid' => $productUuid, 'quantity' => 1],
+                ['uuid' => $productUuid, 'quantity' => 2],
             ],
             'payment_method' => 'pm-uuid',
             'shipping_method' => 'pickup',

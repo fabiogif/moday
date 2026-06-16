@@ -74,6 +74,54 @@ class WhatsAppService
         return $link;
     }
 
+    public function generateSaleOrderMessage(\App\Models\SaleOrder $order, \App\Models\Client $client, \App\Models\Tenant $tenant): string
+    {
+        $order->loadMissing('items.product');
+
+        $lines = $order->items->map(function ($item) {
+            $qty           = (float) $item->quantity;
+            $price         = (float) $item->unit_price;
+            $priceFormatted = number_format($price, 2, ',', '.');
+            $subtotal       = number_format($qty * $price, 2, ',', '.');
+            $qtyFormatted   = rtrim(rtrim(number_format($qty, 3, ',', '.'), '0'), ',');
+
+            return "• {$qtyFormatted}x {$item->product->name} - R$ {$priceFormatted} (Subtotal: R$ {$subtotal})";
+        })->implode("\n");
+
+        $total   = number_format((float) $order->total, 2, ',', '.');
+        $message = "*Novo Pedido de Venda #{$order->identify}*\n\n";
+        $message .= "*Cliente:* {$client->name}\n";
+        $message .= "*Telefone:* {$client->phone}\n";
+        $message .= "*Email:* {$client->email}\n\n";
+        $message .= "*Produtos:*\n{$lines}\n\n";
+
+        if ((float) $order->discount_amount > 0) {
+            $discount = number_format((float) $order->discount_amount, 2, ',', '.');
+            $message .= "*Desconto:* R$ {$discount}\n";
+        }
+
+        $message .= "*Total:* R$ {$total}\n\n";
+
+        $shipping = $order->shipping_address;
+        if (!empty($shipping['street'])) {
+            $addr  = "{$shipping['street']}, " . ($shipping['number'] ?? 'S/N');
+            if (!empty($shipping['complement'])) $addr .= " - {$shipping['complement']}";
+            $addr .= "\n" . ($shipping['neighborhood'] ?? '') . ", {$order->shipping_city}/{$order->shipping_state}";
+            if ($order->shipping_zipcode) $addr .= "\nCEP: {$order->shipping_zipcode}";
+            $message .= "*Endereço de Entrega:*\n{$addr}\n\n";
+        } else {
+            $message .= "*Retirada no Local*\n\n";
+        }
+
+        if ($order->notes) {
+            $message .= "*Observações:* {$order->notes}\n\n";
+        }
+
+        $message .= '*Forma de Pagamento:* ' . $this->translatePaymentMethod($order->payment_method);
+
+        return $message;
+    }
+
     private function formatDeliveryAddress(\App\Models\Order $order): string
     {
         $address = "{$order->delivery_address}, {$order->delivery_number}";
