@@ -824,51 +824,54 @@ readonly class OrderService
     }
 
     /**
-     * Consulta pública de pedido por telefone
-     * Retorna apenas informações não sensíveis e pedidos recentes (< 24h se concluído)
+     * Consulta pública de pedidos por telefone
+     * Retorna apenas informações não sensíveis dos últimos 10 pedidos
      */
     public function findOrderByClientInfo(int $tenantId, ?string $cpf = null, ?string $phone = null): ?array
     {
-        // Remover formatação do telefone
         if ($phone) {
             $phone = preg_replace('/[^0-9]/', '', $phone);
         }
 
-        // Validar que o telefone foi fornecido
         if (!$phone) {
             return null;
         }
 
-        // Buscar pedido apenas por telefone
-        $order = $this->orderRepositoryInterface->findRecentOrderByClientInfo($tenantId, null, $phone);
+        $orders = $this->orderRepositoryInterface->findRecentOrderByClientInfo($tenantId, null, $phone);
 
-        if (!$order || !$order->client) {
+        if ($orders->isEmpty() || !$orders->first()->client) {
             return null;
         }
 
-        // Extrair apenas o primeiro nome do cliente
-        $clientName = explode(' ', $order->client->name)[0] ?? '';
+        $clientName = explode(' ', $orders->first()->client->name)[0] ?? '';
 
-        // Formatar produtos do pedido
-        $products = $order->products->map(function ($product) {
+        $ordersData = $orders->map(function ($order) {
+            $products = $order->products->map(function ($product) {
+                return [
+                    'name' => $product->name,
+                    'quantity' => $product->pivot->qty ?? 1,
+                    'price' => (float) ($product->pivot->price ?? $product->price),
+                ];
+            })->toArray();
+
             return [
-                'name' => $product->name,
-                'quantity' => $product->pivot->qty ?? 1,
-                'price' => (float) ($product->pivot->price ?? $product->price),
+                'order_identify' => $order->identify,
+                'order_date' => $order->created_at->format('d/m/Y'),
+                'order_time' => $order->created_at->format('H:i'),
+                'status' => $order->status,
+                'status_color' => $order->orderStatus?->color ?? null,
+                'order_position' => $order->orderStatus?->order_position ?? 0,
+                'is_final' => (bool) ($order->orderStatus?->is_final ?? false),
+                'is_delivery' => (bool) ($order->is_delivery ?? false),
+                'total' => (float) $order->total,
+                'products' => $products,
+                'payment_method' => $order->paymentMethod?->name ?? 'Não informada',
             ];
         })->toArray();
 
-        // Retornar apenas informações não sensíveis
         return [
             'client_name' => $clientName,
-            'order_identify' => $order->identify,
-            'order_date' => $order->created_at->format('d/m/Y'),
-            'order_time' => $order->created_at->format('H:i'),
-            'status' => $order->status,
-            'is_delivery' => $order->is_delivery ?? false,
-            'total' => (float) $order->total,
-            'products' => $products,
-            'payment_method' => $order->paymentMethod?->name ?? 'Não informada',
+            'orders' => $ordersData,
         ];
     }
     private function resolveInitialStatus(int $tenantId): ?\App\Models\OrderStatus

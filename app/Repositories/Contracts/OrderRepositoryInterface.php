@@ -31,7 +31,7 @@ interface OrderRepositoryInterface
 
     public function delete(string $identify): bool;
 
-    public function findRecentOrderByClientInfo(int $tenantId, ?string $cpf = null, ?string $phone = null): Order|null;
+    public function findRecentOrderByClientInfo(int $tenantId, ?string $cpf = null, ?string $phone = null): \Illuminate\Database\Eloquent\Collection;
 
     public function archiveOrder(Order $order): Order;
 

@@ -145,19 +145,10 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         return $order->delete();
     }
 
-    public function findRecentOrderByClientInfo(int $tenantId, ?string $cpf = null, ?string $phone = null): Order|null
+    public function findRecentOrderByClientInfo(int $tenantId, ?string $cpf = null, ?string $phone = null): \Illuminate\Database\Eloquent\Collection
     {
-        // Buscar pedidos ativos (não concluídos há mais de 24h)
-        $query = $this->entity->with(['client', 'products', 'tenant', 'paymentMethod'])
+        return $this->entity->with(['client', 'products', 'tenant', 'paymentMethod', 'orderStatus'])
             ->where('tenant_id', $tenantId)
-            ->where(function ($q) {
-                // Pedidos não concluídos OU concluídos há menos de 24h
-                $q->whereNotIn('status', ['Entregue', 'Concluído', 'Cancelado'])
-                    ->orWhere(function ($subQuery) {
-                        $subQuery->whereIn('status', ['Entregue', 'Concluído'])
-                            ->where('updated_at', '>=', now()->subHours(24));
-                    });
-            })
             ->whereHas('client', function ($q) use ($cpf, $phone) {
                 if ($cpf) {
                     $q->where('cpf', $cpf);
@@ -166,9 +157,9 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                     $q->orWhere('phone', $phone);
                 }
             })
-            ->orderByDesc('created_at');
-
-        return $query->first();
+            ->orderByDesc('created_at')
+            ->limit(10)
+            ->get();
     }
 
     public function archiveOrder(Order $order): Order
