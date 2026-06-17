@@ -516,10 +516,13 @@ class DeliveryRouteService
             ];
         }
 
+        $hasStreet = false;
         $address = $order->shipping_address;
         if (is_array($address)) {
+            $street = $address['street'] ?? $address['logradouro'] ?? null;
+            $hasStreet = !empty($street);
             $parts = array_filter([
-                $address['street'] ?? $address['logradouro'] ?? null,
+                $street,
                 $address['number'] ?? $address['numero'] ?? null,
                 $address['neighborhood'] ?? $address['bairro'] ?? null,
                 $order->shipping_city,
@@ -529,13 +532,24 @@ class DeliveryRouteService
             ]);
             $query = implode(', ', $parts);
         } else {
+            $hasStreet = is_string($address) && $address !== '';
             $query = trim(implode(', ', array_filter([
-                is_string($address) ? $address : null,
+                $hasStreet ? $address : null,
                 $order->shipping_city,
                 $order->shipping_state,
                 $order->shipping_zipcode,
                 'Brasil',
             ])));
+        }
+
+        $hasCity = !empty($order->shipping_city);
+        $hasZip = !empty($order->shipping_zipcode);
+
+        if (!$hasStreet && !$hasCity && !$hasZip) {
+            Log::info('Pedido sem endereço de entrega, geocodificação ignorada', [
+                'sale_order_id' => $order->id,
+            ]);
+            throw new \RuntimeException('Pedido sem endereço de entrega para geocodificar.');
         }
 
         if ($query === '' || $query === 'Brasil') {

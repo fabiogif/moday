@@ -995,6 +995,8 @@ readonly class OrderService
             );
         }
 
+        $oldStatusName = $currentStatus->name;
+
         // Atualizar status do pedido
         $order->status = $nextStatus->name;
         $order->order_status_id = $nextStatus->id;
@@ -1004,12 +1006,19 @@ readonly class OrderService
         $this->cacheService->invalidateOrderCache($tenantId);
         $this->cacheService->invalidateOrderDataCache($tenantId);
 
+        // Disparar evento de mudança de status (notificações, WhatsApp, etc.)
+        try {
+            \App\Events\OrderStatusChangedEvent::dispatch($order, $oldStatusName, $nextStatus->name);
+        } catch (\Exception $e) {
+            Log::warning('advanceOrderStatus: falha ao disparar OrderStatusChangedEvent: ' . $e->getMessage());
+        }
+
         return $order->fresh();
     }
 
     /**
      * Obter modelo de status atual do pedido
-     * 
+     *
      * @param Order $order
      * @param int $tenantId
      * @return \App\Models\OrderStatus|null

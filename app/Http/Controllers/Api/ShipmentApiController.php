@@ -65,7 +65,7 @@ class ShipmentApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $shipment = Shipment::forTenant($tenantId)
-                ->with(['carrier', 'saleOrders.client', 'occurrences', 'tenant'])
+                ->with(['carrier', 'driver', 'saleOrders.client', 'occurrences', 'tenant.plan'])
                 ->find($id);
 
             if (!$shipment) {
@@ -288,13 +288,18 @@ class ShipmentApiController extends Controller
             }
         }
 
+        $driverPhone = $shipment->driver?->phone;
+        $hasAutoWhatsApp = (bool) ($shipment->tenant?->plan?->has_whatsapp_notifications ?? false);
+
         return [
             'id' => $shipment->id,
             'identify' => $shipment->identify,
             'route_name' => $shipment->route_name,
             'driver_name' => $shipment->driver_name,
+            'driver_phone' => $driverPhone,
             'vehicle_plate' => $shipment->vehicle_plate,
             'status' => $shipment->status,
+            'has_auto_whatsapp' => $hasAutoWhatsApp,
             'delivery_token' => $shipment->delivery_token,
             'region' => $shipment->region,
             'estimated_km' => $shipment->estimated_km,

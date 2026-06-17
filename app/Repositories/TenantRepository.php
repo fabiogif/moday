@@ -5,6 +5,7 @@ namespace App\Repositories;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\{Plan, Tenant};
 use App\Repositories\Contracts\{TenantRepositoryInterface, PlanRepositoryInterface};
+use App\Support\BrazilianDocuments;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -86,7 +87,7 @@ class TenantRepository extends BaseRepository implements TenantRepositoryInterfa
         $tenant = $this->entity->create([
             'name' => $data['company_name'],
             'email' => $data['company_email'] ?? $data['email'],
-            'cnpj' => preg_replace('/\D/', '', (string) ($data['company_cnpj'] ?? '')),
+            'cnpj' => BrazilianDocuments::onlyAlphanumeric($data['company_cnpj'] ?? ''),
             'plan_id' => $plan->id,
             'subscription_plan' => $plan->name,
             'is_active' => true,

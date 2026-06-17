@@ -18,7 +18,7 @@ class TenantRegisterRequest extends FormRequest
     {
         if ($this->has('company_cnpj')) {
             $this->merge([
-                'company_cnpj' => preg_replace('/\D/', '', (string) $this->input('company_cnpj')),
+                'company_cnpj' => \App\Support\BrazilianDocuments::onlyAlphanumeric((string) $this->input('company_cnpj')),
             ]);
         }
     }

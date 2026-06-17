@@ -29,6 +29,8 @@ class Tenant extends Model
         'scheduled_downgrade_plan_id', 'scheduled_downgrade_at',
         'scheduled_downgrade_attempts', 'dunning_started_at', 'dunning_day',
         'data_deletion_scheduled_at',
+        // WhatsApp / Evolution API
+        'evolution_instance',
     ];
 
     protected function casts(): array

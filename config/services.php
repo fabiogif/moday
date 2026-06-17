@@ -61,4 +61,9 @@ return [
         'service_time_minutes' => (int) env('GOOGLE_MAPS_SERVICE_TIME_MINUTES', 10),
     ],
 
+    'evolution_api' => [
+        'url' => env('EVOLUTION_API_URL'),
+        'key' => env('EVOLUTION_API_KEY'),
+    ],
+
 ];

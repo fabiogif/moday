@@ -52,6 +52,6 @@ class TrialFraudService
 
     private function normalizeDocument(string $document): string
     {
-        return preg_replace('/\D/', '', $document) ?? '';
+        return \App\Support\BrazilianDocuments::onlyAlphanumeric($document);
     }
 }

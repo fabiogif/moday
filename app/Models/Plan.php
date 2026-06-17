@@ -25,6 +25,7 @@ class Plan extends Model
         'has_marketing',
         'has_order_completion_email',
         'has_reports',
+        'has_whatsapp_notifications',
     ];
 
     protected $casts = [
@@ -38,6 +39,7 @@ class Plan extends Model
         'has_marketing'              => 'boolean',
         'has_order_completion_email' => 'boolean',
         'has_reports'                => 'boolean',
+        'has_whatsapp_notifications' => 'boolean',
     ];
 
     public function hasFeature(string $feature): bool

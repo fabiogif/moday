@@ -26,6 +26,8 @@ class GoogleMapsRoutingClient
     /**
      * @return array{lat: float, lng: float, formatted_address: string|null}
      */
+    private const IMPRECISE_LOCATION_TYPES = ['country', 'administrative_area_level_1'];
+
     public function geocode(int $tenantId, string $addressQuery): array
     {
         $hash = hash('sha256', mb_strtolower(trim($addressQuery)));
@@ -62,6 +64,15 @@ class GoogleMapsRoutingClient
 
         if (!$result || ($data['status'] ?? '') !== 'OK') {
             throw new RuntimeException('Endereço não encontrado: ' . $addressQuery);
+        }
+
+        $resultTypes = $result['types'] ?? [];
+        if (array_intersect($resultTypes, self::IMPRECISE_LOCATION_TYPES)) {
+            Log::warning('Geocodificação retornou localização imprecisa (país/estado), descartando', [
+                'query' => $addressQuery,
+                'types' => $resultTypes,
+            ]);
+            throw new RuntimeException('Endereço muito genérico para geocodificar: ' . $addressQuery);
         }
 
         $location = $result['geometry']['location'];

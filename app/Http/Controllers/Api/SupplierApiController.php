@@ -137,7 +137,7 @@ class SupplierApiController extends Controller
             $data['trade_name'] = $data['fantasy_name'];
         }
         if (empty($data['document']) && !empty($data['cnpj'])) {
-            $data['document'] = preg_replace('/\D/', '', $data['cnpj']);
+            $data['document'] = \App\Support\BrazilianDocuments::onlyAlphanumeric($data['cnpj']);
             $data['document_type'] = 'cnpj';
         }
         if (empty($data['cnpj']) && !empty($data['document']) && ($data['document_type'] ?? '') === 'cnpj') {

@@ -13,6 +13,20 @@ class BrazilianDocuments
         return preg_replace('/\D/', '', $value) ?? '';
     }
 
+    public static function onlyAlphanumeric(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return strtoupper(preg_replace('/[^0-9A-Za-z]/', '', $value) ?? '');
+    }
+
+    private static function cnpjCharValue(string $char): int
+    {
+        return ord($char) - 48;
+    }
+
     public static function isValidCpf(?string $value): bool
     {
         $cpf = self::onlyDigits($value);
@@ -41,13 +55,17 @@ class BrazilianDocuments
 
     public static function isValidCnpj(?string $value): bool
     {
-        $cnpj = self::onlyDigits($value);
+        $cnpj = self::onlyAlphanumeric($value);
 
         if (strlen($cnpj) !== 14) {
             return false;
         }
 
-        if (preg_match('/^(\d)\1{13}$/', $cnpj)) {
+        if (!preg_match('/^[0-9A-Z]{12}[0-9]{2}$/', $cnpj)) {
+            return false;
+        }
+
+        if (preg_match('/^(.)\1{13}$/', $cnpj)) {
             return false;
         }
 
@@ -56,7 +74,7 @@ class BrazilianDocuments
 
         $sum = 0;
         for ($i = 0; $i < 12; $i++) {
-            $sum += (int) $cnpj[$i] * $weights1[$i];
+            $sum += self::cnpjCharValue($cnpj[$i]) * $weights1[$i];
         }
         $digit1 = $sum % 11 < 2 ? 0 : 11 - ($sum % 11);
         if ((int) $cnpj[12] !== $digit1) {
@@ -65,7 +83,7 @@ class BrazilianDocuments
 
         $sum = 0;
         for ($i = 0; $i < 13; $i++) {
-            $sum += (int) $cnpj[$i] * $weights2[$i];
+            $sum += self::cnpjCharValue($cnpj[$i]) * $weights2[$i];
         }
         $digit2 = $sum % 11 < 2 ? 0 : 11 - ($sum % 11);
 

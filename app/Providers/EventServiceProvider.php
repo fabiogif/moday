@@ -28,9 +28,14 @@ class EventServiceProvider extends ServiceProvider
         ],
         \App\Events\OrderCreated::class => [
             \App\Listeners\SendOrderCreatedNotification::class,
+            \App\Listeners\SendOrderCreatedWhatsApp::class,
         ],
         \App\Events\OrderStatusChangedEvent::class => [
             \App\Listeners\SendOrderStatusChangedNotification::class,
+            \App\Listeners\SendOrderStatusWhatsApp::class,
+        ],
+        \App\Events\OrderStatusUpdated::class => [
+            \App\Listeners\SendOrderStatusWhatsApp::class,
         ],
         \App\Events\ProductCreatedEvent::class => [
             \App\Listeners\SendProductCreatedNotification::class,

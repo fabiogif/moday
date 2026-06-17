@@ -3,6 +3,7 @@
 namespace App\Services\Logistics;
 
 use App\Exceptions\StockException;
+use App\Jobs\SendShipmentDispatchedWhatsApp;
 use App\Models\Driver;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
@@ -167,7 +168,12 @@ class ShipmentService
 
         $this->auditService->log($shipment->tenant_id, $userId, 'shipment.dispatched', 'shipment', $shipment->id);
 
-        return $shipment->fresh(['carrier', 'saleOrders.client', 'occurrences']);
+        if ($shipment->driver_id) {
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            SendShipmentDispatchedWhatsApp::dispatch($shipment, $frontendUrl);
+        }
+
+        return $shipment->fresh(['carrier', 'driver', 'saleOrders.client', 'occurrences', 'tenant.plan']);
     }
 
     public function deliver(Shipment $shipment, int $userId, ?string $podReference = null): Shipment

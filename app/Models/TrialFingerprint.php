@@ -24,16 +24,16 @@ class TrialFingerprint extends Model
 
     public static function hasUsedTrial(string $document): bool
     {
-        return static::where('document', preg_replace('/\D/', '', $document))->exists();
+        return static::where('document', \App\Support\BrazilianDocuments::onlyAlphanumeric($document))->exists();
     }
 
     public static function register(string $document, int $tenantId): static
     {
-        $digits  = preg_replace('/\D/', '', $document);
-        $docType = strlen($digits) === 11 ? 'cpf' : 'cnpj';
+        $clean   = \App\Support\BrazilianDocuments::onlyAlphanumeric($document);
+        $docType = strlen($clean) <= 11 && ctype_digit($clean) ? 'cpf' : 'cnpj';
 
         return static::firstOrCreate(
-            ['document' => $digits],
+            ['document' => $clean],
             ['doc_type' => $docType, 'tenant_id' => $tenantId]
         );
     }

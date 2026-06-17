@@ -34,6 +34,7 @@ class UpdatePlanRequest extends BaseRequest
             'has_marketing' => ['nullable', 'boolean'],
             'has_order_completion_email' => ['nullable', 'boolean'],
             'has_reports' => ['nullable', 'boolean'],
+            'has_whatsapp_notifications' => ['nullable', 'boolean'],
             'details' => ['nullable', 'array'],
             'details.*.name' => ['required', 'string', 'max:255'],
         ];
