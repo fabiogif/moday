@@ -28,7 +28,7 @@ class AbcClientsReportController extends Controller
             );
 
             $rows = SaleOrder::where('tenant_id', $tenantId)
-                ->whereIn('status', ['faturado', 'entregue'])
+                ->whereIn('status', ['faturado', 'em_transito', 'entregue'])
                 ->whereBetween('created_at', [$start, $end])
                 ->whereNotNull('client_id')
                 ->selectRaw('client_id, SUM(total) as revenue, COUNT(*) as order_count')

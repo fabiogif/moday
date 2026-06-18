@@ -166,6 +166,12 @@ class ShipmentService
             'delivery_token' => Str::random(48),
         ]);
 
+        foreach ($shipment->saleOrders as $order) {
+            if ($order->status === 'faturado') {
+                $order->update(['status' => 'em_transito', 'dispatched_at' => now()]);
+            }
+        }
+
         $this->auditService->log($shipment->tenant_id, $userId, 'shipment.dispatched', 'shipment', $shipment->id);
 
         if ($shipment->driver_id) {
@@ -190,7 +196,7 @@ class ShipmentService
             ]);
 
             foreach ($shipment->saleOrders as $order) {
-                if ($order->status === 'faturado') {
+                if (in_array($order->status, ['faturado', 'em_transito', 'separacao'])) {
                     $order->update(['status' => 'entregue', 'delivered_at' => now()]);
                 }
             }

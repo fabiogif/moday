@@ -28,10 +28,10 @@ class B2BPaymentLinkController extends Controller
                 ->with('client')
                 ->findOrFail($id);
 
-            if (!in_array($saleOrder->status, ['aprovado', 'faturado', 'entregue'])) {
+            if (!in_array($saleOrder->status, ['aprovado', 'faturado', 'em_transito', 'entregue'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Link de pagamento disponível apenas para pedidos aprovados ou faturados.',
+                    'message' => 'Link de pagamento disponível apenas para pedidos aprovados, faturados ou em trânsito.',
                 ], 422);
             }
 

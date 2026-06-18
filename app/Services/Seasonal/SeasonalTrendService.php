@@ -27,7 +27,7 @@ class SeasonalTrendService
 
         $rows = DB::table('sale_orders')
             ->where('tenant_id', $tenantId)
-            ->whereIn('status', ['faturado', 'entregue'])
+            ->whereIn('status', ['faturado', 'em_transito', 'entregue'])
             ->where('billed_at', '>=', $since)
             ->whereNotNull('billed_at')
             ->selectRaw('YEAR(billed_at) as yr, MONTH(billed_at) as mo, SUM(total) as revenue, COUNT(*) as orders')

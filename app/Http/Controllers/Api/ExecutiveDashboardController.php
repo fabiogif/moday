@@ -25,7 +25,7 @@ class ExecutiveDashboardController extends Controller
             $end   = Carbon::parse($request->get('end', now()->endOfMonth()));
 
             $orders = SaleOrder::where('tenant_id', $tenantId)
-                ->whereIn('status', ['faturado', 'entregue'])
+                ->whereIn('status', ['faturado', 'em_transito', 'entregue'])
                 ->whereBetween('created_at', [$start, $end])
                 ->with(['items.product:id,name,price_cost', 'approvedBy:id,name'])
                 ->get();

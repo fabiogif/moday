@@ -21,8 +21,8 @@ class SaleReturnService
      */
     public function processReturn(SaleOrder $order, array $items, int $userId): SaleOrder
     {
-        if (!in_array($order->status, ['faturado', 'entregue'])) {
-            throw StockException::invalidMovement('Devolução permitida apenas para pedidos faturados ou entregues.');
+        if (!in_array($order->status, ['faturado', 'em_transito', 'entregue'])) {
+            throw StockException::invalidMovement('Devolução permitida apenas para pedidos faturados, em trânsito ou entregues.');
         }
 
         return DB::transaction(function () use ($order, $items, $userId) {

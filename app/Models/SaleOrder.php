@@ -19,7 +19,7 @@ class SaleOrder extends Model
         'shipping_latitude', 'shipping_longitude',
         'estimated_delivery', 'delivery_window_start', 'delivery_window_end',
         'nfe_number', 'nfe_series', 'nfe_key', 'nfe_status', 'nfe_issued_at',
-        'ordered_at', 'scheduled_at', 'is_scheduled', 'approved_at', 'billed_at', 'delivered_at',
+        'ordered_at', 'scheduled_at', 'is_scheduled', 'approved_at', 'billed_at', 'dispatched_at', 'delivered_at',
         'notes', 'archived_at',
     ];
 
@@ -37,6 +37,7 @@ class SaleOrder extends Model
             'use_client_address' => 'boolean',
             'approved_at' => 'datetime',
             'billed_at' => 'datetime',
+            'dispatched_at' => 'datetime',
             'delivered_at' => 'datetime',
             'archived_at' => 'datetime',
             'prescription_verified' => 'boolean',
@@ -49,19 +50,21 @@ class SaleOrder extends Model
     }
 
     const STATUSES = [
-        'orcamento' => 'Orçamento',
-        'aprovado'  => 'Aprovado',
-        'separacao' => 'Em Separação',
-        'faturado'  => 'Faturado',
-        'entregue'  => 'Entregue',
-        'cancelado' => 'Cancelado',
+        'orcamento'   => 'Orçamento',
+        'aprovado'    => 'Aprovado',
+        'separacao'   => 'Em Separação',
+        'faturado'    => 'Faturado',
+        'em_transito' => 'Em Trânsito',
+        'entregue'    => 'Entregue',
+        'cancelado'   => 'Cancelado',
     ];
 
     const STATUS_FLOW = [
-        'orcamento' => 'aprovado',
-        'aprovado'  => 'separacao',
-        'separacao' => 'faturado',
-        'faturado'  => 'entregue',
+        'orcamento'   => 'aprovado',
+        'aprovado'    => 'separacao',
+        'separacao'   => 'faturado',
+        'faturado'    => 'em_transito',
+        'em_transito' => 'entregue',
     ];
 
     protected static function boot()
@@ -150,9 +153,10 @@ class SaleOrder extends Model
         if (!$next) return false;
 
         $timestamps = [
-            'aprovado'  => ['approved_at' => now(), 'approved_by' => $userId],
-            'faturado'  => ['billed_at' => now()],
-            'entregue'  => ['delivered_at' => now()],
+            'aprovado'    => ['approved_at' => now(), 'approved_by' => $userId],
+            'faturado'    => ['billed_at' => now()],
+            'em_transito' => ['dispatched_at' => now()],
+            'entregue'    => ['delivered_at' => now()],
         ];
 
         $this->update(array_merge(['status' => $next], $timestamps[$next] ?? []));

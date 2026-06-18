@@ -57,7 +57,7 @@ class SaleOrderService
 
         $items = $this->priceTableService->applyPricesToItems($clientId, $items);
 
-        if (in_array($status, ['aprovado', 'separacao', 'faturado', 'entregue']) && !empty($items)) {
+        if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue']) && !empty($items)) {
             $this->saleOrderStockService->validateItemsStock($tenantId, $items, $userId);
         }
 
@@ -79,12 +79,12 @@ class SaleOrderService
 
             $order->load('items.product');
 
-            if (in_array($status, ['aprovado', 'separacao', 'faturado', 'entregue'])) {
+            if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue'])) {
                 $this->creditLimitService->validateForSaleOrder($order);
                 $this->saleOrderStockService->reserveForOrder($order, $userId);
             }
 
-            if (in_array($status, ['faturado', 'entregue'])) {
+            if (in_array($status, ['faturado', 'em_transito', 'entregue'])) {
                 $this->saleOrderStockService->fulfillForOrder($order, $userId);
                 $this->saleOrderFinancialService->createReceivableOnBilling($order);
             }
@@ -95,7 +95,7 @@ class SaleOrderService
         $this->cacheService->invalidateSaleOrderCache($tenantId);
 
         // Dispara e-mail de confirmação quando o pedido é aprovado
-        if (in_array($status, ['aprovado', 'separacao', 'faturado', 'entregue'])) {
+        if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue'])) {
             SaleOrderConfirmedEvent::dispatch($order);
         }
 
@@ -202,7 +202,7 @@ class SaleOrderService
             return 'not_cancellable';
         }
 
-        if ($order->status === 'faturado') {
+        if (in_array($order->status, ['faturado', 'em_transito'])) {
             return 'billed';
         }
 
