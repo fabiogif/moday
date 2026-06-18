@@ -10,6 +10,7 @@ use App\Http\Requests\UserChangePasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use App\Classes\ApiResponseClass;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,8 @@ class UserApiController extends BaseController
                 'Usuário criado com sucesso',
                 201
             );
+        } catch (UniqueConstraintViolationException $e) {
+            return ApiResponseClass::sendResponse(null, 'Este email já está em uso por outro usuário.', 422);
         } catch (\Exception $e) {
             Log::error('Erro ao criar usuário: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao criar usuário');
