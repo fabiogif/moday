@@ -166,6 +166,31 @@ class UserApiController extends BaseController
         }
     }
 
+    public function removeProfile($id, $profileId): JsonResponse
+    {
+        try {
+            $user = $this->userService->findUserForCurrentTenant((int) $id);
+
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+
+            $updatedUser = $this->userService->removeProfileForCurrentTenant($user, (int) $profileId);
+
+            if (!$updatedUser) {
+                return ApiResponseClass::sendResponse(null, 'Erro ao remover perfil', 400);
+            }
+
+            return ApiResponseClass::sendResponse(
+                new UserResource($updatedUser),
+                'Perfil removido com sucesso'
+            );
+        } catch (\Exception $e) {
+            Log::error('Erro ao remover perfil: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao remover perfil');
+        }
+    }
+
     public function changePassword(UserChangePasswordRequest $request, $id): JsonResponse
     {
         try {

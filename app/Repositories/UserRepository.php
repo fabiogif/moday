@@ -142,6 +142,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $user->profiles()->syncWithoutDetaching([$profileId]);
     }
 
+    public function detachProfile(User $user, int $profileId): void
+    {
+        $user->profiles()->detach($profileId);
+    }
+
     public function getUserPermissions(User $user): mixed
     {
         return $user->profiles()

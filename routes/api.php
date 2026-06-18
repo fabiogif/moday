@@ -541,6 +541,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::put('/{id}', [UserApiController::class, 'update'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::delete('/{id}', [UserApiController::class, 'destroy'])->middleware(['acl.permission:users.delete', 'throttle:critical']);
         Route::post('/{id}/assign-profile', [UserApiController::class, 'assignProfile'])->middleware(['acl.permission:users.update', 'throttle:critical']);
+        Route::delete('/{id}/remove-profile/{profileId}', [UserApiController::class, 'removeProfile'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::put('/{id}/change-password', [UserApiController::class, 'changePassword'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::get('/{id}/permissions', [UserApiController::class, 'getUserPermissions'])->middleware(['acl.permission:users.show', 'throttle:read']);
     });
