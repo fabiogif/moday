@@ -723,6 +723,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::put('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'update'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
+        Route::post('/{id}/send-delivery-link', [\App\Http\Controllers\Api\ShipmentApiController::class, 'sendDeliveryLink'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::post('/{id}/deliver', [\App\Http\Controllers\Api\ShipmentApiController::class, 'deliver'])->middleware(['acl.permission:shipments.deliver', 'throttle:critical']);
         Route::post('/{id}/occurrences', [\App\Http\Controllers\Api\ShipmentApiController::class, 'storeOccurrence'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::get('/{id}/pdf', [\App\Http\Controllers\Api\ShipmentPdfController::class, 'show'])->middleware(['acl.permission:shipments.index', 'throttle:read']);

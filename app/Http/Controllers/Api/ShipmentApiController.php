@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Models\ShipmentOccurrence;
 use App\Services\AuthTenantService;
+use App\Services\DeliveryLinkWhatsAppService;
 use App\Services\Logistics\DeliveryRouteService;
 use App\Services\Logistics\ShipmentService;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class ShipmentApiController extends Controller
         private readonly AuthTenantService $authTenantService,
         private readonly ShipmentService $shipmentService,
         private readonly DeliveryRouteService $deliveryRouteService,
+        private readonly DeliveryLinkWhatsAppService $deliveryLinkWhatsApp,
     ) {}
 
     public function index(): JsonResponse
@@ -183,6 +185,37 @@ class ShipmentApiController extends Controller
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao expedir romaneio');
+        }
+    }
+
+    public function sendDeliveryLink(int $id): JsonResponse
+    {
+        try {
+            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $shipment = Shipment::forTenant($tenantId)
+                ->with(['carrier', 'driver', 'saleOrders.client', 'tenant.plan'])
+                ->find($id);
+
+            if (!$shipment) {
+                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+            }
+
+            if ($shipment->status !== 'dispatched') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'O link de entrega só pode ser enviado para romaneios em trânsito.',
+                ], 422);
+            }
+
+            $frontendUrl = config('app.frontend_url', config('app.url'));
+            $this->deliveryLinkWhatsApp->send($shipment, $frontendUrl);
+
+            return ApiResponseClass::sendResponse(null, 'Link de entrega enviado para o motorista via WhatsApp', 200);
+        } catch (\RuntimeException $ex) {
+            return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao enviar link de entrega para o motorista');
         }
     }
 
