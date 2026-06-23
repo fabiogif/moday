@@ -21,6 +21,7 @@ class CategoryResource extends JsonResource
             'description' => $this->description,
             'url' => $this->url,
             'status' => $this->status ?? 'A',
+            'productCount' => $this->products_count ?? 0,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('d/m/Y') : null
         ];
     }
