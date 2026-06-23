@@ -51,6 +51,7 @@ class ProductResource extends JsonResource
             'variations' => is_array($this->variations) ? $this->variations : (is_string($this->variations) ? json_decode($this->variations, true) : []) ?? [],
             'optionals' => is_array($this->optionals) ? $this->optionals : (is_string($this->optionals) ? json_decode($this->optionals, true) : []) ?? [],
             'qtd_stock' => (int) $this->qtd_stock,
+            'sell_without_stock' => (bool) ($this->sell_without_stock ?? false),
             'product_type' => $this->product_type,
             'requires_prescription' => (bool) ($this->requires_prescription ?? false),
             'controlled_substance' => (bool) ($this->controlled_substance ?? false),

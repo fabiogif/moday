@@ -23,7 +23,7 @@ class Product extends Model
         // Fiscal
         'tax_ncm', 'tax_cst', 'tax_rate',
         // Stock
-        'qtd_stock', 'unit_of_measure', 'units_per_box', 'min_stock', 'max_stock', 'safety_stock', 'reorder_point',
+        'qtd_stock', 'sell_without_stock', 'unit_of_measure', 'units_per_box', 'min_stock', 'max_stock', 'safety_stock', 'reorder_point',
     ];
 
     /**
@@ -33,6 +33,7 @@ class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'sell_without_stock' => 'boolean',
             'requires_prescription' => 'boolean',
             'controlled_substance' => 'boolean',
             'price' => 'decimal:2',
