@@ -18,8 +18,13 @@ class GlobalCorsMiddleware
         $allowedOrigins = [
             'http://localhost:3000',
             'http://localhost:3001',
+            'http://localhost:8081',
+            'http://localhost:8082',
+            'http://localhost:19000',
+            'http://localhost:19006',
             'https://localhost:3000',
             'https://localhost:3001',
+            'https://dist.albatec.com.br',
             'https://moday-nine.vercel.app',
             'https://moday-frontend.vercel.app',
             'https://clownfish-app-rr5rv.ondigitalocean.app',
