@@ -30,14 +30,14 @@ class SaleOrderService
         private readonly CacheService $cacheService,
     ) {}
 
-    public function list(int $tenantId, ?string $status, int $perPage): LengthAwarePaginator
+    public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
     {
-        $params = ['status' => $status, 'per_page' => $perPage];
+        $params = ['status' => $status, 'per_page' => $perPage, 'search' => $search];
 
         return $this->cacheService->getSaleOrderList(
             $tenantId,
             $params,
-            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage)
+            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage, $search)
         );
     }
 

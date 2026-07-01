@@ -7,7 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface SaleOrderRepositoryInterface
 {
-    public function paginateForTenant(int $tenantId, ?string $status, int $perPage): LengthAwarePaginator;
+    public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator;
 
     public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder;
 

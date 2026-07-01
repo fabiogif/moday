@@ -8,15 +8,28 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class SaleOrderRepository implements SaleOrderRepositoryInterface
 {
-    public function paginateForTenant(int $tenantId, ?string $status, int $perPage): LengthAwarePaginator
+    public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
     {
         $query = SaleOrder::forTenant($tenantId)
             ->notArchived()
-            ->with(['client:id,name,company_name,trade_name'])
+            ->with(['client:id,name,company_name,trade_name,contact_name'])
             ->latest('ordered_at');
 
         if ($status) {
             $query->byStatus($status);
+        }
+
+        if ($search !== null && $search !== '') {
+            $term = '%' . $search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('identify', 'like', $term)
+                    ->orWhereHas('client', function ($clientQuery) use ($term) {
+                        $clientQuery->where('name', 'like', $term)
+                            ->orWhere('company_name', 'like', $term)
+                            ->orWhere('trade_name', 'like', $term)
+                            ->orWhere('contact_name', 'like', $term);
+                    });
+            });
         }
 
         return $query->paginate($perPage);
