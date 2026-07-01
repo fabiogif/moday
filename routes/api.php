@@ -251,6 +251,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     // Produtos
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware('throttle:read');
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware('throttle:read');
+    Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware('throttle:read')->where('code', '.+');
     Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware('throttle:read');
     Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware('throttle:read');
     Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware('throttle:read');

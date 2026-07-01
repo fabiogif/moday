@@ -137,6 +137,59 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
             ->first();
     }
 
+    public function findByBarcode(string $barcode, int $tenantId): ?Product
+    {
+        return $this->entity->newQuery()
+            ->where('tenant_id', $tenantId)
+            ->where('barcode', $barcode)
+            ->first();
+    }
+
+    public function findByCode(string $code, int $tenantId, bool $catalogOnly = true): ?Product
+    {
+        $variants = self::barcodeLookupVariants($code);
+        if ($variants === []) {
+            return null;
+        }
+
+        $query = $this->entity->newQuery()
+            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($variants) {
+                $q->whereIn('barcode', $variants)
+                    ->orWhereIn('sku', $variants);
+            });
+
+        if ($catalogOnly) {
+            $query->visibleInCatalog();
+        }
+
+        return $query->with('categories')->first();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function barcodeLookupVariants(string $code): array
+    {
+        $normalized = trim($code);
+        $normalized = preg_replace('/[\x00-\x1F\x7F]/u', '', $normalized) ?? '';
+        if ($normalized === '') {
+            return [];
+        }
+
+        $variants = [$normalized];
+        if (ctype_digit($normalized)) {
+            $trimmed = ltrim($normalized, '0');
+            if ($trimmed !== '') {
+                $variants[] = $trimmed;
+                $variants[] = str_pad($trimmed, 13, '0', STR_PAD_LEFT);
+                $variants[] = str_pad($trimmed, 12, '0', STR_PAD_LEFT);
+            }
+        }
+
+        return array_values(array_unique(array_filter($variants)));
+    }
+
     public function getProductIdsByUuids(int $tenantId, array $productUuids): array
     {
         return $this->entity->newQuery()

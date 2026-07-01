@@ -609,4 +609,61 @@ class ProductApiTest extends TestCase
             'category_id' => $category2->id
         ]);
     }
+
+    #[Test]
+    public function pode_buscar_produto_por_codigo_de_barras(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+
+        $product = Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+            'qtd_stock' => 10,
+            'barcode' => '7891234567890',
+            'sku' => 'SKU-TEST-001',
+            'name' => 'Produto com barcode',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product/by-code/7891234567890');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.identify', (string) $product->uuid)
+            ->assertJsonPath('data.barcode', '7891234567890');
+    }
+
+    #[Test]
+    public function busca_por_codigo_encontra_produto_pelo_sku(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+
+        $product = Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+            'qtd_stock' => 5,
+            'sku' => 'SKU-SCAN-99',
+            'name' => 'Produto por SKU',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product/by-code/SKU-SCAN-99');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.identify', (string) $product->uuid);
+    }
+
+    #[Test]
+    public function busca_por_codigo_retorna_404_quando_nao_encontrado(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product/by-code/0000000000000');
+
+        $response->assertStatus(404);
+    }
 }
