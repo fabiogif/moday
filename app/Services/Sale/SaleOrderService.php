@@ -109,6 +109,13 @@ class SaleOrderService
             return null;
         }
 
+        $items = $data['items'] ?? null;
+        unset($data['items']);
+
+        if ($items !== null && $order->status !== 'orcamento') {
+            throw new \DomainException('Itens só podem ser editados em pedidos em orçamento.');
+        }
+
         if ($this->hasShippingInput($data)) {
             $shippingData = $this->resolveShippingAddress($tenantId, array_merge(
                 $order->only(['client_id', 'shipping_address', 'shipping_city', 'shipping_state', 'shipping_zipcode', 'use_client_address']),
@@ -117,7 +124,27 @@ class SaleOrderService
             $data = array_merge($data, $shippingData);
         }
 
-        $updated = $this->saleOrderRepository->update($order, $data);
+        $updated = DB::transaction(function () use ($order, $data, $items) {
+            if ($items !== null) {
+                $clientId = $data['client_id'] ?? $order->client_id;
+                $items    = $this->priceTableService->applyPricesToItems($clientId, $items);
+
+                $order->items()->delete();
+                foreach ($items as $item) {
+                    $this->createOrderItem($order->id, $item);
+                }
+
+                $subtotal = $this->calculateSubtotal($items);
+                $freight  = (float) ($data['freight_amount'] ?? $order->freight_amount ?? 0);
+                $discount = (float) ($data['discount_amount'] ?? $order->discount_amount ?? 0);
+
+                $data['subtotal'] = $subtotal;
+                $data['total']    = max(0, $subtotal + $freight - $discount);
+            }
+
+            return $this->saleOrderRepository->update($order, $data);
+        });
+
         $this->cacheService->invalidateSaleOrderCache($tenantId);
 
         return $updated;

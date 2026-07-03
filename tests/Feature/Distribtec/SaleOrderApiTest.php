@@ -274,6 +274,84 @@ class SaleOrderApiTest extends TestCase
             ->assertJsonPath('data.notes', 'Atualizado');
     }
 
+    #[Test]
+    public function it_updates_items_of_an_orcamento_order(): void
+    {
+        $order   = SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'status'    => 'orcamento',
+        ]);
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id, 'price' => 30.00]);
+
+        $this->withHeaders($this->auth())
+            ->putJson("/api/sale-orders/{$order->id}", [
+                'freight_amount' => 5.00,
+                'items' => [
+                    [
+                        'product_id'       => $product->id,
+                        'quantity'         => 3,
+                        'unit_price'       => 30.00,
+                        'discount_percent' => 0,
+                    ],
+                ],
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.total', '95.00'); // 3×30 + 5 frete
+
+        $this->assertDatabaseHas('sale_order_items', [
+            'sale_order_id' => $order->id,
+            'product_id'    => $product->id,
+            'quantity'      => 3,
+        ]);
+    }
+
+    #[Test]
+    public function it_replaces_existing_items_on_update(): void
+    {
+        $order    = SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'orcamento']);
+        $productA = Product::factory()->create(['tenant_id' => $this->tenant->id, 'price' => 10.00]);
+        $productB = Product::factory()->create(['tenant_id' => $this->tenant->id, 'price' => 20.00]);
+
+        $this->withHeaders($this->auth())
+            ->putJson("/api/sale-orders/{$order->id}", [
+                'items' => [
+                    ['product_id' => $productA->id, 'quantity' => 1, 'unit_price' => 10.00],
+                ],
+            ])->assertStatus(200);
+
+        $this->withHeaders($this->auth())
+            ->putJson("/api/sale-orders/{$order->id}", [
+                'items' => [
+                    ['product_id' => $productB->id, 'quantity' => 2, 'unit_price' => 20.00],
+                ],
+            ])->assertStatus(200);
+
+        $this->assertDatabaseMissing('sale_order_items', [
+            'sale_order_id' => $order->id,
+            'product_id'    => $productA->id,
+        ]);
+        $this->assertDatabaseHas('sale_order_items', [
+            'sale_order_id' => $order->id,
+            'product_id'    => $productB->id,
+            'quantity'      => 2,
+        ]);
+    }
+
+    #[Test]
+    public function it_cannot_update_items_of_a_non_orcamento_order(): void
+    {
+        $order   = SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'aprovado']);
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id, 'price' => 30.00]);
+
+        $this->withHeaders($this->auth())
+            ->putJson("/api/sale-orders/{$order->id}", [
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 1, 'unit_price' => 30.00],
+                ],
+            ])
+            ->assertStatus(422);
+    }
+
     // -------------------------------------------------------------------------
     // ADVANCE STATUS
     // -------------------------------------------------------------------------
