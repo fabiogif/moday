@@ -103,6 +103,10 @@ class PurchaseOrderApiController extends Controller
                 'freight_amount'    => 'sometimes|numeric|min:0',
                 'discount_amount'   => 'sometimes|numeric|min:0',
                 'notes'             => 'nullable|string',
+                'items'                    => 'sometimes|array',
+                'items.*.product_id'       => 'required_with:items|integer',
+                'items.*.quantity_ordered' => 'required_with:items|numeric|min:0.001',
+                'items.*.unit_cost'        => 'required_with:items|numeric|min:0',
             ]);
 
             $result = $this->purchaseOrderService->update($tenantId, $id, $validated);
