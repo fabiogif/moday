@@ -88,6 +88,14 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ->first();
     }
 
+    public function findByRequestIdAndTenant(string $requestId, int $tenantId)
+    {
+        return $this->entity
+            ->where('client_request_id', $requestId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
     public function findByEmailAndTenant(string $email, int $tenantId)
     {
         return $this->entity

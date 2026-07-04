@@ -14,6 +14,8 @@ interface ClientRepositoryInterface extends BaseRepositoryInterface
     public function deleteClient($id);
     public function findByCpfAndTenant(string $cpf, int $tenantId);
 
+    public function findByRequestIdAndTenant(string $requestId, int $tenantId);
+
     public function findByEmailAndTenant(string $email, int $tenantId);
 
     public function findByPhoneAndTenant(string $phone, int $tenantId);

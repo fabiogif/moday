@@ -11,7 +11,7 @@ class SaleOrder extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tenant_id', 'uuid', 'identify', 'client_id', 'parent_sale_order_id', 'approved_by',
+        'tenant_id', 'uuid', 'offline_id', 'identify', 'client_id', 'parent_sale_order_id', 'approved_by',
         'status', 'type', 'prescription_verified',
         'subtotal', 'discount_amount', 'tax_amount', 'freight_amount', 'total',
         'payment_term_days', 'payment_method', 'installments', 'due_date', 'split_payments',

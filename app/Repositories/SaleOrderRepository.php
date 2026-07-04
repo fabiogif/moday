@@ -40,6 +40,11 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
         return SaleOrder::forTenant($tenantId)->with($with)->find($id);
     }
 
+    public function findByOfflineId(int $tenantId, string $offlineId): ?SaleOrder
+    {
+        return SaleOrder::forTenant($tenantId)->where('offline_id', $offlineId)->first();
+    }
+
     public function create(array $data): SaleOrder
     {
         return SaleOrder::create($data);

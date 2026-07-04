@@ -59,6 +59,7 @@ class SaleOrderApiController extends Controller
             $discountRule = DiscountWithinProfileLimit::forUser($user);
 
             $validated = $request->validate([
+                'offline_id'               => 'nullable|string|max:100',
                 'client_id'                => 'nullable|integer',
                 'status'                   => 'sometimes|string',
                 'payment_term_days'        => 'sometimes|integer|min:0',

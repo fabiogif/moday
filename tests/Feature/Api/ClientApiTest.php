@@ -89,6 +89,50 @@ class ClientApiTest extends TestCase
     }
 
     #[Test]
+    public function resending_the_same_client_request_id_does_not_duplicate_the_client(): void
+    {
+        $payload = $this->validB2bPayload(['client_request_id' => 'mobile-client-uuid-1']);
+
+        $first = $this->withHeaders($this->auth())->postJson('/api/clients', $payload);
+        $first->assertStatus(201);
+
+        $second = $this->withHeaders($this->auth())->postJson('/api/clients', $payload);
+        $second->assertStatus(201);
+
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
+        $this->assertSame(
+            1,
+            Client::where('tenant_id', $this->tenant->id)
+                ->where('client_request_id', 'mobile-client-uuid-1')
+                ->count()
+        );
+    }
+
+    #[Test]
+    public function the_same_client_request_id_in_different_tenants_creates_two_distinct_clients(): void
+    {
+        // Exercised at the service layer for the same reason as the sale-order equivalent
+        // (see SaleOrderIdempotencyTest): this test harness's JWT guard resolves the first
+        // authenticated user for any subsequent request in the same test method, regardless
+        // of the bearer token sent. The dedup logic under test lives entirely in
+        // ClientService::findOrCreateByRequestId(), so calling it directly per tenant is
+        // an equally valid way to verify the unique index is scoped by tenant_id.
+        $otherTenant = Tenant::factory()->accessible()->create(['plan_id' => Plan::factory()->create()->id]);
+
+        $service = app(\App\Services\ClientService::class);
+        $data    = $this->validB2bPayload(['client_request_id' => 'shared-client-uuid', 'name' => 'Farmácia Central LTDA']);
+
+        $result1 = $service->findOrCreateByRequestId(array_merge($data, ['tenant_id' => $this->tenant->id]), $this->tenant->id);
+        $result2 = $service->findOrCreateByRequestId(array_merge($data, ['tenant_id' => $otherTenant->id]), $otherTenant->id);
+
+        $this->assertNotSame($result1['client']->id, $result2['client']->id);
+        $this->assertSame(
+            2,
+            Client::where('client_request_id', 'shared-client-uuid')->count()
+        );
+    }
+
+    #[Test]
     public function it_shows_client_by_id(): void
     {
         $client = Client::factory()->create([

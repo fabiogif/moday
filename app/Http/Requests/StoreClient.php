@@ -23,16 +23,34 @@ class StoreClient extends FormRequest
      */
     public function rules(): array
     {
-        $tenantId = $this->user()?->tenant_id;
+        $tenantId  = $this->user()?->tenant_id;
+        $requestId = $this->input('client_request_id');
+
+        // Se este client_request_id já foi usado, excluímos o próprio registro das
+        // checagens de unicidade abaixo - um retry legítimo reenvia os mesmos dados
+        // (mesmo email/cpf) e não deve ser rejeitado como duplicata de si mesmo.
+        $excludeId = 'NULL';
+        if ($requestId && $tenantId) {
+            $existingId = \App\Models\Client::where('tenant_id', $tenantId)
+                ->where('client_request_id', $requestId)
+                ->value('id');
+            if ($existingId) {
+                $excludeId = $existingId;
+            }
+        }
 
         return [
             // name required only when company_name not provided (B2B uses company_name)
             'name'         => 'nullable|string|min:3|max:255',
             'company_name' => 'nullable|string|max:255',
-            'cpf'          => ['nullable', 'string', 'min:11', 'max:14', new Cpf(), 'unique:clients,cpf,NULL,id,tenant_id,' . $tenantId],
-            'email'        => 'nullable|email|min:3|max:255|unique:clients,email,NULL,id,tenant_id,' . $tenantId,
+            'cpf'          => ['nullable', 'string', 'min:11', 'max:14', new Cpf(), 'unique:clients,cpf,' . $excludeId . ',id,tenant_id,' . $tenantId],
+            'email'        => 'nullable|email|min:3|max:255|unique:clients,email,' . $excludeId . ',id,tenant_id,' . $tenantId,
             'phone'        => 'nullable|string|min:10|max:20',
-            
+
+            // Chave de idempotência gerada pelo cliente (app offline) - sem regra unique
+            // de propósito: um retry legítimo deve devolver o registro existente, não um 422.
+            'client_request_id' => 'nullable|string|max:64',
+
             // Senha opcional para clientes (pode ser gerada automaticamente)
             'password' => 'nullable|string|min:6|max:60',
             
