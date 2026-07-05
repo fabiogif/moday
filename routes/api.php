@@ -444,7 +444,8 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/program', [\App\Http\Controllers\Api\LoyaltyProgramApiController::class, 'index'])->middleware('throttle:read');
         Route::post('/program', [\App\Http\Controllers\Api\LoyaltyProgramApiController::class, 'store'])->middleware('throttle:critical');
         Route::put('/program/{uuid}', [\App\Http\Controllers\Api\LoyaltyProgramApiController::class, 'update'])->middleware('throttle:critical');
-        
+        Route::delete('/program/{uuid}', [\App\Http\Controllers\Api\LoyaltyProgramApiController::class, 'destroy'])->middleware('throttle:critical');
+
         // Recompensas
         Route::get('/rewards', [\App\Http\Controllers\Api\LoyaltyRewardApiController::class, 'index'])->middleware('throttle:read');
         Route::post('/rewards', [\App\Http\Controllers\Api\LoyaltyRewardApiController::class, 'store'])->middleware('throttle:critical');
@@ -457,6 +458,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/client/{clientId}/transactions', [\App\Http\Controllers\Api\LoyaltyClientApiController::class, 'transactions'])->middleware('throttle:read');
         Route::get('/client/{clientId}/redemptions', [\App\Http\Controllers\Api\LoyaltyClientApiController::class, 'redemptions'])->middleware('throttle:read');
         Route::post('/client/{clientId}/adjust-points', [\App\Http\Controllers\Api\LoyaltyClientApiController::class, 'adjustPoints'])->middleware('throttle:critical');
+        Route::post('/client/{clientId}/add-points', [\App\Http\Controllers\Api\LoyaltyClientApiController::class, 'adjustPoints'])->middleware('throttle:critical');
         
         // Resgate de Recompensas
         Route::post('/redeem', [\App\Http\Controllers\Api\LoyaltyClientApiController::class, 'redeem'])->middleware('throttle:critical');
@@ -824,6 +826,41 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/{id}', [\App\Http\Controllers\Api\PriceTableApiController::class, 'show'])->middleware(['acl.permission:price-tables.index', 'throttle:read']);
         Route::put('/{id}', [\App\Http\Controllers\Api\PriceTableApiController::class, 'update'])->middleware(['acl.permission:price-tables.update', 'throttle:critical']);
         Route::delete('/{id}', [\App\Http\Controllers\Api\PriceTableApiController::class, 'destroy'])->middleware(['acl.permission:price-tables.destroy', 'throttle:critical']);
+    });
+
+    // Metas de Venda
+    Route::prefix('sales-goals')->middleware('plan.feature:sales_goals')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/my-goals', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'myGoals'])->middleware('throttle:read');
+        Route::get('/{id}', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::post('/{id}/recalculate', [\App\Http\Controllers\Api\SalesGoalApiController::class, 'recalculate'])->middleware('throttle:critical');
+    });
+
+    // Ranking de Vendedores
+    Route::prefix('ranking')->middleware('plan.feature:sales_goals')->group(function () {
+        Route::get('/sellers', [\App\Http\Controllers\Api\RankingApiController::class, 'sellerRanking'])->middleware('throttle:read');
+        Route::get('/teams', [\App\Http\Controllers\Api\RankingApiController::class, 'teamRanking'])->middleware('throttle:read');
+        Route::get('/my-position', [\App\Http\Controllers\Api\RankingApiController::class, 'myPosition'])->middleware('throttle:read');
+    });
+
+    // Conquistas (Achievements)
+    Route::prefix('achievements')->middleware('plan.feature:sales_goals')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\AchievementApiController::class, 'index'])->middleware('throttle:read');
+        Route::post('/', [\App\Http\Controllers\Api\AchievementApiController::class, 'store'])->middleware('throttle:critical');
+        Route::get('/my-achievements', [\App\Http\Controllers\Api\AchievementApiController::class, 'userAchievements'])->middleware('throttle:read');
+        Route::get('/{id}', [\App\Http\Controllers\Api\AchievementApiController::class, 'show'])->middleware('throttle:read');
+        Route::put('/{id}', [\App\Http\Controllers\Api\AchievementApiController::class, 'update'])->middleware('throttle:critical');
+        Route::delete('/{id}', [\App\Http\Controllers\Api\AchievementApiController::class, 'destroy'])->middleware('throttle:critical');
+    });
+
+    // Gamificação
+    Route::prefix('gamification')->middleware('plan.feature:sales_goals')->group(function () {
+        Route::get('/profile', [\App\Http\Controllers\Api\GamificationApiController::class, 'profile'])->middleware('throttle:read');
+        Route::get('/leaderboard', [\App\Http\Controllers\Api\GamificationApiController::class, 'leaderboard'])->middleware('throttle:read');
+        Route::get('/point-history', [\App\Http\Controllers\Api\GamificationApiController::class, 'pointHistory'])->middleware('throttle:read');
     });
 });
 

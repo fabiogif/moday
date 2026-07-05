@@ -131,7 +131,7 @@ class LoyaltyProgramApiTest extends TestCase
             ->deleteJson("/api/loyalty/program/{$program->uuid}");
 
         $response->assertStatus(200);
-        $this->assertDatabaseMissing('loyalty_programs', [
+        $this->assertSoftDeleted('loyalty_programs', [
             'id' => $program->id,
         ]);
     }
@@ -157,7 +157,7 @@ class LoyaltyProgramApiTest extends TestCase
 
         $this->assertDatabaseHas('loyalty_transactions', [
             'client_id' => $client->id,
-            'type' => 'earn',
+            'type' => 'adjust',
             'points' => 100,
         ]);
     }

@@ -70,5 +70,23 @@ class LoyaltyProgramApiController extends Controller
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar programa');
         }
     }
+
+    public function destroy(string $uuid): JsonResponse
+    {
+        try {
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            $program = $this->programService->getProgramByTenant($tenantId);
+
+            if (!$program || $program->uuid !== $uuid) {
+                return ApiResponseClass::sendResponse(null, 'Programa não encontrado', 404);
+            }
+
+            $this->programService->deleteProgram($program->id);
+
+            return ApiResponseClass::sendResponse(null, 'Programa excluído com sucesso', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao excluir programa');
+        }
+    }
 }
 

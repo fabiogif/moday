@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Events\SaleOrderConfirmedEvent;
+use App\Events\SaleOrderStatusChangedEvent;
 use App\Repositories\Contracts\SaleOrderRepositoryInterface;
 use App\Services\CacheService;
 use App\Services\Commercial\CreditLimitService;
@@ -184,11 +185,15 @@ class SaleOrderService
 
         $this->cacheService->invalidateSaleOrderCache($tenantId);
 
+        $freshOrder = $order->fresh();
+
         if ($nextStatus === 'aprovado') {
-            SaleOrderConfirmedEvent::dispatch($order->fresh());
+            SaleOrderConfirmedEvent::dispatch($freshOrder);
         }
 
-        return $order->fresh();
+        SaleOrderStatusChangedEvent::dispatch($freshOrder, $order->getOriginal('status') ?? 'rascunho', $nextStatus);
+
+        return $freshOrder;
     }
 
     public function cancel(int $tenantId, int $id): ?string

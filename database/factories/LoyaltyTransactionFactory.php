@@ -26,7 +26,7 @@ class LoyaltyTransactionFactory extends Factory
             'purchase_amount' => $type === 'earn' ? $this->faker->randomFloat(2, 50, 500) : null,
             'multiplier' => 1.0,
             'description' => $this->faker->sentence(),
-            'expires_at' => $type === 'earn' ? $this->faker->optional()->dateTimeBetween('now', '+1 year')->format('Y-m-d') : null,
+            'expires_at' => $type === 'earn' ? $this->faker->optional()->dateTimeBetween('now', '+1 year')?->format('Y-m-d') : null,
         ];
     }
 

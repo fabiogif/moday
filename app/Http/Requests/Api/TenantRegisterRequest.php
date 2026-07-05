@@ -30,7 +30,7 @@ class TenantRegisterRequest extends FormRequest
             'company_name' => 'required|string|max:255',
             'company_email' => 'nullable|email|max:255',
             'company_phone' => 'nullable|string|max:20',
-            'company_cnpj' => 'required|string|size:14|regex:/^\d{14}$/|not_regex:/^(\d)\1{13}$/|unique:tenants,cnpj',
+            'company_cnpj' => ['required', 'string', 'size:14', 'regex:/^[0-9A-Z]{12}[0-9]{2}$/', 'not_regex:/^(.)\1{13}$/', 'unique:tenants,cnpj', new \App\Rules\Cnpj],
 
             // Dados do usuário administrador
             'name' => 'required|string|max:255',
@@ -57,8 +57,8 @@ class TenantRegisterRequest extends FormRequest
             'plan_id.required' => 'É necessário selecionar um plano.',
             'plan_id.exists' => 'Plano selecionado é inválido.',
             'company_cnpj.required' => 'O CNPJ da empresa é obrigatório.',
-            'company_cnpj.size' => 'O CNPJ deve ter 14 dígitos.',
-            'company_cnpj.regex' => 'O CNPJ deve conter apenas números.',
+            'company_cnpj.size' => 'O CNPJ deve ter 14 caracteres.',
+            'company_cnpj.regex' => 'O CNPJ deve conter letras (A-Z) e números, com os 2 últimos dígitos numéricos.',
             'company_cnpj.not_regex' => 'CNPJ inválido.',
             'company_cnpj.unique' => 'Este CNPJ já está cadastrado.',
         ];

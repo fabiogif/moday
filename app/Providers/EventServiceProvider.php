@@ -56,6 +56,10 @@ class EventServiceProvider extends ServiceProvider
         ],
         \App\Events\SaleOrderConfirmedEvent::class => [
             \App\Listeners\SendSaleOrderConfirmationEmail::class,
+            \App\Listeners\UpdateGoalProgressOnSaleOrder::class,
+        ],
+        \App\Events\SaleOrderStatusChangedEvent::class => [
+            \App\Listeners\UpdateGoalProgressOnSaleOrder::class,
         ],
 
         // Subscription Events
