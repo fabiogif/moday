@@ -124,6 +124,42 @@ class ClientService {
     }
 
     /**
+     * Find-or-create client based on a client-generated request id (idempotency key).
+     * Protects retries of the same offline queue item from creating duplicate clients.
+     * Returns array ['client' => Client, 'existed' => bool]
+     */
+    public function findOrCreateByRequestId(array $data, int $tenantId): array
+    {
+        $requestId = $data['client_request_id'] ?? null;
+
+        if (!$requestId) {
+            $client = $this->createClient($data);
+            return ['client' => $client, 'existed' => false];
+        }
+
+        $existingClient = $this->clientRepositoryInterface->findByRequestIdAndTenant($requestId, $tenantId);
+        if ($existingClient) {
+            return ['client' => $existingClient, 'existed' => true];
+        }
+
+        try {
+            $client = $this->createClient($data);
+            return ['client' => $client, 'existed' => false];
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            $existingClient = $this->clientRepositoryInterface->findByRequestIdAndTenant($requestId, $tenantId);
+            if ($existingClient) {
+                return ['client' => $existingClient, 'existed' => true];
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
      * Get client statistics comparing current month with previous month
      */
     public function getClientStats($tenantId = null)

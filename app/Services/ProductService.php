@@ -187,6 +187,11 @@ readonly class ProductService
         });
     }
 
+    public function findByCode(string $code, int $tenantId, bool $catalogOnly = true)
+    {
+        return $this->productRepositoryInterface->findByCode($code, $tenantId, $catalogOnly);
+    }
+
     private function getCategoryByProduct(array $categoryProduct): array
     {
         $categories = [];

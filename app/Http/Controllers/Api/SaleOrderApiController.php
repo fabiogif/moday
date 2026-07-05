@@ -30,7 +30,10 @@ class SaleOrderApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $perPage   = min((int) $request->get('per_page', 50), 100);
-            $paginated = $this->saleOrderService->list($tenantId, $request->get('status'), $perPage);
+            $search    = $request->get('search');
+            $search    = is_string($search) ? trim($search) : null;
+            $search    = $search !== '' ? $search : null;
+            $paginated = $this->saleOrderService->list($tenantId, $request->get('status'), $perPage, $search);
 
             return response()->json([
                 'success' => true,
@@ -56,6 +59,7 @@ class SaleOrderApiController extends Controller
             $discountRule = DiscountWithinProfileLimit::forUser($user);
 
             $validated = $request->validate([
+                'offline_id'               => 'nullable|string|max:100',
                 'client_id'                => 'nullable|integer',
                 'status'                   => 'sometimes|string',
                 'payment_term_days'        => 'sometimes|integer|min:0',
@@ -149,16 +153,25 @@ class SaleOrderApiController extends Controller
         try {
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
+            $discountRule = DiscountWithinProfileLimit::forUser($user);
+
             $validated = $request->validate([
                 'status'                 => 'sometimes|string',
                 'payment_term_days'      => 'sometimes|integer|min:0',
                 'payment_method'         => 'nullable|string|max:50',
                 'installments'           => 'sometimes|integer|min:1|max:48',
                 'freight_amount'         => 'sometimes|numeric|min:0',
-                'discount_amount'        => 'sometimes|numeric|min:0',
+                'discount_amount'        => ['sometimes', 'numeric', 'min:0', $discountRule],
                 'prescription_verified'  => 'sometimes|boolean',
                 'notes'                  => 'nullable|string',
                 'nfe_number'             => 'nullable|string|max:50',
+                'items'                    => 'sometimes|array',
+                'items.*.product_id'       => 'required_with:items|integer',
+                'items.*.batch_id'         => ['nullable', 'integer', new ValidBatchForSale()],
+                'items.*.quantity'         => 'required_with:items|numeric|min:0.001',
+                'items.*.unit_price'       => 'nullable|numeric|min:0',
+                'items.*.item_type'        => 'sometimes|string|in:venda,bonificacao',
+                'items.*.discount_percent' => ['sometimes', 'numeric', 'min:0', 'max:100', $discountRule],
                 'use_client_address'     => 'sometimes|boolean',
                 'shipping_address'       => 'nullable|array',
                 'shipping_address.street'    => 'nullable|string|max:255',

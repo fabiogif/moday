@@ -2,14 +2,16 @@
 
 namespace App\Services;
 
-use App\Models\SaleOrder;
-use App\Models\SaleOrderItem;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
+use App\Models\PaymentMethod;
+use App\Services\Sale\SaleOrderService;
 use Illuminate\Support\Facades\Log;
 
 class OfflineSyncService
 {
+    public function __construct(
+        private readonly SaleOrderService $saleOrderService,
+    ) {}
+
     /**
      * Persists a batch of offline-queued B2B sale orders.
      * Returns per-item results so the client can purge synced entries from its queue.
@@ -22,31 +24,29 @@ class OfflineSyncService
             $offlineId = $orderData['offline_id'];
 
             try {
-                DB::beginTransaction();
+                $paymentMethodName = PaymentMethod::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('id', $orderData['payment_method_id'])
+                    ->value('name');
 
-                $saleOrder = SaleOrder::create([
-                    'tenant_id'         => $tenantId,
-                    'user_id'           => $userId,
+                $items = collect($orderData['products'] ?? [])->map(fn (array $item) => [
+                    'product_id'       => $item['product_id'],
+                    'quantity'         => $item['quantity'],
+                    'unit_price'       => $item['price'],
+                    'discount_percent' => 0,
+                ])->all();
+
+                $validated = [
                     'client_id'         => $orderData['client_id'],
-                    'payment_method_id' => $orderData['payment_method_id'],
                     'status'            => 'aprovado',
-                    'total'             => $orderData['total'],
+                    'payment_method'    => $paymentMethodName,
+                    'payment_term_days' => $orderData['payment_term_days'] ?? 0,
                     'notes'             => $orderData['notes'] ?? null,
-                    'is_delivery'       => false,
-                ]);
+                    'freight_amount'    => 0,
+                    'discount_amount'   => 0,
+                ];
 
-                foreach ($orderData['products'] as $item) {
-                    SaleOrderItem::create([
-                        'sale_order_id' => $saleOrder->id,
-                        'product_id'    => $item['product_id'],
-                        'item_type'     => 'venda',
-                        'quantity'      => $item['quantity'],
-                        'unit_price'    => $item['price'],
-                        'subtotal'      => $item['price'] * $item['quantity'],
-                    ]);
-                }
-
-                DB::commit();
+                $saleOrder = $this->saleOrderService->create($tenantId, $userId, $validated, $items);
 
                 Log::info('OfflineSync: sale order created', [
                     'offline_id' => $offlineId,
@@ -60,8 +60,6 @@ class OfflineSyncService
                     'identify'   => $saleOrder->identify,
                 ];
             } catch (\Throwable $e) {
-                DB::rollBack();
-
                 Log::error('OfflineSync: failed', [
                     'offline_id' => $offlineId,
                     'error'      => $e->getMessage(),
@@ -70,7 +68,7 @@ class OfflineSyncService
                 $results[] = [
                     'offline_id' => $offlineId,
                     'success'    => false,
-                    'error'      => 'Erro ao processar pedido',
+                    'error'      => $e->getMessage() ?: 'Erro ao processar pedido',
                 ];
             }
         }

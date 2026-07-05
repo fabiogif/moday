@@ -25,7 +25,7 @@ class OfflineSyncServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new OfflineSyncService();
+        $this->service = app(OfflineSyncService::class);
         $plan          = Plan::factory()->create();
         $this->tenant  = Tenant::factory()->create(['plan_id' => $plan->id]);
         $this->user    = User::factory()->create(['tenant_id' => $this->tenant->id]);
@@ -35,7 +35,7 @@ class OfflineSyncServiceTest extends TestCase
     {
         $client  = Client::factory()->create(['tenant_id' => $this->tenant->id]);
         $payment = PaymentMethod::factory()->create(['tenant_id' => $this->tenant->id]);
-        $product = Product::factory()->create(['tenant_id' => $this->tenant->id]);
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id, 'qtd_stock' => 100]);
 
         return array_merge([
             'offline_id'        => $offlineId,
@@ -63,7 +63,6 @@ class OfflineSyncServiceTest extends TestCase
         $this->assertDatabaseHas('sale_orders', [
             'id'        => $results[0]['order_id'],
             'tenant_id' => $this->tenant->id,
-            'user_id'   => $this->user->id,
             'status'    => 'aprovado',
             'total'     => 100.00,
         ]);

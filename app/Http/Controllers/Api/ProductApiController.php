@@ -134,6 +134,30 @@ class ProductApiController extends Controller
     /**
      * Produtos disponíveis para venda (PDV, novo pedido) — ativos e com estoque.
      */
+    public function showByCode(string $code): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            $product = $this->productService->findByCode($code, $user->tenant_id, true);
+            if (!$product) {
+                return ApiResponseClass::sendResponse('', 'Produto não encontrado para este código', 404);
+            }
+
+            return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto encontrado', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar produto por código');
+        }
+    }
+
     public function catalogProductsByAuthenticatedUser(): JsonResponse
     {
         try {

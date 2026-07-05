@@ -21,6 +21,7 @@ class StoreUpdateProductRequest extends BaseRequest
         $isUpdate = $this->isMethod('put') || $this->isMethod('patch') || !empty($id);
 
         $tenantId = Auth::user()?->tenant_id;
+        $product = null;
 
         $uniqueRule = Rule::unique('products', 'name')
             ->where(function ($query) use ($tenantId) {
@@ -47,6 +48,19 @@ class StoreUpdateProductRequest extends BaseRequest
             }
         }
 
+        $barcodeUniqueRule = Rule::unique('products', 'barcode')
+            ->where(function ($query) use ($tenantId) {
+                if ($tenantId !== null) {
+                    $query->where('tenant_id', $tenantId);
+                } else {
+                    $query->whereNull('tenant_id');
+                }
+            });
+
+        if ($isUpdate && $product) {
+            $barcodeUniqueRule->ignore($product->id);
+        }
+
         $rules = [
             'name' => ['string', 'min:3', 'max:255', $uniqueRule],
             'description' => ['string', 'min:3', 'max:255'],
@@ -59,6 +73,7 @@ class StoreUpdateProductRequest extends BaseRequest
             'promotional_price' => ["nullable", "regex:/^\d+(\.\d{1,2})?$/"],
             'brand' => 'nullable|string|max:255',
             'sku' => 'nullable|string|max:255',
+            'barcode' => ['nullable', 'string', 'max:255', $barcodeUniqueRule],
             'weight' => 'nullable|numeric|min:0',
             'height' => 'nullable|numeric|min:0',
             'width' => 'nullable|numeric|min:0',
@@ -151,6 +166,12 @@ class StoreUpdateProductRequest extends BaseRequest
         
         if (!empty($data)) {
             $this->merge($data);
+        }
+
+        if ($this->has('barcode') && is_string($this->barcode)) {
+            $this->merge([
+                'barcode' => trim($this->barcode) !== '' ? trim($this->barcode) : null,
+            ]);
         }
     }
 

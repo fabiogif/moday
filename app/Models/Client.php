@@ -27,6 +27,7 @@ class Client extends Authenticatable implements JWTSubject
         'email',
         'password',
         'uuid',
+        'client_request_id',
         'url',
         'phone',
         'contact_name',

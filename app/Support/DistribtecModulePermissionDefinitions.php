@@ -59,6 +59,8 @@ class DistribtecModulePermissionDefinitions
             'audit-logs.index' => ['module' => 'audit-logs', 'action' => 'index', 'resource' => 'audit-logs', 'name' => 'Visualizar Auditoria'],
             'settings.fiscal.update' => ['module' => 'settings', 'action' => 'fiscal.update', 'resource' => 'settings', 'name' => 'Configurar Fiscal'],
             'sale-orders.fiscal.request' => ['module' => 'sale-orders', 'action' => 'fiscal.request', 'resource' => 'sale-orders', 'name' => 'Solicitar NF-e'],
+            'discount-approvals.index' => ['module' => 'discount-approvals', 'action' => 'index', 'resource' => 'discount-approvals', 'name' => 'Visualizar Aprovações de Desconto'],
+            'discount-approvals.approve' => ['module' => 'discount-approvals', 'action' => 'approve', 'resource' => 'discount-approvals', 'name' => 'Aprovar/Rejeitar Descontos'],
         ] as $slug => $meta) {
             $permissions[] = [
                 'name' => $meta['name'],

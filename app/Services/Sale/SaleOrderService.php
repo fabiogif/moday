@@ -31,14 +31,14 @@ class SaleOrderService
         private readonly CacheService $cacheService,
     ) {}
 
-    public function list(int $tenantId, ?string $status, int $perPage): LengthAwarePaginator
+    public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
     {
-        $params = ['status' => $status, 'per_page' => $perPage];
+        $params = ['status' => $status, 'per_page' => $perPage, 'search' => $search];
 
         return $this->cacheService->getSaleOrderList(
             $tenantId,
             $params,
-            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage)
+            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage, $search)
         );
     }
 
@@ -49,6 +49,15 @@ class SaleOrderService
 
     public function create(int $tenantId, int $userId, array $validated, array $items): SaleOrder
     {
+        $offlineId = $validated['offline_id'] ?? null;
+
+        if ($offlineId !== null) {
+            $existing = $this->saleOrderRepository->findByOfflineId($tenantId, $offlineId);
+            if ($existing) {
+                return $existing;
+            }
+        }
+
         $status   = $validated['status'] ?? 'orcamento';
         $clientId = $validated['client_id'] ?? null;
         unset($validated['items']);
@@ -62,36 +71,47 @@ class SaleOrderService
             $this->saleOrderStockService->validateItemsStock($tenantId, $items, $userId);
         }
 
-        $order = DB::transaction(function () use ($validated, $items, $tenantId, $status, $userId) {
-            $subtotal = $this->calculateSubtotal($items);
-            $freight  = (float) ($validated['freight_amount'] ?? 0);
-            $discount = (float) ($validated['discount_amount'] ?? 0);
+        try {
+            $order = DB::transaction(function () use ($validated, $items, $tenantId, $status, $userId) {
+                $subtotal = $this->calculateSubtotal($items);
+                $freight  = (float) ($validated['freight_amount'] ?? 0);
+                $discount = (float) ($validated['discount_amount'] ?? 0);
 
-            $order = $this->saleOrderRepository->create(array_merge($validated, [
-                'tenant_id' => $tenantId,
-                'status'    => $status,
-                'subtotal'  => $subtotal,
-                'total'     => max(0, $subtotal + $freight - $discount),
-            ]));
+                $order = $this->saleOrderRepository->create(array_merge($validated, [
+                    'tenant_id' => $tenantId,
+                    'status'    => $status,
+                    'subtotal'  => $subtotal,
+                    'total'     => max(0, $subtotal + $freight - $discount),
+                ]));
 
-            foreach ($items as $item) {
-                $this->createOrderItem($order->id, $item);
+                foreach ($items as $item) {
+                    $this->createOrderItem($order->id, $item);
+                }
+
+                $order->load('items.product');
+
+                if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue'])) {
+                    $this->creditLimitService->validateForSaleOrder($order);
+                    $this->saleOrderStockService->reserveForOrder($order, $userId);
+                }
+
+                if (in_array($status, ['faturado', 'em_transito', 'entregue'])) {
+                    $this->saleOrderStockService->fulfillForOrder($order, $userId);
+                    $this->saleOrderFinancialService->createReceivableOnBilling($order);
+                }
+
+                return $order;
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($offlineId !== null && $this->isUniqueConstraintViolation($e)) {
+                $existing = $this->saleOrderRepository->findByOfflineId($tenantId, $offlineId);
+                if ($existing) {
+                    return $existing;
+                }
             }
 
-            $order->load('items.product');
-
-            if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue'])) {
-                $this->creditLimitService->validateForSaleOrder($order);
-                $this->saleOrderStockService->reserveForOrder($order, $userId);
-            }
-
-            if (in_array($status, ['faturado', 'em_transito', 'entregue'])) {
-                $this->saleOrderStockService->fulfillForOrder($order, $userId);
-                $this->saleOrderFinancialService->createReceivableOnBilling($order);
-            }
-
-            return $order;
-        });
+            throw $e;
+        }
 
         $this->cacheService->invalidateSaleOrderCache($tenantId);
 
@@ -110,6 +130,13 @@ class SaleOrderService
             return null;
         }
 
+        $items = $data['items'] ?? null;
+        unset($data['items']);
+
+        if ($items !== null && $order->status !== 'orcamento') {
+            throw new \DomainException('Itens só podem ser editados em pedidos em orçamento.');
+        }
+
         if ($this->hasShippingInput($data)) {
             $shippingData = $this->resolveShippingAddress($tenantId, array_merge(
                 $order->only(['client_id', 'shipping_address', 'shipping_city', 'shipping_state', 'shipping_zipcode', 'use_client_address']),
@@ -118,7 +145,27 @@ class SaleOrderService
             $data = array_merge($data, $shippingData);
         }
 
-        $updated = $this->saleOrderRepository->update($order, $data);
+        $updated = DB::transaction(function () use ($order, $data, $items) {
+            if ($items !== null) {
+                $clientId = $data['client_id'] ?? $order->client_id;
+                $items    = $this->priceTableService->applyPricesToItems($clientId, $items);
+
+                $order->items()->delete();
+                foreach ($items as $item) {
+                    $this->createOrderItem($order->id, $item);
+                }
+
+                $subtotal = $this->calculateSubtotal($items);
+                $freight  = (float) ($data['freight_amount'] ?? $order->freight_amount ?? 0);
+                $discount = (float) ($data['discount_amount'] ?? $order->discount_amount ?? 0);
+
+                $data['subtotal'] = $subtotal;
+                $data['total']    = max(0, $subtotal + $freight - $discount);
+            }
+
+            return $this->saleOrderRepository->update($order, $data);
+        });
+
         $this->cacheService->invalidateSaleOrderCache($tenantId);
 
         return $updated;
@@ -227,6 +274,11 @@ class SaleOrderService
         $this->cacheService->invalidateSaleOrderCache($order->tenant_id);
 
         return $result;
+    }
+
+    private function isUniqueConstraintViolation(\Illuminate\Database\QueryException $e): bool
+    {
+        return $e->getCode() === '23000';
     }
 
     private function calculateSubtotal(array $items): float

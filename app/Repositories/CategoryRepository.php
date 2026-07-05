@@ -37,7 +37,7 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     
     public function paginateByTenant(int $page, int $totalPerPage, string $filter, int $tenantId): PaginateRepositoryInterface
     {
-        $result = $this->entity->where(function($query) use($filter, $tenantId) {
+        $result = $this->entity->withCount('products')->where(function($query) use($filter, $tenantId) {
             if($filter) {
                 $query->where('name', 'like', "%{$filter}%");
             }

@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use App\Repositories\Contracts\PurchaseOrderRepositoryInterface;
 use App\Services\CacheService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderService
 {
@@ -78,7 +79,37 @@ class PurchaseOrderService
             return 'not_editable';
         }
 
-        $this->purchaseOrderRepository->update($order, $data);
+        $items = $data['items'] ?? null;
+        unset($data['items']);
+
+        DB::transaction(function () use ($order, $data, $items) {
+            if ($items !== null) {
+                $subtotal = 0;
+                $order->items()->delete();
+                foreach ($items as $item) {
+                    $lineSubtotal = $item['quantity_ordered'] * $item['unit_cost'];
+                    $subtotal    += $lineSubtotal;
+
+                    PurchaseOrderItem::create([
+                        'purchase_order_id' => $order->id,
+                        'product_id'        => $item['product_id'],
+                        'quantity_ordered'  => $item['quantity_ordered'],
+                        'quantity_received' => 0,
+                        'unit_cost'         => $item['unit_cost'],
+                        'subtotal'          => $lineSubtotal,
+                    ]);
+                }
+
+                $freight  = (float) ($data['freight_amount'] ?? $order->freight_amount ?? 0);
+                $discount = (float) ($data['discount_amount'] ?? $order->discount_amount ?? 0);
+
+                $data['subtotal'] = $subtotal;
+                $data['total']    = max(0, $subtotal + $freight - $discount);
+            }
+
+            $this->purchaseOrderRepository->update($order, $data);
+        });
+
         $this->cacheService->invalidatePurchaseOrderCache($tenantId);
 
         return 'updated';

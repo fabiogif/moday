@@ -251,6 +251,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     // Produtos
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware('throttle:read');
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware('throttle:read');
+    Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware('throttle:read')->where('code', '.+');
     Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware('throttle:read');
     Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware('throttle:read');
     Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware('throttle:read');
@@ -543,6 +544,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::put('/{id}', [UserApiController::class, 'update'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::delete('/{id}', [UserApiController::class, 'destroy'])->middleware(['acl.permission:users.delete', 'throttle:critical']);
         Route::post('/{id}/assign-profile', [UserApiController::class, 'assignProfile'])->middleware(['acl.permission:users.update', 'throttle:critical']);
+        Route::delete('/{id}/remove-profile/{profileId}', [UserApiController::class, 'removeProfile'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::put('/{id}/change-password', [UserApiController::class, 'changePassword'])->middleware(['acl.permission:users.update', 'throttle:critical']);
         Route::get('/{id}/permissions', [UserApiController::class, 'getUserPermissions'])->middleware(['acl.permission:users.show', 'throttle:read']);
     });
@@ -724,6 +726,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::post('/', [\App\Http\Controllers\Api\ShipmentApiController::class, 'store'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::put('/{id}', [\App\Http\Controllers\Api\ShipmentApiController::class, 'update'])->middleware(['acl.permission:shipments.store', 'throttle:critical']);
         Route::post('/{id}/dispatch', [\App\Http\Controllers\Api\ShipmentApiController::class, 'dispatch'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
+        Route::post('/{id}/send-delivery-link', [\App\Http\Controllers\Api\ShipmentApiController::class, 'sendDeliveryLink'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::post('/{id}/deliver', [\App\Http\Controllers\Api\ShipmentApiController::class, 'deliver'])->middleware(['acl.permission:shipments.deliver', 'throttle:critical']);
         Route::post('/{id}/occurrences', [\App\Http\Controllers\Api\ShipmentApiController::class, 'storeOccurrence'])->middleware(['acl.permission:shipments.dispatch', 'throttle:critical']);
         Route::get('/{id}/pdf', [\App\Http\Controllers\Api\ShipmentPdfController::class, 'show'])->middleware(['acl.permission:shipments.index', 'throttle:read']);

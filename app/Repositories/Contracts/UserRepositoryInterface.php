@@ -24,6 +24,8 @@ interface UserRepositoryInterface extends BaseRepositoryInterface
 
     public function attachProfile(\App\Models\User $user, int $profileId): void;
 
+    public function detachProfile(\App\Models\User $user, int $profileId): void;
+
     public function getUserPermissions(\App\Models\User $user): mixed;
 
     public function loadRelations(\App\Models\User $user, array $relations): \App\Models\User;

@@ -81,8 +81,8 @@ class ClientApiController extends Controller
                 $data['name'] = $data['company_name'];
             }
 
-            $client = $this->clientService->createClient($data);
-            return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente cadastrado com sucesso', 201);
+            $result = $this->clientService->findOrCreateByRequestId($data, $tenantId);
+            return ApiResponseClass::sendResponse(new ClientResource($result['client']), 'Cliente cadastrado com sucesso', 201);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }

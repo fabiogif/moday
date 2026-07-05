@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             DistribtecPermissionSeeder::class,
             AssignAllPermissionsToProfileSeeder::class,
+            DefaultProfilesSeeder::class,
             
             // Seeders de usuários
             UsersTableSeeder::class,

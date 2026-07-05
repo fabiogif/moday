@@ -10,6 +10,7 @@ use App\Http\Requests\UserChangePasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use App\Classes\ApiResponseClass;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,8 @@ class UserApiController extends BaseController
                 'Usuário criado com sucesso',
                 201
             );
+        } catch (UniqueConstraintViolationException $e) {
+            return ApiResponseClass::sendResponse(null, 'Este email já está em uso por outro usuário.', 422);
         } catch (\Exception $e) {
             Log::error('Erro ao criar usuário: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao criar usuário');
@@ -160,6 +163,31 @@ class UserApiController extends BaseController
         } catch (\Exception $e) {
             Log::error('Erro ao atribuir perfil: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao atribuir perfil');
+        }
+    }
+
+    public function removeProfile($id, $profileId): JsonResponse
+    {
+        try {
+            $user = $this->userService->findUserForCurrentTenant((int) $id);
+
+            if (!$user) {
+                return ApiResponseClass::sendResponse(null, 'Usuário não encontrado', 404);
+            }
+
+            $updatedUser = $this->userService->removeProfileForCurrentTenant($user, (int) $profileId);
+
+            if (!$updatedUser) {
+                return ApiResponseClass::sendResponse(null, 'Erro ao remover perfil', 400);
+            }
+
+            return ApiResponseClass::sendResponse(
+                new UserResource($updatedUser),
+                'Perfil removido com sucesso'
+            );
+        } catch (\Exception $e) {
+            Log::error('Erro ao remover perfil: ' . $e->getMessage());
+            return ApiResponseClass::throw($e, 'Erro ao remover perfil');
         }
     }
 

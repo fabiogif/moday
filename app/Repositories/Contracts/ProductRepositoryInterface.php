@@ -19,6 +19,13 @@ interface  ProductRepositoryInterface extends BaseRepositoryInterface
     public function attachCategories(int $productId, array $categories);
     public function getStats(int $tenantId): array;
     public function findBySku(string $sku, int $tenantId): ?\App\Models\Product;
+
+    public function findByBarcode(string $barcode, int $tenantId): ?\App\Models\Product;
+
+    /**
+     * Busca produto por código de barras ou SKU (match exato, com variantes EAN).
+     */
+    public function findByCode(string $code, int $tenantId, bool $catalogOnly = true): ?\App\Models\Product;
     
     /**
      * Buscar IDs internos dos produtos pelos UUIDs

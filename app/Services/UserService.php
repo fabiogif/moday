@@ -174,6 +174,22 @@ class UserService
         return $user->load(['profiles', 'tenant', 'jobPosition']);
     }
 
+    public function removeProfileForCurrentTenant(User $user, int $profileId): ?User
+    {
+        $authUser = Auth::user();
+
+        if (
+            !$authUser || !$authUser->tenant_id ||
+            $user->tenant_id !== $authUser->tenant_id
+        ) {
+            return null;
+        }
+
+        $this->userRepository->detachProfile($user, $profileId);
+
+        return $user->load(['profiles', 'tenant', 'jobPosition']);
+    }
+
     public function changePasswordForCurrentTenant(User $user, string $password): ?User
     {
         $authUser = Auth::user();

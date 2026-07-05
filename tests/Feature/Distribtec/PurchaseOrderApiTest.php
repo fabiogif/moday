@@ -133,6 +133,33 @@ class PurchaseOrderApiTest extends TestCase
     }
 
     #[Test]
+    public function it_updates_items_of_an_editable_purchase_order(): void
+    {
+        $order   = PurchaseOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'rascunho']);
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        $this->withHeaders($this->auth())
+            ->putJson("/api/purchase-orders/{$order->id}", [
+                'freight_amount' => 15.00,
+                'items' => [
+                    [
+                        'product_id'       => $product->id,
+                        'quantity_ordered' => 4,
+                        'unit_cost'        => 10.00,
+                    ],
+                ],
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.total', '55.00'); // 4×10 + 15 frete
+
+        $this->assertDatabaseHas('purchase_order_items', [
+            'purchase_order_id' => $order->id,
+            'product_id'        => $product->id,
+            'quantity_ordered'  => 4,
+        ]);
+    }
+
+    #[Test]
     public function it_advances_status_from_rascunho_to_enviado(): void
     {
         $order = PurchaseOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'rascunho']);
