@@ -83,7 +83,7 @@ services:
                 - wget
                 - '--no-verbose'
                 - '--spider'
-                - 'http://localhost:7700/health'
+                - 'http://127.0.0.1:7700/health'
             retries: 3
             timeout: 5s
     mailpit:
