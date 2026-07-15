@@ -341,6 +341,7 @@ class LoyaltyProgramApiTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'points_per_currency' => 1.0, // 1 ponto por R$
             'min_purchase_amount' => null,
+            'max_points_per_purchase' => null,
         ]);
 
         $points = $program->calculatePoints(100.00);
