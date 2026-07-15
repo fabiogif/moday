@@ -27,7 +27,8 @@ class TenantFactory extends Factory
     public function definition(): array
     {
         $name = fake()->company();
-        $slug = Str::slug($name);
+        $suffix = Str::random(6);
+        $slug = Str::slug($name . '-' . $suffix);
         $subdomain = Str::slug($name . '-' . Str::random(4));
         
         return [
