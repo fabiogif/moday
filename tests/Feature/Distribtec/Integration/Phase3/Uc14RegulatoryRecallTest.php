@@ -31,11 +31,12 @@ class Uc14RegulatoryRecallTest extends TestCase
         $warehouse = $this->createWarehouse();
 
         $this->withHeaders($this->authHeaders())->postJson('/api/stock-movements', [
-            'type'         => 'entrada',
-            'product_id'   => $product->id,
-            'warehouse_id' => $warehouse->id,
-            'quantity'     => 10,
-            'batch_number' => 'CTRL-001',
+            'type'             => 'entrada',
+            'product_id'       => $product->id,
+            'warehouse_id'     => $warehouse->id,
+            'quantity'         => 10,
+            'batch_number'     => 'CTRL-001',
+            'manufacture_date' => now()->subMonth()->toDateString(),
         ]);
 
         $orderId = $this->withHeaders($this->authHeaders())->postJson('/api/sale-orders', [
