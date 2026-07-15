@@ -147,7 +147,7 @@ class ExpenseApiTest extends TestCase
             'status' => 'pago',
         ]);
 
-        $response = $this->getJson('/api/expenses?status=pendente');
+        $response = $this->withHeaders($this->getAuthHeaders())->getJson('/api/expenses?status=pendente');
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data');
@@ -171,7 +171,7 @@ class ExpenseApiTest extends TestCase
             'financial_category_id' => $category2->id,
         ]);
 
-        $response = $this->getJson("/api/expenses?category_id={$this->category->id}");
+        $response = $this->withHeaders($this->getAuthHeaders())->getJson("/api/expenses?category_id={$this->category->id}");
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data');
@@ -184,12 +184,22 @@ class ExpenseApiTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'description' => 'Original',
             'status' => 'pendente',
+            'issue_date' => now()->format('Y-m-d'),
+            'due_date' => now()->addDays(10)->format('Y-m-d'),
+            'amount' => 100.00,
         ]);
 
         $response = $this->withHeaders($this->getAuthHeaders())->putJson("/api/expenses/{$expense->uuid}", [
             'description' => 'Atualizado',
             'status' => 'pago',
             'payment_date' => now()->format('Y-m-d'),
+            'issue_date' => $expense->issue_date instanceof \Carbon\Carbon
+                ? $expense->issue_date->format('Y-m-d')
+                : $expense->issue_date,
+            'due_date' => $expense->due_date instanceof \Carbon\Carbon
+                ? $expense->due_date->format('Y-m-d')
+                : $expense->due_date,
+            'amount' => $expense->amount,
         ]);
 
         $response->assertStatus(200)
@@ -207,9 +217,21 @@ class ExpenseApiTest extends TestCase
         $expense = Expense::factory()->create([
             'tenant_id' => $this->tenant->id,
             'status' => 'pago',
+            'description' => 'Despesa paga',
+            'issue_date' => now()->format('Y-m-d'),
+            'due_date' => now()->addDays(10)->format('Y-m-d'),
+            'amount' => 250.00,
         ]);
 
         $response = $this->withHeaders($this->getAuthHeaders())->putJson("/api/expenses/{$expense->uuid}", [
+            'description' => $expense->description,
+            'issue_date' => $expense->issue_date instanceof \Carbon\Carbon
+                ? $expense->issue_date->format('Y-m-d')
+                : $expense->issue_date,
+            'due_date' => $expense->due_date instanceof \Carbon\Carbon
+                ? $expense->due_date->format('Y-m-d')
+                : $expense->due_date,
+            'amount' => $expense->amount,
             'status' => 'pendente',
         ]);
 

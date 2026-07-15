@@ -109,13 +109,14 @@ class ListingCacheTest extends TestCase
         $this->assertLessThan($firstCallTime, $secondCallTime);
         $this->assertEquals($orders1->total(), $orders2->total());
         
-        // Verify cache key exists
+        // Verify cache key exists (inclui versão para invalidação)
         $params = [
             'page' => 1,
             'per_page' => 10,
             'status' => null,
         ];
-        $cacheKey = "order_list_{$this->tenant->id}_" . md5(json_encode($params));
+        $v = (int) Cache::get("order_list_v_{$this->tenant->id}", 0);
+        $cacheKey = "order_list_{$this->tenant->id}_v{$v}_" . md5(json_encode($params));
         $this->assertTrue(Cache::has($cacheKey));
     }
 

@@ -20,8 +20,17 @@ class RedisHelperTest extends TestCase
 
     protected function tearDown(): void
     {
+        putenv('REDIS_ENABLED=false');
+        $_ENV['REDIS_ENABLED'] = 'false';
         RedisHelper::reset();
         parent::tearDown();
+    }
+
+    private function enableRedisForMock(): void
+    {
+        putenv('REDIS_ENABLED=true');
+        $_ENV['REDIS_ENABLED'] = 'true';
+        RedisHelper::reset();
     }
 
     /**
@@ -30,6 +39,8 @@ class RedisHelperTest extends TestCase
      */
     public function test_redis_helper_detects_available_redis(): void
     {
+        $this->enableRedisForMock();
+
         $connection = Mockery::mock();
         $connection->shouldReceive('ping')->once()->andReturn(true);
         Redis::shouldReceive('connection')->once()->andReturn($connection);
@@ -44,6 +55,8 @@ class RedisHelperTest extends TestCase
      */
     public function test_redis_helper_returns_correct_drivers_when_available(): void
     {
+        $this->enableRedisForMock();
+
         $connection = Mockery::mock();
         $connection->shouldReceive('ping')->once()->andReturn(true);
         Redis::shouldReceive('connection')->once()->andReturn($connection);
@@ -63,6 +76,8 @@ class RedisHelperTest extends TestCase
      */
     public function test_redis_helper_reset(): void
     {
+        $this->enableRedisForMock();
+
         $connection = Mockery::mock();
         $connection->shouldReceive('ping')->twice()->andReturn(true);
         Redis::shouldReceive('connection')->twice()->andReturn($connection);
@@ -73,5 +88,6 @@ class RedisHelperTest extends TestCase
         // Após reset, deve verificar novamente
         $result = RedisHelper::isAvailable();
         $this->assertIsBool($result);
+        $this->assertTrue($result);
     }
 }

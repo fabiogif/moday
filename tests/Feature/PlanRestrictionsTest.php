@@ -387,13 +387,16 @@ class PlanRestrictionsTest extends TestCase
         $this->tenant->save();
         $this->tenant->refresh();
 
-        // Criar 20 usuários
+        // Criar 20 usuários (além do usuário do setUp)
         User::factory()->count(20)->create([
             'tenant_id' => $this->tenant->id,
             'is_active' => true,
         ]);
 
-        // Tentar criar mais um usuário - deve funcionar
+        $activeBefore = User::where('tenant_id', $this->tenant->id)->where('is_active', true)->count();
+        $this->assertGreaterThanOrEqual(21, $activeBefore);
+
+        // Tentar criar mais um usuário — middleware de limite não deve bloquear
         $response = $this->actingAs($this->user, 'api')->postJson('/api/user', [
             'name' => 'Usuario 21',
             'email' => 'usuario21@test.com',
@@ -401,10 +404,15 @@ class PlanRestrictionsTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Não deve retornar 403 de USER_LIMIT_REACHED
-        if ($response->status() === 403) {
-            $this->assertNotEquals('USER_LIMIT_REACHED', $response->json('error_code'));
-        }
+        $this->assertNotEquals(
+            'USER_LIMIT_REACHED',
+            $response->json('error_code'),
+            'Premium (max_users=999999) não deve retornar USER_LIMIT_REACHED'
+        );
+        $this->assertFalse(
+            $response->status() === 403 && $response->json('error_code') === 'USER_LIMIT_REACHED',
+            'Premium não deve bloquear criação de usuário por limite do plano'
+        );
     }
 
     /**
@@ -422,7 +430,7 @@ class PlanRestrictionsTest extends TestCase
 
         $this->assertEquals(0, User::where('tenant_id', $this->tenant->id)->where('is_active', true)->count());
 
-        // Tentar criar novo usuário - deve funcionar pois o anterior está inativo
+        // Tentar criar novo usuário — deve passar o limite (0 ativos < max 1)
         $response = $this->actingAs($this->user, 'api')->postJson('/api/user', [
             'name' => 'Novo Usuario',
             'email' => 'novo@test.com',
@@ -430,10 +438,14 @@ class PlanRestrictionsTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Não deve retornar 403 de USER_LIMIT_REACHED
-        if ($response->status() === 403) {
-            $this->assertNotEquals('USER_LIMIT_REACHED', $response->json('error_code'));
-        }
+        $this->assertNotEquals(
+            'USER_LIMIT_REACHED',
+            $response->json('error_code'),
+            'Usuários inativos não devem contar para o limite do plano'
+        );
+        $this->assertFalse(
+            $response->status() === 403 && $response->json('error_code') === 'USER_LIMIT_REACHED'
+        );
     }
 }
 

@@ -223,7 +223,6 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                 'products.price',
                 'products.promotional_price',
                 'products.image',
-                'products.image_url',
                 'products.description',
                 DB::raw('COUNT(DISTINCT orders.id) as frequency')
             )
@@ -241,7 +240,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             ->where('products.qtd_stock', '>', 0)
             ->whereNotIn('products.id', $productIds)
             ->whereNotIn('orders.status', ['Cancelado', 'Arquivado'])
-            ->groupBy('products.id', 'products.uuid', 'products.name', 'products.price', 'products.promotional_price', 'products.image', 'products.image_url', 'products.description')
+            ->groupBy('products.id', 'products.uuid', 'products.name', 'products.price', 'products.promotional_price', 'products.image', 'products.description')
             ->orderByDesc('frequency')
             ->limit($limit)
             ->get()
@@ -253,7 +252,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                     'price' => (float) $item->price,
                     'promotional_price' => $item->promotional_price ? (float) $item->promotional_price : null,
                     'image' => $item->image,
-                    'image_url' => $item->image_url,
+                    'image_url' => $item->image,
                     'description' => $item->description,
                     'frequency' => (int) $item->frequency,
                 ];
@@ -273,7 +272,6 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                 'products.price',
                 'products.promotional_price',
                 'products.image',
-                'products.image_url',
                 'products.description',
                 DB::raw('SUM(order_product.qty) as total_sold')
             )
@@ -291,7 +289,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         }
 
         $bestSellers = $query
-            ->groupBy('products.id', 'products.uuid', 'products.name', 'products.price', 'products.promotional_price', 'products.image', 'products.image_url', 'products.description')
+            ->groupBy('products.id', 'products.uuid', 'products.name', 'products.price', 'products.promotional_price', 'products.image', 'products.description')
             ->orderByDesc('total_sold')
             ->limit($limit)
             ->get()
@@ -303,7 +301,7 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
                     'price' => (float) $item->price,
                     'promotional_price' => $item->promotional_price ? (float) $item->promotional_price : null,
                     'image' => $item->image,
-                    'image_url' => $item->image_url,
+                    'image_url' => $item->image,
                     'description' => $item->description,
                     'total_sold' => (int) $item->total_sold,
                 ];

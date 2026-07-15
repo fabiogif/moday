@@ -31,6 +31,8 @@ class FileUploadServiceTest extends TestCase
         // Usar fake storage para testes
         Storage::fake('public');
         Storage::fake('temp');
+        Storage::fake('products');
+        Storage::fake('logos');
         
         // Criar estrutura básica para os testes
         $plan = \App\Models\Plan::factory()->create();
@@ -189,7 +191,7 @@ class FileUploadServiceTest extends TestCase
         foreach ($results as $result) {
             $this->assertArrayHasKey('path', $result);
             $this->assertArrayHasKey('url', $result);
-            Storage::disk('public')->assertExists($result['path']);
+            Storage::disk($result['disk'])->assertExists($result['path']);
         }
     }
 
@@ -205,13 +207,13 @@ class FileUploadServiceTest extends TestCase
         );
 
         // Verificar se arquivo existe
-        Storage::disk('public')->assertExists($result['path']);
+        Storage::disk($result['disk'])->assertExists($result['path']);
 
         // Deletar arquivo
-        $deleted = $this->fileUploadService->deleteFile($result['path'], 'public');
+        $deleted = $this->fileUploadService->deleteFile($result['path'], $result['disk']);
 
         $this->assertTrue($deleted);
-        Storage::disk('public')->assertMissing($result['path']);
+        Storage::disk($result['disk'])->assertMissing($result['path']);
     }
 
     #[Test]
@@ -229,20 +231,21 @@ class FileUploadServiceTest extends TestCase
         );
 
         $paths = array_column($results, 'path');
+        $disk = $results[0]['disk'];
         
         // Verificar se arquivos existem
         foreach ($paths as $path) {
-            Storage::disk('public')->assertExists($path);
+            Storage::disk($disk)->assertExists($path);
         }
 
         // Deletar múltiplos arquivos
-        $deletedResults = $this->fileUploadService->deleteMultiple($paths, 'public');
+        $deletedResults = $this->fileUploadService->deleteMultiple($paths, $disk);
 
         $this->assertCount(2, $deletedResults);
         
         foreach ($deletedResults as $path => $deleted) {
             $this->assertTrue($deleted);
-            Storage::disk('public')->assertMissing($path);
+            Storage::disk($disk)->assertMissing($path);
         }
     }
 
@@ -301,16 +304,15 @@ class FileUploadServiceTest extends TestCase
             $this->fileUploadService->uploadFile($image, 'product', $this->tenant->uuid);
         }
 
-        $stats = $this->fileUploadService->getStorageStats('public');
+        $stats = $this->fileUploadService->getStorageStats('products');
 
         $this->assertArrayHasKey('file_count', $stats);
         $this->assertArrayHasKey('total_size', $stats);
         $this->assertArrayHasKey('total_size_mb', $stats);
         $this->assertArrayHasKey('disk', $stats);
 
-        // Os arquivos foram salvos no disco 'public' (fallback)
         $this->assertEquals(2, $stats['file_count']);
-        $this->assertEquals('public', $stats['disk']);
+        $this->assertEquals('products', $stats['disk']);
         $this->assertGreaterThan(0, $stats['total_size']);
     }
 
@@ -326,9 +328,9 @@ class FileUploadServiceTest extends TestCase
         // Nomes devem ser diferentes mesmo com mesmo nome original
         $this->assertNotEquals($result1['filename'], $result2['filename']);
         
-        // Ambos devem conter timestamp e random string
-        $this->assertStringContainsString('_', $result1['filename']);
-        $this->assertStringContainsString('_', $result2['filename']);
+        // Product usa hashName (sem underscore obrigatório) — apenas extensões image
+        $this->assertMatchesRegularExpression('/\.(jpe?g|png|gif|webp)$/i', $result1['filename']);
+        $this->assertMatchesRegularExpression('/\.(jpe?g|png|gif|webp)$/i', $result2['filename']);
     }
 
     #[Test]

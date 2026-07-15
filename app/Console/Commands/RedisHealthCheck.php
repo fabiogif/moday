@@ -45,6 +45,11 @@ class RedisHealthCheck extends Command
     private function checkRedisHealth(): bool
     {
         try {
+            if (!RedisHelper::isAvailable()) {
+                $this->error('❌ Redis indisponível (desabilitado ou sem conexão)');
+                return false;
+            }
+
             $start = microtime(true);
             $result = Redis::connection()->ping();
             $latency = (microtime(true) - $start) * 1000;
@@ -56,7 +61,7 @@ class RedisHealthCheck extends Command
                 $this->warn("⚠️  Redis com alta latência: " . round($latency, 2) . "ms");
                 return $latency < 500; // Aceita até 500ms
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->error('❌ Redis indisponível: ' . $e->getMessage());
             return false;
         }

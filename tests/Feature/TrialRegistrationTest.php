@@ -46,12 +46,24 @@ class TrialRegistrationTest extends TestCase
         ]);
     }
 
+    /** CNPJs válidos (DV) — um por sufixo para evitar colisão unique */
+    private function validCnpjFor(string $suffix): string
+    {
+        $map = [
+            'free' => '11222333000181',
+            'paid' => '34028316000103',
+            'acl' => '60746948000112',
+        ];
+
+        return $map[$suffix] ?? '11222333000181';
+    }
+
     private function registerPayload(int $planId, string $suffix): array
     {
         return [
             'company_name' => "Empresa Teste {$suffix}",
             'company_email' => "empresa{$suffix}@test.com",
-            'company_cnpj' => sprintf('%014d', random_int(10000000000000, 99999999999998)),
+            'company_cnpj' => $this->validCnpjFor($suffix),
             'name' => "Admin {$suffix}",
             'email' => "admin{$suffix}@test.com",
             'password' => 'password123',

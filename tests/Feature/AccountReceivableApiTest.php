@@ -420,6 +420,7 @@ class AccountReceivableApiTest extends TestCase
     {
         $accountReceivableData = [
             'description' => 'Venda parcelada',
+            'financial_category_id' => $this->category->id,
             'issue_date' => '2025-01-01',
             'due_date' => '2025-02-01',
             'amount' => 500.00,
@@ -449,6 +450,7 @@ class AccountReceivableApiTest extends TestCase
 
         $accountReceivableData = [
             'description' => 'Pedido #' . $order->id,
+            'financial_category_id' => $this->category->id,
             'order_id' => $order->id,
             'issue_date' => '2025-01-01',
             'due_date' => '2025-01-10',
@@ -472,6 +474,7 @@ class AccountReceivableApiTest extends TestCase
     {
         $accountReceivableData = [
             'description' => 'Venda com desconto',
+            'financial_category_id' => $this->category->id,
             'issue_date' => '2025-01-01',
             'due_date' => '2025-01-10',
             'amount' => 1000.00,
@@ -495,6 +498,7 @@ class AccountReceivableApiTest extends TestCase
     {
         $accountReceivableData = [
             'description' => 'Conta com juros e multa',
+            'financial_category_id' => $this->category->id,
             'issue_date' => '2025-01-01',
             'due_date' => '2025-01-10',
             'amount' => 1000.00,

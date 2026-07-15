@@ -28,9 +28,18 @@ class PlanFeatureServiceTest extends TestCase
         $this->tenant  = Tenant::factory()->create(['plan_id' => $this->plan->id]);
     }
 
+    private function ensureFeature(string $key): void
+    {
+        FeatureDefinition::firstOrCreate(
+            ['key' => $key],
+            ['name' => $key, 'category' => 'test', 'plan_tier' => 'basic', 'is_active' => true]
+        );
+    }
+
     #[Test]
     public function hasFeature_returns_true_when_plan_feature_is_enabled(): void
     {
+        $this->ensureFeature('b2b_payment_link');
         PlanFeature::create([
             'plan_id'     => $this->plan->id,
             'feature_key' => 'b2b_payment_link',
@@ -45,6 +54,7 @@ class PlanFeatureServiceTest extends TestCase
     #[Test]
     public function hasFeature_returns_false_when_plan_feature_is_disabled(): void
     {
+        $this->ensureFeature('b2b_payment_link');
         PlanFeature::create([
             'plan_id'     => $this->plan->id,
             'feature_key' => 'b2b_payment_link',
@@ -77,6 +87,7 @@ class PlanFeatureServiceTest extends TestCase
     #[Test]
     public function hasFeature_result_is_cached_after_first_call(): void
     {
+        $this->ensureFeature('reports');
         PlanFeature::create([
             'plan_id'     => $this->plan->id,
             'feature_key' => 'reports',
@@ -109,6 +120,7 @@ class PlanFeatureServiceTest extends TestCase
     #[Test]
     public function syncFeatures_updates_existing_feature(): void
     {
+        $this->ensureFeature('abc_reports');
         PlanFeature::create([
             'plan_id'     => $this->plan->id,
             'feature_key' => 'abc_reports',

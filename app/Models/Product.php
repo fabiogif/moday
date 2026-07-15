@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Rules\Product\ProductCatalogVisibilityRule;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -24,6 +25,8 @@ class Product extends Model
         'tax_ncm', 'tax_cst', 'tax_rate',
         // Stock
         'qtd_stock', 'sell_without_stock', 'unit_of_measure', 'units_per_box', 'min_stock', 'max_stock', 'safety_stock', 'reorder_point',
+        // JSON catalogs
+        'variations', 'optionals',
     ];
 
     /**
@@ -56,37 +59,47 @@ class Product extends Model
     }
 
     /**
-     * Accessor para garantir que variations sempre retorna array
+     * variations/optionals: null ou JSON inválido → [] (API estável).
      */
-    public function getVariationsAttribute($value)
+    protected function variations(): Attribute
     {
-        if (is_null($value)) {
-            return [];
-        }
-        
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-        
-        return is_array($value) ? $value : [];
+        return Attribute::make(
+            get: fn ($value) => $this->decodeJsonCatalog($value),
+            set: fn ($value) => $this->encodeJsonCatalog($value),
+        );
     }
 
-    /**
-     * Accessor para garantir que optionals sempre retorna array
-     */
-    public function getOptionalsAttribute($value)
+    protected function optionals(): Attribute
     {
-        if (is_null($value)) {
+        return Attribute::make(
+            get: fn ($value) => $this->decodeJsonCatalog($value),
+            set: fn ($value) => $this->encodeJsonCatalog($value),
+        );
+    }
+
+    private function decodeJsonCatalog(mixed $value): array
+    {
+        if ($value === null || $value === '') {
             return [];
         }
-        
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? $decoded : [];
+        if (is_array($value)) {
+            return $value;
         }
-        
-        return is_array($value) ? $value : [];
+        $decoded = json_decode((string) $value, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function encodeJsonCatalog(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_string($value)) {
+            return $value;
+        }
+
+        return json_encode(is_array($value) ? $value : []);
     }
 
     /**

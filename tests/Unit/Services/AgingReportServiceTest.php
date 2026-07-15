@@ -33,6 +33,7 @@ class AgingReportServiceTest extends TestCase
         return AccountReceivable::create([
             'tenant_id'       => $this->tenant->id,
             'client_id'       => $clientId,
+            'issue_date'      => Carbon::today()->subDays($daysAgo),
             'due_date'        => Carbon::today()->subDays($daysAgo),
             'amount'          => $amount,
             'amount_received' => $received,
@@ -80,6 +81,7 @@ class AgingReportServiceTest extends TestCase
         // Paid receivable should not appear
         AccountReceivable::create([
             'tenant_id'       => $this->tenant->id,
+            'issue_date'      => Carbon::today()->subDays(10),
             'due_date'        => Carbon::today()->subDays(10),
             'amount'          => 500,
             'amount_received' => 500,
@@ -125,6 +127,7 @@ class AgingReportServiceTest extends TestCase
 
         AccountReceivable::create([
             'tenant_id'   => $otherTenant->id,
+            'issue_date'  => Carbon::today()->subDays(10),
             'due_date'    => Carbon::today()->subDays(10),
             'amount'      => 9999,
             'status'      => 'vencido',

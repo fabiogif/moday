@@ -62,6 +62,11 @@ class Supplier extends Model
         return $this->hasMany(AccountPayable::class);
     }
 
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

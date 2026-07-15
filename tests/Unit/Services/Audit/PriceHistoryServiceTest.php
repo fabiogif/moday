@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\Audit;
 use App\Models\PriceHistory;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Services\Audit\PriceHistoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -30,11 +31,14 @@ class PriceHistoryServiceTest extends TestCase
             'price'     => 10.00,
         ]);
 
-        // Simulate dirty state (old original + new attribute)
-        $product->setRawAttributes(['price' => 10.00], true); // set original
+        // Preserve attributes ao simular dirty state (setRawAttributes sozinho apaga tenant_id)
+        $attrs = $product->getAttributes();
+        $attrs['price'] = '10.00';
+        $product->setRawAttributes($attrs, true);
         $product->price = 12.50;
 
-        $count = $this->service->recordChanges($product, userId: 1);
+        $user = User::factory()->create(['tenant_id' => $this->tenantId]);
+        $count = $this->service->recordChanges($product, changedBy: $user->id);
 
         $this->assertEquals(1, $count);
         $this->assertDatabaseHas('price_histories', [
@@ -43,6 +47,7 @@ class PriceHistoryServiceTest extends TestCase
             'field'      => 'price',
             'old_value'  => 10.00,
             'new_value'  => 12.50,
+            'changed_by' => $user->id,
         ]);
     }
 
@@ -53,7 +58,9 @@ class PriceHistoryServiceTest extends TestCase
             'price'     => 10.00,
         ]);
 
-        $product->setRawAttributes(['price' => 10.00], true);
+        $attrs = $product->getAttributes();
+        $attrs['price'] = '10.00';
+        $product->setRawAttributes($attrs, true);
         $product->price = 10.00; // no change
 
         $count = $this->service->recordChanges($product);
@@ -70,11 +77,15 @@ class PriceHistoryServiceTest extends TestCase
             'price_cost' => 6.00,
         ]);
 
-        $product->setRawAttributes(['price' => 10.00, 'price_cost' => 6.00], true);
+        $attrs = $product->getAttributes();
+        $attrs['price'] = '10.00';
+        $attrs['price_cost'] = '6.00';
+        $product->setRawAttributes($attrs, true);
         $product->price      = 12.00;
         $product->price_cost = 7.00;
 
-        $count = $this->service->recordChanges($product, userId: 1);
+        $user = User::factory()->create(['tenant_id' => $this->tenantId]);
+        $count = $this->service->recordChanges($product, changedBy: $user->id);
 
         $this->assertEquals(2, $count);
     }
@@ -86,7 +97,9 @@ class PriceHistoryServiceTest extends TestCase
             'price'     => 10.00,
         ]);
 
-        $product->setRawAttributes(['price' => 10.00], true);
+        $attrs = $product->getAttributes();
+        $attrs['price'] = '10.00';
+        $product->setRawAttributes($attrs, true);
         $product->price = 12.00;
 
         $this->service->recordChanges($product);

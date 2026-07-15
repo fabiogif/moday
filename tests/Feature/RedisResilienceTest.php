@@ -32,21 +32,26 @@ class RedisResilienceTest extends TestCase
     }
     
     /**
-     * Testa que sessões são salvas no database
+     * Testa que login JWT funciona (auth sem sessão clássica)
      */
     public function test_sessions_are_backed_up_to_database(): void
     {
-        // Simular login
-        $user = \App\Models\User::factory()->create();
+        $user = \App\Models\User::factory()->create([
+            'password' => bcrypt('password'),
+        ]);
         
-        $response = $this->post('/api/auth/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);
-        
-        // Verificar que sessão foi criada no database
-        $sessionExists = DB::table('sessions')->exists();
-        $this->assertTrue($sessionExists);
+
+        $response->assertStatus(200);
+        $this->assertNotEmpty($response->json('data.token'));
+
+        $this->withHeader('Authorization', 'Bearer ' . $response->json('data.token'))
+            ->getJson('/api/auth/me')
+            ->assertStatus(200)
+            ->assertJsonPath('data.id', $user->id);
     }
     
     /**

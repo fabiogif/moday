@@ -26,7 +26,7 @@ class PlanLimitServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new PlanLimitService();
+        $this->service = $this->app->make(PlanLimitService::class);
 
         // Criar planos
         $this->planGratis = Plan::create([

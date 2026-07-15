@@ -34,13 +34,13 @@ class ClientCpfFlowTest extends TestCase
             'name' => 'João Silva',
             'email' => 'joao@example.com',
             'phone' => '11999999999',
-            'cpf' => '12345678900',
+            'cpf' => '52998224725',
             'password' => bcrypt('password'),
             'is_active' => true,
         ]);
 
         $response = $this->actingAs($user, 'api')
-            ->getJson('/api/client/check-cpf?cpf=12345678900');
+            ->getJson('/api/client/check-cpf?cpf=52998224725');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -59,7 +59,7 @@ class ClientCpfFlowTest extends TestCase
         $user = User::factory()->create(['tenant_id' => $tenant->id, 'profile_id' => $profile->id]);
 
         $response = $this->actingAs($user, 'api')
-            ->getJson('/api/client/check-cpf?cpf=99999999999');
+            ->getJson('/api/client/check-cpf?cpf=39053344705');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -242,7 +242,7 @@ class ClientCpfFlowTest extends TestCase
             'name' => 'Cliente Tenant 1',
             'email' => 'cliente1@example.com',
             'phone' => '11111111111',
-            'cpf' => '12345678900',
+            'cpf' => '52998224725',
             'password' => bcrypt('password'),
             'is_active' => true,
         ]);
@@ -254,7 +254,7 @@ class ClientCpfFlowTest extends TestCase
 
         // User do tenant 2 não deve encontrar o cliente do tenant 1
         $response = $this->actingAs($user2, 'api')
-            ->getJson('/api/client/check-cpf?cpf=12345678900');
+            ->getJson('/api/client/check-cpf?cpf=52998224725');
 
         $response->assertStatus(200)
             ->assertJson([

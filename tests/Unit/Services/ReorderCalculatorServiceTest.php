@@ -49,7 +49,7 @@ class ReorderCalculatorServiceTest extends TestCase
         // 60 units sold in last 30 days → 2/day average
         $order = SaleOrder::factory()->create([
             'tenant_id'  => $this->tenant->id,
-            'user_id'    => $this->user->id,
+            'approved_by'=> $this->user->id,
             'status'     => 'faturado',
             'created_at' => Carbon::now()->subDays(5),
         ]);
@@ -102,7 +102,7 @@ class ReorderCalculatorServiceTest extends TestCase
 
         $order = SaleOrder::factory()->create([
             'tenant_id'  => $this->tenant->id,
-            'user_id'    => $this->user->id,
+            'approved_by'=> $this->user->id,
             'status'     => 'faturado',
             'created_at' => Carbon::now()->subDays(1),
         ]);

@@ -134,7 +134,7 @@ class ProductApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.identify', $visible->uuid);
+            ->assertJsonPath('data.0.identify', (string) $visible->uuid);
 
         $allProducts = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
@@ -401,10 +401,7 @@ class ProductApiTest extends TestCase
             'Accept' => 'application/json'
         ])->deleteJson("/api/product/{$product->id}");
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'message' => 'Produto deletado com sucesso'
-            ]);
+        $response->assertStatus(204);
 
         $this->assertSoftDeleted('products', [
             'id' => $product->id

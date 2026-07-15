@@ -4,7 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Models\AccountReceivable;
 use App\Models\Client;
+use App\Models\FeatureDefinition;
 use App\Models\Plan;
+use App\Models\PlanFeature;
 use App\Models\SaleOrder;
 use App\Models\Tenant;
 use App\Models\User;
@@ -30,6 +32,16 @@ class B2BPaymentLinkControllerTest extends TestCase
         $this->tenant  = Tenant::factory()->create(['plan_id' => $plan->id]);
         $this->user    = User::factory()->create(['tenant_id' => $this->tenant->id]);
         $this->token   = JWTAuth::fromUser($this->user);
+
+        FeatureDefinition::firstOrCreate(
+            ['key' => 'b2b_payment_link'],
+            ['name' => 'B2B Payment Link', 'category' => 'sales', 'plan_tier' => 'professional', 'is_active' => true]
+        );
+        PlanFeature::create([
+            'plan_id'     => $plan->id,
+            'feature_key' => 'b2b_payment_link',
+            'is_enabled'  => true,
+        ]);
 
         // Mock MercadoPagoService globally
         $this->app->bind(MercadoPagoService::class, function () {

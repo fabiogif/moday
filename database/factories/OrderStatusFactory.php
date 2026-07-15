@@ -24,12 +24,14 @@ class OrderStatusFactory extends Factory
 
         $status = fake()->randomElement(array_keys($statuses));
         $color = $statuses[$status];
+        // Sufixo único evita colisão UNIQUE(tenant_id, slug) ao criar vários status
+        $slug = Str::slug($status) . '-' . fake()->unique()->numerify('###');
 
         return [
             'uuid' => (string) Str::uuid(),
             'tenant_id' => Tenant::factory(),
             'name' => $status,
-            'slug' => Str::slug($status),
+            'slug' => $slug,
             'description' => fake()->sentence(),
             'color' => $color,
             'icon' => fake()->randomElement(['package', 'clock', 'truck', 'check-circle', 'x-circle']),

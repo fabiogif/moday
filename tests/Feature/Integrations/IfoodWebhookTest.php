@@ -2,12 +2,19 @@
 
 namespace Tests\Feature\Integrations;
 
-use App\Services\Integrations\Ifood\IfoodOrderService;
+use App\Jobs\ProcessIfoodEventJob;
+use App\Models\Integrations\Ifood\IfoodEvent;
+use App\Models\Tenant;
+use App\Services\Integrations\Ifood\IfoodEventService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Mockery;
 use Tests\TestCase;
 
 class IfoodWebhookTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function tearDown(): void
     {
         parent::tearDown();
@@ -24,9 +31,12 @@ class IfoodWebhookTest extends TestCase
     public function test_webhook_processes_order_payload(): void
     {
         config(['services.ifood.webhook_secret' => 'secret-key']);
+        Queue::fake();
 
-        $service = Mockery::mock(IfoodOrderService::class);
-        $this->app->instance(IfoodOrderService::class, $service);
+        $tenant = Tenant::factory()->create();
+
+        $service = Mockery::mock(IfoodEventService::class);
+        $this->app->instance(IfoodEventService::class, $service);
 
         $payload = [
             'order' => [
@@ -63,15 +73,42 @@ class IfoodWebhookTest extends TestCase
             ],
         ];
 
-        $service->shouldReceive('ingestOrder')
+        $event = new IfoodEvent();
+        $event->forceFill([
+            'id' => 42,
+            'tenant_id' => $tenant->id,
+            'event_id' => '123',
+            'status' => 'pending',
+        ]);
+        $event->exists = true;
+
+        $service->shouldReceive('recordEvent')
             ->once()
-            ->with($payload['order'], 1);
+            ->withArgs(function ($tenantId, $eventPayload) use ($tenant, $payload) {
+                return (int) $tenantId === (int) $tenant->id
+                    && is_array($eventPayload)
+                    && isset($eventPayload['order']['id'])
+                    && $eventPayload['order']['id'] === $payload['order']['id'];
+            })
+            ->andReturn($event);
 
-        $signature = base64_encode(hash_hmac('sha256', json_encode($payload), 'secret-key', true));
+        $rawBody = json_encode($payload);
+        $signature = base64_encode(hash_hmac('sha256', $rawBody, 'secret-key', true));
 
-        $this->postJson('/api/integrations/ifood/webhook?tenant_id=1', $payload, [
-            'X-Signature' => $signature,
-        ])->assertAccepted();
+        $this->call(
+            'POST',
+            "/api/integrations/ifood/webhook?tenant_id={$tenant->id}",
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_ACCEPT' => 'application/json',
+                'HTTP_X-SIGNATURE' => $signature,
+            ],
+            $rawBody
+        )->assertAccepted();
+
+        Queue::assertPushed(ProcessIfoodEventJob::class);
     }
 }
-

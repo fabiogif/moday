@@ -126,7 +126,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'contact_to' => env('MAIL_CONTACT_TO', 'contato@albatec.com.br'),
+    'contact_to' => env('MAIL_CONTACT_TO', 'contato@distribtec.com.br'),
 
     /*
     |--------------------------------------------------------------------------
@@ -134,8 +134,8 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'support_to' => env('MAIL_SUPPORT_TO', 'atendimento@albatec.com.br'),
+    'support_to' => env('MAIL_SUPPORT_TO', 'atendimento@distribtec.com.br'),
 
-    'pix_to' => env('MAIL_PIX_TO', 'pix@albatec.com.br'),
+    'pix_to' => env('MAIL_PIX_TO', 'pix@distribtec.com.br'),
 
 ];

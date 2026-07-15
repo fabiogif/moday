@@ -198,7 +198,7 @@ class PublicClientCreationTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'client_id' => $client->id,
             'tenant_id' => $this->tenant->id,
-            'origin' => 'public_store',
+            'origin' => 'store',
             'is_delivery' => false,
             'shipping_method' => 'pickup',
         ]);

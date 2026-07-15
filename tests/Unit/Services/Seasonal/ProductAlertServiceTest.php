@@ -108,6 +108,8 @@ class ProductAlertServiceTest extends TestCase
 
     public function test_acknowledge_marks_alert_as_seen(): void
     {
+        $user = \App\Models\User::factory()->create(['tenant_id' => $this->tenantId]);
+
         $alert = SeasonalAlert::create([
             'tenant_id' => $this->tenantId,
             'type'      => 'expiring_lot',
@@ -115,10 +117,10 @@ class ProductAlertServiceTest extends TestCase
             'title'     => 'Test Alert',
         ]);
 
-        $updated = $this->service->acknowledge($this->tenantId, $alert->id, 1);
+        $updated = $this->service->acknowledge($this->tenantId, $alert->id, $user->id);
 
         $this->assertNotNull($updated->acknowledged_at);
-        $this->assertEquals(1, $updated->acknowledged_by);
+        $this->assertEquals($user->id, $updated->acknowledged_by);
     }
 
     public function test_summary_counts_by_type_and_priority(): void

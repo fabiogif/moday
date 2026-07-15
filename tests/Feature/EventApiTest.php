@@ -113,7 +113,7 @@ class EventApiTest extends TestCase
         $payload = [
             'title' => 'Black Friday 2025',
             'type' => 'promocao',
-            'start_date' => '2025-11-25 09:00:00',
+            'start_date' => now()->addDay()->format('Y-m-d H:i:s'),
             'duration_minutes' => 480,
             'location' => 'Loja Física',
             'description' => 'Mega promoção de Black Friday com até 70% de desconto!',

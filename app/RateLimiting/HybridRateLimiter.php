@@ -213,7 +213,8 @@ class HybridRateLimiter
         }
         
         $expiresAt = Carbon::parse($record->expires_at);
-        return max(0, $expiresAt->diffInSeconds(Carbon::now()));
+        // Carbon 3 retorna diff assinado: now->diffInSeconds(future) > 0
+        return max(0, (int) Carbon::now()->diffInSeconds($expiresAt, false));
     }
     
     /**

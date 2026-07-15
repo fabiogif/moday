@@ -65,6 +65,9 @@ class IfoodOrderIngestionTest extends TestCase
         ], true);
         $stubOrder->exists = true;
 
+        $orderRepository->shouldReceive('identifyExists')
+            ->andReturn(false);
+
         $orderRepository->shouldReceive('createNewOrder')
             ->once()
             ->andReturn($stubOrder);

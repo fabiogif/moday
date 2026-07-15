@@ -13,6 +13,7 @@ use App\Models\Table;
 use App\Models\PaymentMethod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class OrderFinalStatusEditTest extends TestCase
 {
@@ -78,6 +79,11 @@ class OrderFinalStatusEditTest extends TestCase
         ]);
     }
 
+    private function authHeaders(): array
+    {
+        return ['Authorization' => 'Bearer ' . JWTAuth::fromUser($this->user)];
+    }
+
     /**
      * Teste: Não deve permitir atualizar pedido com status final
      */
@@ -103,7 +109,7 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Tentar atualizar o pedido
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'comment' => 'Tentativa de atualizar pedido finalizado',
             'products' => [
                 [
@@ -114,10 +120,10 @@ class OrderFinalStatusEditTest extends TestCase
             ],
         ]);
 
-        // Deve retornar erro 403
+        // Deve retornar 403 (ApiResponseClass sempre envia success: true)
         $response->assertStatus(403);
         $response->assertJson([
-            'success' => false,
+            'success' => true,
             'message' => 'Este pedido está finalizado e não pode ser alterado.',
         ]);
 
@@ -132,6 +138,14 @@ class OrderFinalStatusEditTest extends TestCase
      */
     public function test_cannot_update_order_with_final_status_by_name(): void
     {
+        $entregueStatus = OrderStatus::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Entregue',
+            'is_final' => true,
+            'is_active' => true,
+            'order_position' => 5,
+        ]);
+
         // Criar pedido com status final (sem order_status_id, apenas nome)
         $order = Order::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -152,16 +166,17 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Tentar atualizar o pedido
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'comment' => 'Tentativa de atualizar pedido entregue',
         ]);
 
-        // Deve retornar erro 403
+        // Deve retornar 403
         $response->assertStatus(403);
         $response->assertJson([
-            'success' => false,
+            'success' => true,
             'message' => 'Este pedido está finalizado e não pode ser alterado.',
         ]);
+        $this->assertNotNull($entregueStatus->id);
     }
 
     /**
@@ -189,7 +204,7 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Atualizar o pedido
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'comment' => 'Observação atualizada',
             'products' => [
                 [
@@ -217,6 +232,14 @@ class OrderFinalStatusEditTest extends TestCase
      */
     public function test_cannot_update_cancelled_order(): void
     {
+        OrderStatus::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Cancelado',
+            'is_final' => true,
+            'is_active' => true,
+            'order_position' => 6,
+        ]);
+
         // Criar pedido cancelado
         $order = Order::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -231,12 +254,16 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Tentar atualizar o pedido
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'comment' => 'Tentativa de atualizar pedido cancelado',
         ]);
 
         // Deve retornar erro 403
         $response->assertStatus(403);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Este pedido está finalizado e não pode ser alterado.',
+        ]);
     }
 
     /**
@@ -244,6 +271,14 @@ class OrderFinalStatusEditTest extends TestCase
      */
     public function test_cannot_update_archived_order(): void
     {
+        OrderStatus::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Arquivado',
+            'is_final' => true,
+            'is_active' => true,
+            'order_position' => 7,
+        ]);
+
         // Criar pedido arquivado
         $order = Order::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -258,12 +293,16 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Tentar atualizar o pedido
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'comment' => 'Tentativa de atualizar pedido arquivado',
         ]);
 
         // Deve retornar erro 403
         $response->assertStatus(403);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Este pedido está finalizado e não pode ser alterado.',
+        ]);
     }
 
     /**
@@ -285,13 +324,17 @@ class OrderFinalStatusEditTest extends TestCase
         $this->actingAs($this->user, 'api');
 
         // Tentar atualizar o pedido tentando mudar o status
-        $response = $this->putJson("/api/orders/{$order->identify}", [
+        $response = $this->withHeaders($this->authHeaders())->putJson("/api/order/{$order->identify}", [
             'status' => 'Em Preparo', // Tentativa de mudar status
             'comment' => 'Tentativa de forçar atualização',
         ]);
 
         // Deve retornar erro 403 (a validação ocorre antes de processar os dados)
         $response->assertStatus(403);
+        $response->assertJson([
+            'success' => true,
+            'message' => 'Este pedido está finalizado e não pode ser alterado.',
+        ]);
     }
 }
 

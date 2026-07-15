@@ -369,13 +369,11 @@ class ProductImageUploadTest extends TestCase
         ]);
 
         $product = Product::where('name', 'Produto URL Teste')->first();
-        
-        // A URL deve conter o caminho completo
-        $diskConfig = config('filesystems.disks.products');
-        $expectedBaseUrl = rtrim($diskConfig['url'] ?? (config('app.url') . '/storage/products'), '/');
 
-        $this->assertStringContainsString($expectedBaseUrl, $product->image);
+        // Imagem é persistida como path relativo no disco products
+        $this->assertNotEmpty($product->image);
         $this->assertStringContainsString("tenants/{$this->tenant->uuid}/products/", $product->image);
+        $this->assertStringEndsWith('.jpg', $product->image);
     }
 
     #[Test]

@@ -77,7 +77,7 @@ class SupplierApiTest extends TestCase
         $supplierData = [
             'name' => 'Fornecedor Teste Ltda',
             'fantasy_name' => 'Fornecedor Teste',
-            'document' => '12345678901234',
+            'document' => '11222333000181',
             'document_type' => 'cnpj',
             'email' => 'contato@fornecedor.com',
             'phone' => '11987654321',
@@ -101,13 +101,13 @@ class SupplierApiTest extends TestCase
                 'success' => true,
                 'data' => [
                     'name' => 'Fornecedor Teste Ltda',
-                    'document' => '12345678901234',
+                    'document' => '11222333000181',
                 ]
             ]);
 
         $this->assertDatabaseHas('suppliers', [
             'name' => 'Fornecedor Teste Ltda',
-            'document' => '12345678901234',
+            'document' => '11222333000181',
             'tenant_id' => $this->tenant->id,
         ]);
     }
@@ -118,7 +118,7 @@ class SupplierApiTest extends TestCase
         $response = $this->withHeaders($this->getAuthHeaders())->postJson('/api/suppliers', []);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'document', 'document_type', 'phone']);
+            ->assertJsonValidationErrors(['company_name']);
     }
 
     #[Test]

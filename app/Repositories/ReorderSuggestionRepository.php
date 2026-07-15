@@ -13,7 +13,8 @@ class ReorderSuggestionRepository implements ReorderSuggestionRepositoryInterfac
         return ReorderSuggestion::where('tenant_id', $tenantId)
             ->where('is_dismissed', false)
             ->with(['product:id,name,sku,unit_of_measure,qtd_stock,min_stock,safety_stock', 'supplier:id,name'])
-            ->orderByRaw("FIELD(urgency, 'critical','urgent','normal')")
+            // CASE é portável (MySQL + SQLite); FIELD() não existe no SQLite
+            ->orderByRaw("CASE urgency WHEN 'critical' THEN 1 WHEN 'urgent' THEN 2 WHEN 'normal' THEN 3 ELSE 4 END")
             ->orderByDesc('suggested_quantity')
             ->get();
     }

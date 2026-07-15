@@ -51,6 +51,9 @@ class SaleOrderTest extends TestCase
         $this->assertEquals('faturado', $order->nextStatus());
 
         $order->status = 'faturado';
+        $this->assertEquals('em_transito', $order->nextStatus());
+
+        $order->status = 'em_transito';
         $this->assertEquals('entregue', $order->nextStatus());
     }
 

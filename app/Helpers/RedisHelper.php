@@ -19,8 +19,8 @@ class RedisHelper
             return self::$isAvailable;
         }
 
-        // Se estiver explicitamente desabilitado no .env
-        if (env('REDIS_ENABLED', true) === false) {
+        // phpunit.xml / .env enviam "false" como string — usar filter_var
+        if (! filter_var(env('REDIS_ENABLED', true), FILTER_VALIDATE_BOOLEAN)) {
             self::$isAvailable = false;
             return false;
         }
@@ -30,7 +30,7 @@ class RedisHelper
             Redis::connection()->ping();
             self::$isAvailable = true;
             return true;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Log apenas em debug mode
             if (config('app.debug')) {
                 Log::info('Redis não disponível, usando fallback: ' . $e->getMessage());

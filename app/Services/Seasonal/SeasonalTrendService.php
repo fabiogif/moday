@@ -24,13 +24,14 @@ class SeasonalTrendService
     public function monthlyRevenueTrend(int $tenantId, int $years = 2): Collection
     {
         $since = Carbon::now()->subYears($years)->startOfMonth();
+        [$yearExpr, $monthExpr] = $this->yearMonthExpressions('billed_at');
 
         $rows = DB::table('sale_orders')
             ->where('tenant_id', $tenantId)
             ->whereIn('status', ['faturado', 'em_transito', 'entregue'])
             ->where('billed_at', '>=', $since)
             ->whereNotNull('billed_at')
-            ->selectRaw('YEAR(billed_at) as yr, MONTH(billed_at) as mo, SUM(total) as revenue, COUNT(*) as orders')
+            ->selectRaw("{$yearExpr} as yr, {$monthExpr} as mo, SUM(total) as revenue, COUNT(*) as orders")
             ->groupBy('yr', 'mo')
             ->orderBy('yr')
             ->orderBy('mo')
@@ -89,7 +90,7 @@ class SeasonalTrendService
             ->whereIn('sale_orders.status', ['faturado', 'entregue'])
             ->whereNotNull('sale_orders.billed_at')
             ->where('sale_orders.billed_at', '>=', $since)
-            ->whereRaw('MONTH(sale_orders.billed_at) = ?', [$month])
+            ->whereRaw("{$this->yearMonthExpressions('sale_orders.billed_at')[1]} = ?", [$month])
             ->whereNotNull('sale_order_items.product_id')
             ->selectRaw('
                 sale_order_items.product_id,
@@ -157,5 +158,24 @@ class SeasonalTrendService
         }
 
         return $created;
+    }
+
+    /**
+     * Expressões YEAR/MONTH compatíveis com MySQL e SQLite.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function yearMonthExpressions(string $column): array
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            return [
+                "CAST(strftime('%Y', {$column}) AS INTEGER)",
+                "CAST(strftime('%m', {$column}) AS INTEGER)",
+            ];
+        }
+
+        return ["YEAR({$column})", "MONTH({$column})"];
     }
 }
