@@ -175,6 +175,7 @@ class PurchaseOrderApiController extends Controller
                 'items.*.quantity'               => 'required|numeric|min:0.001',
                 'items.*.warehouse_id'           => 'required|integer',
                 'items.*.batch_number'           => 'nullable|string|max:100',
+                'items.*.manufacture_date'       => 'nullable|date',
                 'items.*.expiry_date'            => 'nullable|date',
             ]);
 

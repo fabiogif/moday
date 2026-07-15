@@ -23,26 +23,31 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
 
     public function getAllClients()
     {
-        return $this->entity->with(['orders' => function($query) {
-            $query->orderBy('created_at', 'desc');
-        }])->orderBy('created_at', 'desc')->get();
+        return $this->entity
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     public function getClientsByTenant($tenantId)
     {
         return $this->entity->where('tenant_id', $tenantId)
-            ->with(['orders' => function($query) {
-                $query->orderBy('created_at', 'desc');
-            }])
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
             ->orderBy('created_at', 'desc')
             ->get();
     }
 
     public function getClientById($id)
     {
-        return $this->entity->with(['orders' => function($query) {
-            $query->orderBy('created_at', 'desc');
-        }])->find($id);
+        return $this->entity
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
+            ->find($id);
     }
 
     public function getClientByUuid($uuid)

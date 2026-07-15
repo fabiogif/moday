@@ -15,12 +15,30 @@ class ClientResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // Calcular total de pedidos
-        $totalOrders = $this->orders ? $this->orders->count() : 0;
-        
-        // Buscar último pedido
-        $lastOrder = $this->orders ? $this->orders->sortByDesc('created_at')->first() : null;
-        $lastOrderDate = $lastOrder ? Carbon::parse($lastOrder->created_at)->format('d/m/Y') : null;
+        // Totais: pedidos de venda (B2B) + pedidos legados
+        $saleOrdersCount = $this->sale_orders_count
+            ?? ($this->relationLoaded('saleOrders') ? $this->saleOrders->count() : 0);
+        $ordersCount = $this->orders_count
+            ?? ($this->relationLoaded('orders') ? $this->orders->count() : 0);
+        $totalOrders = (int) $saleOrdersCount + (int) $ordersCount;
+
+        // Último pedido: prioriza sale_orders.ordered_at, depois orders.created_at
+        $lastOrderAt = collect([
+            $this->sale_orders_max_ordered_at ?? null,
+            $this->orders_max_created_at ?? null,
+        ])->filter()->map(fn ($d) => Carbon::parse($d))->sortDesc()->first();
+
+        if (!$lastOrderAt && $this->relationLoaded('saleOrders') && $this->saleOrders->isNotEmpty()) {
+            $lastSale = $this->saleOrders->sortByDesc(fn ($o) => $o->ordered_at ?? $o->created_at)->first();
+            $lastOrderAt = Carbon::parse($lastSale->ordered_at ?? $lastSale->created_at);
+        }
+
+        if (!$lastOrderAt && $this->relationLoaded('orders') && $this->orders->isNotEmpty()) {
+            $lastLegacy = $this->orders->sortByDesc('created_at')->first();
+            $lastOrderAt = Carbon::parse($lastLegacy->created_at);
+        }
+
+        $lastOrderDate = $lastOrderAt?->format('d/m/Y');
         
         return [
             'id' => $this->id,
@@ -59,7 +77,7 @@ class ClientResource extends JsonResource
             // Campos solicitados para a listagem
             'total_orders' => $totalOrders,
             'last_order' => $lastOrderDate,
-            'last_order_raw' => $lastOrder ? $lastOrder->created_at : null,
+            'last_order_raw' => $lastOrderAt?->toIso8601String(),
             'is_active' => (bool) $this->is_active, // Usar o campo real do banco de dados
             
             // Datas formatadas

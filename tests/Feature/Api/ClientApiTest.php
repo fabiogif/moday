@@ -4,8 +4,10 @@ namespace Tests\Feature\Api;
 
 use App\Models\Client;
 use App\Models\Plan;
+use App\Models\SaleOrder;
 use App\Models\Tenant;
 use App\Models\User;
+use Carbon\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -201,5 +203,32 @@ class ClientApiTest extends TestCase
             ->postJson('/api/clients', $this->validB2bPayload(['cnpj' => '11.111.111/1111-11']))
             ->assertStatus(422)
             ->assertJsonValidationErrors(['cnpj']);
+    }
+
+    #[Test]
+    public function it_includes_last_order_date_from_sale_orders_in_list(): void
+    {
+        $withOrder = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        $withoutOrder = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $withOrder->id,
+            'ordered_at' => Carbon::parse('2026-07-10 14:30:00'),
+        ]);
+
+        app(\App\Services\CacheService::class)->invalidateClientCache($this->tenant->id);
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson('/api/clients')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $byId = collect($response->json('data'))->keyBy('id');
+
+        $this->assertSame('10/07/2026', $byId[$withOrder->id]['last_order']);
+        $this->assertNull($byId[$withoutOrder->id]['last_order']);
+        $this->assertSame(1, $byId[$withOrder->id]['total_orders']);
+        $this->assertSame(0, $byId[$withoutOrder->id]['total_orders']);
     }
 }

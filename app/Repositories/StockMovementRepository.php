@@ -13,7 +13,7 @@ class StockMovementRepository implements StockMovementRepositoryInterface
         $query = StockMovement::forTenant($tenantId)
             ->with([
                 'product:id,name,sku',
-                'batch:id,batch_number',
+                'batch:id,batch_number,manufacture_date,expiry_date,status',
                 'warehouse:id,name',
                 'performedBy:id,name',
             ])

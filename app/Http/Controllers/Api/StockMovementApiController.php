@@ -59,10 +59,11 @@ class StockMovementApiController extends Controller
                 'batch_id'        => 'required_if:type,ajuste,transferencia|integer',
                 'quantity'        => 'required|numeric',
                 'to_warehouse_id' => 'required_if:type,transferencia|integer',
-                'batch_number'    => 'nullable|string|max:100',
-                'expiry_date'     => 'nullable|date',
-                'unit_cost'       => 'nullable|numeric|min:0',
-                'notes'           => 'nullable|string|max:500',
+                'batch_number'     => 'nullable|string|max:100',
+                'manufacture_date' => 'nullable|date',
+                'expiry_date'      => 'nullable|date',
+                'unit_cost'        => 'nullable|numeric|min:0',
+                'notes'            => 'nullable|string|max:500',
             ]);
 
             $result = $this->stockMovementService->record($tenantId, $user->id, $validated);
@@ -83,7 +84,7 @@ class StockMovementApiController extends Controller
             $movement = StockMovement::forTenant($tenantId)
                 ->with([
                     'product:id,name,sku,unit_of_measure',
-                    'batch:id,batch_number,expiry_date',
+                    'batch:id,batch_number,manufacture_date,expiry_date,status',
                     'warehouse:id,name',
                     'performedBy:id,name',
                 ])

@@ -29,6 +29,9 @@ class StockService
                 throw StockException::invalidMovement('Quantidade de entrada deve ser maior que zero.');
             }
 
+            $product = Product::findOrFail($productId);
+            $this->validateBatchDates($product, $options);
+
             $batchNumber = $options['batch_number'] ?? 'ENT-' . now()->format('YmdHis');
             $unitCost    = $options['unit_cost'] ?? null;
 
@@ -312,19 +315,25 @@ class StockService
             ]);
         }
 
+        $options = [
+            'batch_number'   => 'CAD-' . $productId . '-' . now()->format('YmdHis'),
+            'unit_cost'      => $product->price_cost,
+            'notes'          => 'Entrada automática — sincronização com estoque declarado no cadastro',
+            'reference_type' => 'product_stock_sync',
+            'reference_id'   => $productId,
+        ];
+
+        if ($product->requires_prescription || $product->controlled_substance) {
+            $options['manufacture_date'] = now()->toDateString();
+        }
+
         $this->recordEntry(
             $tenantId,
             $productId,
             $warehouse->id,
             $delta,
             $performedBy,
-            [
-                'batch_number'   => 'CAD-' . $productId . '-' . now()->format('YmdHis'),
-                'unit_cost'      => $product->price_cost,
-                'notes'          => 'Entrada automática — sincronização com estoque declarado no cadastro',
-                'reference_type' => 'product_stock_sync',
-                'reference_id'   => $productId,
-            ],
+            $options,
         );
     }
 
@@ -347,6 +356,31 @@ class StockService
         }
 
         return Carbon::parse($expiryDate)->isPast() ? 'expired' : 'available';
+    }
+
+    /**
+     * Fabricação obrigatória para controlados / com receita.
+     * Quando fab e validade existem: fab <= validade.
+     */
+    private function validateBatchDates(Product $product, array $options): void
+    {
+        $manufacture = $options['manufacture_date'] ?? null;
+        $expiry      = $options['expiry_date'] ?? null;
+
+        $requiresManufacture = (bool) $product->requires_prescription
+            || (bool) $product->controlled_substance;
+
+        if ($requiresManufacture && empty($manufacture)) {
+            throw StockException::invalidMovement(
+                'A data de fabricação é obrigatória para produtos controlados ou que exigem receita.'
+            );
+        }
+
+        if ($manufacture && $expiry && Carbon::parse($manufacture)->gt(Carbon::parse($expiry))) {
+            throw StockException::invalidMovement(
+                'A data de fabricação não pode ser posterior à validade.'
+            );
+        }
     }
 
     private function createMovement(

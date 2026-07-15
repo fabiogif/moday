@@ -17,7 +17,7 @@ class PurchaseReceiveService
     ) {}
 
     /**
-     * @param array<int, array{purchase_order_item_id: int, quantity: float, batch_number?: string, expiry_date?: string, warehouse_id: int}> $items
+     * @param array<int, array{purchase_order_item_id: int, quantity: float, batch_number?: string, manufacture_date?: string, expiry_date?: string, warehouse_id: int}> $items
      */
     public function receive(PurchaseOrder $order, array $items, int $performedBy): PurchaseOrder
     {
@@ -87,8 +87,9 @@ class PurchaseReceiveService
             );
         }
 
-        $batchNumber = $data['batch_number'] ?? $item->batch_number ?? 'PC-' . $order->id . '-' . $item->id;
-        $expiryDate  = $data['expiry_date'] ?? $item->expiry_date?->toDateString();
+        $batchNumber     = $data['batch_number'] ?? $item->batch_number ?? 'PC-' . $order->id . '-' . $item->id;
+        $manufactureDate = $data['manufacture_date'] ?? null;
+        $expiryDate      = $data['expiry_date'] ?? $item->expiry_date?->toDateString();
 
         $this->stockService->recordEntry(
             tenantId: $order->tenant_id,
@@ -98,6 +99,7 @@ class PurchaseReceiveService
             performedBy: $performedBy,
             options: [
                 'batch_number'      => $batchNumber,
+                'manufacture_date'  => $manufactureDate,
                 'expiry_date'       => $expiryDate,
                 'unit_cost'         => $item->unit_cost,
                 'supplier_id'       => $order->supplier_id,

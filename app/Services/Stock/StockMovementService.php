@@ -39,10 +39,11 @@ class StockMovementService
                 (float) $data['quantity'],
                 $userId,
                 [
-                    'batch_number' => $data['batch_number'] ?? null,
-                    'expiry_date'  => $data['expiry_date'] ?? null,
-                    'unit_cost'    => $data['unit_cost'] ?? null,
-                    'notes'        => $data['notes'] ?? null,
+                    'batch_number'     => $data['batch_number'] ?? null,
+                    'manufacture_date' => $data['manufacture_date'] ?? null,
+                    'expiry_date'      => $data['expiry_date'] ?? null,
+                    'unit_cost'        => $data['unit_cost'] ?? null,
+                    'notes'            => $data['notes'] ?? null,
                 ],
             ),
             'ajuste' => $this->stockService->recordAdjustment(
@@ -67,10 +68,11 @@ class StockMovementService
                 (float) $data['quantity'],
                 $userId,
                 [
-                    'batch_number' => $data['batch_number'] ?? null,
-                    'expiry_date'  => $data['expiry_date'] ?? null,
-                    'unit_cost'    => $data['unit_cost'] ?? null,
-                    'notes'        => $data['notes'] ?? null,
+                    'batch_number'     => $data['batch_number'] ?? null,
+                    'manufacture_date' => $data['manufacture_date'] ?? null,
+                    'expiry_date'      => $data['expiry_date'] ?? null,
+                    'unit_cost'        => $data['unit_cost'] ?? null,
+                    'notes'            => $data['notes'] ?? null,
                 ],
             ),
         };
