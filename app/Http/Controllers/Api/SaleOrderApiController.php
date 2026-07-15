@@ -12,6 +12,7 @@ use App\Rules\DiscountWithinProfileLimit;
 use App\Rules\ValidBatchForSale;
 use App\Services\AuthTenantService;
 use App\Services\Fiscal\FiscalIntegrationService;
+use App\Services\Sale\OfferEngineService;
 use App\Services\Sale\SaleOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class SaleOrderApiController extends Controller
         private readonly AuthTenantService $authTenantService,
         private readonly SaleOrderService $saleOrderService,
         private readonly FiscalIntegrationService $fiscalIntegrationService,
+        private readonly OfferEngineService $offerEngineService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -98,6 +100,27 @@ class SaleOrderApiController extends Controller
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao criar pedido de venda');
+        }
+    }
+
+    public function evaluateOffers(Request $request): JsonResponse
+    {
+        try {
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $validated = $request->validate([
+                'items'                    => 'sometimes|array',
+                'items.*.product_id'       => 'required_with:items|integer',
+                'items.*.quantity'         => 'required_with:items|numeric|min:0.001',
+                'items.*.discount_percent' => 'sometimes|numeric|min:0|max:100',
+                'items.*.item_type'        => 'sometimes|string|in:venda,bonificacao',
+            ]);
+
+            $result = $this->offerEngineService->evaluate($tenantId, $validated['items'] ?? []);
+
+            return ApiResponseClass::sendResponse($result, 'Ofertas avaliadas com sucesso');
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao avaliar ofertas');
         }
     }
 

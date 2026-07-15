@@ -150,6 +150,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'Confirmar Picking de Venda', 'slug' => 'picking.confirm', 'description' => 'Confirmar separação de itens do pedido de venda', 'module' => 'sale-orders', 'action' => 'picking.confirm', 'resource' => 'sale-order', 'is_active' => true],
             ['name' => 'Solicitar Emissão Fiscal', 'slug' => 'sale-orders.fiscal.request', 'description' => 'Solicitar emissão de NF-e para pedido de venda', 'module' => 'sale-orders', 'action' => 'fiscal.request', 'resource' => 'sale-order', 'is_active' => true],
 
+            // DistribTec — Ofertas Automáticas
+            ['name' => 'Visualizar Ofertas', 'slug' => 'offer-rules.index', 'description' => 'Visualizar lista de ofertas automáticas', 'module' => 'offer-rules', 'action' => 'index', 'resource' => 'offer-rule', 'is_active' => true],
+            ['name' => 'Criar Ofertas', 'slug' => 'offer-rules.store', 'description' => 'Criar novas ofertas automáticas', 'module' => 'offer-rules', 'action' => 'store', 'resource' => 'offer-rule', 'is_active' => true],
+            ['name' => 'Editar Ofertas', 'slug' => 'offer-rules.update', 'description' => 'Editar ofertas automáticas existentes', 'module' => 'offer-rules', 'action' => 'update', 'resource' => 'offer-rule', 'is_active' => true],
+            ['name' => 'Excluir Ofertas', 'slug' => 'offer-rules.destroy', 'description' => 'Excluir ofertas automáticas', 'module' => 'offer-rules', 'action' => 'destroy', 'resource' => 'offer-rule', 'is_active' => true],
+
             // DistribTec — Pedidos de Compra
             ['name' => 'Visualizar Pedidos de Compra', 'slug' => 'purchase-orders.index', 'description' => 'Visualizar lista de pedidos de compra', 'module' => 'purchase-orders', 'action' => 'index', 'resource' => 'purchase-order', 'is_active' => true],
             ['name' => 'Criar Pedidos de Compra', 'slug' => 'purchase-orders.store', 'description' => 'Criar novos pedidos de compra', 'module' => 'purchase-orders', 'action' => 'store', 'resource' => 'purchase-order', 'is_active' => true],

@@ -27,6 +27,7 @@ class DistribtecModulePermissionDefinitions
             'accounts-receivable' => 'Contas a Receber',
             'accounts-payable' => 'Contas a Pagar',
             'suppliers' => 'Fornecedores',
+            'offer-rules' => 'Ofertas Automáticas',
         ];
 
         $actions = [

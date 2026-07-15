@@ -11,7 +11,7 @@ class SaleOrderItem extends Model
     protected $fillable = [
         'sale_order_id', 'product_id', 'batch_id', 'item_type',
         'quantity', 'quantity_picked', 'picked_at', 'picked_by',
-        'unit_price', 'discount_percent',
+        'unit_price', 'discount_percent', 'offer_rule_id',
         'subtotal', 'tax_amount',
     ];
 
@@ -41,6 +41,11 @@ class SaleOrderItem extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class);
+    }
+
+    public function offerRule()
+    {
+        return $this->belongsTo(OfferRule::class);
     }
 
     public function getLineTotalAttribute(): float

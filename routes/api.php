@@ -364,6 +364,15 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::delete('/{uuid}', [CouponApiController::class, 'destroy'])->middleware('throttle:critical');
     });
 
+    // Ofertas Automáticas de Produtos
+    Route::prefix('offer-rules')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\OfferRuleApiController::class, 'index'])->middleware(['acl.permission:offer-rules.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\OfferRuleApiController::class, 'store'])->middleware(['acl.permission:offer-rules.store', 'throttle:critical']);
+        Route::get('/{id}', [\App\Http\Controllers\Api\OfferRuleApiController::class, 'show'])->middleware(['acl.permission:offer-rules.index', 'throttle:read']);
+        Route::put('/{id}', [\App\Http\Controllers\Api\OfferRuleApiController::class, 'update'])->middleware(['acl.permission:offer-rules.update', 'throttle:critical']);
+        Route::delete('/{id}', [\App\Http\Controllers\Api\OfferRuleApiController::class, 'destroy'])->middleware(['acl.permission:offer-rules.destroy', 'throttle:critical']);
+    });
+
     // Módulo Financeiro - Categorias
     Route::prefix('financial-categories')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'index'])->middleware('throttle:read');
@@ -648,6 +657,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::prefix('sale-orders')->group(function () {
         Route::get('/', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'index'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
         Route::post('/', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'store'])->middleware(['acl.permission:sale-orders.store', 'throttle:critical']);
+        Route::post('/offers/evaluate', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'evaluateOffers'])->middleware(['acl.permission:sale-orders.store', 'throttle:read']);
         Route::get('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'show'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
         Route::put('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'update'])->middleware(['acl.permission:sale-orders.update', 'throttle:critical']);
         Route::delete('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'destroy'])->middleware(['acl.permission:sale-orders.destroy', 'throttle:critical']);

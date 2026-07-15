@@ -29,6 +29,7 @@ class SaleOrderService
         private readonly SaleReturnService $saleReturnService,
         private readonly PickingService $pickingService,
         private readonly CacheService $cacheService,
+        private readonly OfferEngineService $offerEngineService,
     ) {}
 
     public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
@@ -66,6 +67,7 @@ class SaleOrderService
         $validated    = array_merge($validated, $shippingData);
 
         $items = $this->priceTableService->applyPricesToItems($clientId, $items);
+        $items = $this->offerEngineService->evaluate($tenantId, $items)['items'];
 
         if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue']) && !empty($items)) {
             $this->saleOrderStockService->validateItemsStock($tenantId, $items, $userId);
@@ -145,10 +147,11 @@ class SaleOrderService
             $data = array_merge($data, $shippingData);
         }
 
-        $updated = DB::transaction(function () use ($order, $data, $items) {
+        $updated = DB::transaction(function () use ($order, $data, $items, $tenantId) {
             if ($items !== null) {
                 $clientId = $data['client_id'] ?? $order->client_id;
                 $items    = $this->priceTableService->applyPricesToItems($clientId, $items);
+                $items    = $this->offerEngineService->evaluate($tenantId, $items)['items'];
 
                 $order->items()->delete();
                 foreach ($items as $item) {
@@ -311,6 +314,7 @@ class SaleOrderService
             'quantity'         => $item['quantity'],
             'unit_price'       => $unitPrice,
             'discount_percent' => $discPct,
+            'offer_rule_id'    => $item['offer_rule_id'] ?? null,
             'subtotal'         => $gross - ($gross * $discPct / 100),
             'tax_amount'       => 0,
         ]);

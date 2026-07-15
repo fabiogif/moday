@@ -19,6 +19,7 @@ class DefaultProfilesSeeder extends Seeder
             'permissions' => [
                 'sale-orders.index', 'sale-orders.store', 'sale-orders.update', 'sale-orders.destroy',
                 'sale-orders.fiscal.request',
+                'offer-rules.index', 'offer-rules.store', 'offer-rules.update', 'offer-rules.destroy',
                 'clients.index', 'clients.show', 'clients.store', 'clients.update', 'clients.destroy',
                 'price-tables.index', 'price-tables.store', 'price-tables.update', 'price-tables.destroy',
                 'accounts-receivable.index',
