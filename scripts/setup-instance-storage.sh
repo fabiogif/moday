@@ -1,6 +1,6 @@
 #!/bin/bash
 # Storage local na instância (sem S3/Spaces) — pastas, symlink e permissões.
-# Uso: cd ~/apps/moday-backend && bash scripts/setup-instance-storage.sh
+# Uso: cd ~/apps/distribtec-backend && bash scripts/setup-instance-storage.sh
 
 set -e
 
@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 echo "📁 Configurando storage local da instância..."
 
-if docker ps --format '{{.Names}}' | grep -q '^moday-backend$'; then
-  docker exec moday-backend sh -c '
+if docker ps --format '{{.Names}}' | grep -q '^distribtec-backend$'; then
+  docker exec distribtec-backend sh -c '
     set -e
     cd /var/www/html
     mkdir -p storage/app/public/{products,logos,coupons,expenses/attachments} storage/app/temp storage/app/backups
@@ -64,8 +64,8 @@ if [ -f .env ]; then
   ensure_env "FILESYSTEM_PUBLIC_URL" "${APP_URL}/storage"
 fi
 
-if docker ps --format '{{.Names}}' | grep -q '^moday-backend$'; then
-  docker exec moday-backend sh -c '
+if docker ps --format '{{.Names}}' | grep -q '^distribtec-backend$'; then
+  docker exec distribtec-backend sh -c '
     set -e
     cd /var/www/html
     mkdir -p storage/app/public/{products,logos,coupons,expenses/attachments} storage/app/temp storage/app/backups
@@ -75,8 +75,8 @@ if docker ps --format '{{.Names}}' | grep -q '^moday-backend$'; then
     chmod -R 775 storage
   '
 
-  WWW_UID=$(docker exec moday-backend id -u www-data)
-  WWW_GID=$(docker exec moday-backend id -g www-data)
+  WWW_UID=$(docker exec distribtec-backend id -u www-data)
+  WWW_GID=$(docker exec distribtec-backend id -g www-data)
   sudo chown -R "${WWW_UID}:${WWW_GID}" storage 2>/dev/null || \
     chown -R "${WWW_UID}:${WWW_GID}" storage 2>/dev/null || true
   chmod -R 775 storage 2>/dev/null || true
