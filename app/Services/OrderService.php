@@ -295,15 +295,25 @@ readonly class OrderService
             })
             ->toArray();
 
-        // Calcular estatísticas específicas por status
-        $inPreparoCurrent = $currentOrdersByStatus['Em Preparo'] ?? 0;
-        $inPreparoPrevious = $previousOrdersByStatus['Em Preparo'] ?? 0;
+        // Calcular estatísticas específicas por status (novo fluxo + legados)
+        $inPreparoCurrent = ($currentOrdersByStatus['Preparo'] ?? 0)
+            + ($currentOrdersByStatus['Em Preparo'] ?? 0)
+            + ($currentOrdersByStatus['Em Preparação'] ?? 0);
+        $inPreparoPrevious = ($previousOrdersByStatus['Preparo'] ?? 0)
+            + ($previousOrdersByStatus['Em Preparo'] ?? 0)
+            + ($previousOrdersByStatus['Em Preparação'] ?? 0);
         
-        $prontoCurrent = $currentOrdersByStatus['Pronto'] ?? 0;
-        $prontoPrevious = $previousOrdersByStatus['Pronto'] ?? 0;
+        $prontoCurrent = ($currentOrdersByStatus['Entrega'] ?? 0)
+            + ($currentOrdersByStatus['Pronto'] ?? 0)
+            + ($currentOrdersByStatus['Pronto para Expedição'] ?? 0);
+        $prontoPrevious = ($previousOrdersByStatus['Entrega'] ?? 0)
+            + ($previousOrdersByStatus['Pronto'] ?? 0)
+            + ($previousOrdersByStatus['Pronto para Expedição'] ?? 0);
         
-        $deliveredCurrent = $currentOrdersByStatus['Entregue'] ?? 0;
-        $deliveredPrevious = $previousOrdersByStatus['Entregue'] ?? 0;
+        $deliveredCurrent = ($currentOrdersByStatus['Concluído'] ?? 0)
+            + ($currentOrdersByStatus['Entregue'] ?? 0);
+        $deliveredPrevious = ($previousOrdersByStatus['Concluído'] ?? 0)
+            + ($previousOrdersByStatus['Entregue'] ?? 0);
         
         $canceledCurrent = $currentOrdersByStatus['Cancelado'] ?? 0;
         $canceledPrevious = $previousOrdersByStatus['Cancelado'] ?? 0;
@@ -506,17 +516,22 @@ readonly class OrderService
         // Buscar o status no banco de dados
         $statusModel = $this->orderStatusRepositoryInterface->getByName($tenantId, $status);
         
-        // Se não encontrar e o status solicitado for "Concluído", tentar "Entregue" como fallback
+        // Se não encontrar e o status solicitado for "Entregue", tentar "Concluído" como fallback
+        if (!$statusModel && $status === 'Entregue') {
+            $statusModel = $this->orderStatusRepositoryInterface->getByName($tenantId, 'Concluído');
+        }
+
+        // Se não encontrar e o status solicitado for "Concluído", tentar "Entregue" como fallback (legado)
         if (!$statusModel && $status === 'Concluído') {
             $statusModel = $this->orderStatusRepositoryInterface->getByName($tenantId, 'Entregue');
         }
         
-        // Se ainda não encontrar, buscar qualquer status final disponível
-        if (!$statusModel && $status === 'Concluído') {
+        // Se ainda não encontrar, buscar qualquer status final disponível (exceto cancelado)
+        if (!$statusModel && in_array($status, ['Concluído', 'Entregue'], true)) {
             $finalStatuses = $this->orderStatusRepositoryInterface->getFinalStatuses($tenantId);
-            if ($finalStatuses->isNotEmpty()) {
-                $statusModel = $finalStatuses->first();
-            }
+            $statusModel = $finalStatuses->first(function ($s) {
+                return ! str_contains(mb_strtolower($s->name), 'cancel');
+            }) ?? $finalStatuses->first();
         }
         
         if (!$statusModel) {
@@ -932,9 +947,76 @@ readonly class OrderService
         // Fallback apenas se não houver nenhum status final configurado no banco
         // (caso edge case de sistema novo ou sem configuração)
         // Usar apenas os status finais padrão do novo fluxo
-        $defaultFinalStatuses = ['Entregue', 'Cancelado'];
+        $defaultFinalStatuses = ['Concluído', 'Entregue', 'Cancelado'];
         
         return in_array($order->status, $defaultFinalStatuses);
+    }
+
+    /**
+     * Pedidos em fluxo aberto há mais de $days dias (candidatos a concluir em lote).
+     *
+     * @return list<string> identifies
+     */
+    public function getStaleOpenOrderIdentifies(int $days = 15): array
+    {
+        $tenantId = Auth::user()?->tenant_id;
+        if (!$tenantId) {
+            throw new \Exception('Usuário não possui tenant associado');
+        }
+
+        $openNames = $this->openFlowStatusNames($tenantId);
+
+        return Order::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('status', $openNames)
+            ->where('created_at', '<=', now()->subDays($days))
+            ->pluck('identify')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Marca como Concluído todos os pedidos abertos com mais de $days dias.
+     *
+     * @return array{total_updated: int, total_requested: int, identifies: list<string>}
+     */
+    public function completeStaleOpenOrders(int $days = 15): array
+    {
+        $identifies = $this->getStaleOpenOrderIdentifies($days);
+        if ($identifies === []) {
+            return [
+                'total_updated' => 0,
+                'total_requested' => 0,
+                'identifies' => [],
+            ];
+        }
+
+        $result = $this->bulkUpdateOrdersStatus($identifies, 'Concluído');
+
+        return [
+            'total_updated' => count($result['updated'] ?? []),
+            'total_requested' => count($identifies),
+            'identifies' => $identifies,
+            'details' => $result,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function openFlowStatusNames(int $tenantId): array
+    {
+        $canonical = ['Pendente', 'Aceito', 'Preparo', 'Entrega'];
+        $legacy = array_keys(\Database\Seeders\DefaultOrderStatusesSeeder::LEGACY_NAME_MAP);
+
+        $fromDb = $this->orderStatusRepositoryInterface
+            ->getAllByTenant($tenantId, true)
+            ->where('is_final', false)
+            ->pluck('name')
+            ->all();
+
+        return array_values(array_unique(array_merge($canonical, $legacy, $fromDb)));
     }
 
     /**
@@ -977,13 +1059,18 @@ readonly class OrderService
             
             $normalizedCurrent = $this->normalizeStatusName($currentStatus->name);
             $flow = [
-                'Pedido Recebido' => 'Confirmado',
-                'Confirmado' => 'Em Preparação',
-                'Em Preparação' => 'Pronto para Expedição',
-                'Pronto para Expedição' => $order->is_delivery ? 'Aguardando Entregador' : 'Entregue',
-                'Pronto' => $order->is_delivery ? 'Aguardando Entregador' : 'Entregue',
-                'Aguardando Entregador' => 'Em Entrega',
-                'Em Entrega' => 'Entregue',
+                'Pendente' => 'Aceito',
+                'Pedido Recebido' => 'Aceito',
+                'Aceito' => 'Preparo',
+                'Confirmado' => 'Preparo',
+                'Preparo' => 'Entrega',
+                'Em Preparação' => 'Entrega',
+                'Em Preparo' => 'Entrega',
+                'Entrega' => 'Concluído',
+                'Pronto para Expedição' => 'Concluído',
+                'Pronto' => 'Concluído',
+                'Aguardando Entregador' => 'Concluído',
+                'Em Entrega' => 'Concluído',
             ];
             $expectedNextStatus = $flow[$normalizedCurrent] ?? $flow[$currentStatus->name] ?? null;
             
@@ -1051,19 +1138,20 @@ readonly class OrderService
      */
     private function getNextStatus(int $tenantId, \App\Models\OrderStatus $currentStatus, bool $isDelivery): ?\App\Models\OrderStatus
     {
-        // Mapear fluxo de status baseado no início do nome (para lidar com variações como "Em Preparação / Cozinha")
+        // Fluxo: Pendente → Aceito → Preparo → Entrega → Concluído
         $flowPatterns = [
-            'Pedido Recebido' => ['Confirmado', 'Em Preparação', 'Em Preparação / Cozinha'],
-            'Confirmado' => ['Em Preparação', 'Em Preparação / Cozinha'],
-            'Em Preparação' => ['Pronto para Expedição', 'Pronto', 'Pronto / Finalizado pela Cozinha'],
-            'Pronto para Expedição' => $isDelivery
-                ? ['Aguardando Entregador', 'Em Entrega', 'Em Entrega / Saiu para Entrega']
-                : ['Entregue'],
-            'Pronto' => $isDelivery
-                ? ['Aguardando Entregador', 'Em Entrega', 'Em Entrega / Saiu para Entrega']
-                : ['Entregue'],
-            'Aguardando Entregador' => ['Em Entrega', 'Em Entrega / Saiu para Entrega'],
-            'Em Entrega' => ['Entregue'],
+            'Pendente' => ['Aceito'],
+            'Pedido Recebido' => ['Aceito', 'Confirmado'],
+            'Aceito' => ['Preparo'],
+            'Confirmado' => ['Preparo', 'Em Preparação'],
+            'Preparo' => ['Entrega'],
+            'Em Preparação' => ['Entrega', 'Pronto para Expedição', 'Pronto'],
+            'Em Preparo' => ['Entrega'],
+            'Entrega' => ['Concluído'],
+            'Pronto para Expedição' => ['Concluído', 'Entrega', 'Entregue'],
+            'Pronto' => ['Concluído', 'Entrega', 'Entregue'],
+            'Aguardando Entregador' => ['Concluído', 'Entrega', 'Entregue'],
+            'Em Entrega' => ['Concluído', 'Entregue'],
         ];
 
         // Normalizar nome do status atual para busca (remover variações como "/ Cozinha")
