@@ -59,10 +59,10 @@ class OrderAdvanceStatusTest extends TestCase
         ]);
     }
 
-    public function test_advances_delivery_order_from_pronto_para_expedicao_to_aguardando_entregador(): void
+    public function test_advances_delivery_order_from_entrega_to_concluido(): void
     {
-        $currentStatus = $this->statusByName('Pronto para Expedição');
-        $expectedNext = $this->statusByName('Aguardando Entregador');
+        $currentStatus = $this->statusByName('Entrega');
+        $expectedNext = $this->statusByName('Concluído');
 
         $order = $this->createOrder($currentStatus, true);
 
@@ -73,14 +73,14 @@ class OrderAdvanceStatusTest extends TestCase
             ->assertJsonPath('success', true);
 
         $order->refresh();
-        $this->assertSame('Aguardando Entregador', $order->status);
+        $this->assertSame('Concluído', $order->status);
         $this->assertSame($expectedNext->id, $order->order_status_id);
     }
 
-    public function test_advances_counter_order_from_pronto_para_expedicao_to_entregue(): void
+    public function test_advances_counter_order_from_entrega_to_concluido(): void
     {
-        $currentStatus = $this->statusByName('Pronto para Expedição');
-        $expectedNext = $this->statusByName('Entregue');
+        $currentStatus = $this->statusByName('Entrega');
+        $expectedNext = $this->statusByName('Concluído');
 
         $order = $this->createOrder($currentStatus, false);
 
@@ -91,7 +91,7 @@ class OrderAdvanceStatusTest extends TestCase
             ->assertJsonPath('success', true);
 
         $order->refresh();
-        $this->assertSame('Entregue', $order->status);
+        $this->assertSame('Concluído', $order->status);
         $this->assertSame($expectedNext->id, $order->order_status_id);
     }
 
