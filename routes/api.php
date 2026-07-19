@@ -290,6 +290,8 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::post('/order/{identify}/invoice', [OrderApiController::class , 'invoice'])->middleware('throttle:critical');
     Route::post('/orders/bulk-delete', [OrderApiController::class , 'bulkDelete'])->middleware('throttle:critical');
     Route::post('/orders/bulk-update-status', [OrderApiController::class , 'bulkUpdateStatus'])->middleware('throttle:critical');
+    Route::get('/orders/stale-for-completion', [OrderApiController::class , 'staleForCompletion'])->middleware('throttle:read');
+    Route::post('/orders/complete-stale', [OrderApiController::class , 'completeStale'])->middleware('throttle:critical');
 
     // Notificações
     Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index'])->middleware('throttle:read');

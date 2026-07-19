@@ -2,22 +2,57 @@
 
 namespace Database\Seeders;
 
+use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Tenant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Status padrão alinhados ao fluxo operacional e integrações de marketplace.
+ * Fluxo operacional padrão de pedidos:
+ * Pendente → Aceito → Preparo → Entrega → Concluído (+ Cancelado)
  *
- * Referências:
- * - iFood Merchant API (Order API): PLACED, CONFIRMED, PREPARATION_STARTED, READY_TO_PICKUP,
- *   DISPATCHED, CONCLUDED, CANCELLED
- * - 99Food / DiDi Food (merchant): aguardando confirmação, confirmado, em preparo, pronto,
- *   entregador a caminho, em entrega, concluído, cancelado
+ * Mantém códigos de integração iFood/99Food e remapeia slugs legados.
  */
 class DefaultOrderStatusesSeeder extends Seeder
 {
+    /**
+     * Slugs antigos → slug canônico do novo fluxo.
+     *
+     * @var array<string, string>
+     */
+    public const LEGACY_SLUG_MAP = [
+        'pedido-recebido' => 'pendente',
+        'confirmado' => 'aceito',
+        'em-preparacao' => 'preparo',
+        'pronto-para-expedicao' => 'entrega',
+        'aguardando-entregador' => 'entrega',
+        'em-entrega' => 'entrega',
+        'entregue' => 'concluido',
+        // cancelado permanece
+    ];
+
+    /**
+     * Nomes legados em orders.status → nome canônico.
+     *
+     * @var array<string, string>
+     */
+    public const LEGACY_NAME_MAP = [
+        'Pedido Recebido' => 'Pendente',
+        'Confirmado' => 'Aceito',
+        'Em Preparação' => 'Preparo',
+        'Em Preparo' => 'Preparo',
+        'Preparando' => 'Preparo',
+        'Pronto para Expedição' => 'Entrega',
+        'Pronto' => 'Entrega',
+        'Aguardando Entregador' => 'Entrega',
+        'Em Entrega' => 'Entrega',
+        'Saiu para entrega' => 'Entrega',
+        'A Caminho' => 'Entrega',
+        'Entregue' => 'Concluído',
+        'Concluido' => 'Concluído',
+    ];
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -25,11 +60,11 @@ class DefaultOrderStatusesSeeder extends Seeder
     {
         return [
             [
-                'name' => 'Pedido Recebido',
-                'slug' => 'pedido-recebido',
-                'description' => 'Pedido registrado no sistema (balcão, garçom, app próprio ou marketplace).',
+                'name' => 'Pendente',
+                'slug' => 'pendente',
+                'description' => 'Pedido registrado, aguardando aceite.',
                 'color' => '#3B82F6',
-                'icon' => 'package',
+                'icon' => 'clock',
                 'order_position' => 1,
                 'is_initial' => true,
                 'is_final' => false,
@@ -39,9 +74,9 @@ class DefaultOrderStatusesSeeder extends Seeder
                 ],
             ],
             [
-                'name' => 'Confirmado',
-                'slug' => 'confirmado',
-                'description' => 'Restaurante aceitou o pedido e iniciou o fluxo de produção.',
+                'name' => 'Aceito',
+                'slug' => 'aceito',
+                'description' => 'Pedido aceito e confirmado pelo estabelecimento.',
                 'color' => '#6366F1',
                 'icon' => 'check',
                 'order_position' => 2,
@@ -53,9 +88,9 @@ class DefaultOrderStatusesSeeder extends Seeder
                 ],
             ],
             [
-                'name' => 'Em Preparação',
-                'slug' => 'em-preparacao',
-                'description' => 'Cozinha em produção (equivalente a PREPARATION_STARTED / PREPARING).',
+                'name' => 'Preparo',
+                'slug' => 'preparo',
+                'description' => 'Pedido em preparação.',
                 'color' => '#F59E0B',
                 'icon' => 'chef-hat',
                 'order_position' => 3,
@@ -67,54 +102,39 @@ class DefaultOrderStatusesSeeder extends Seeder
                 ],
             ],
             [
-                'name' => 'Pronto para Expedição',
-                'slug' => 'pronto-para-expedicao',
-                'description' => 'Pedido finalizado na cozinha, aguardando retirada do entregador ou do cliente.',
-                'color' => '#34D399',
-                'icon' => 'check-circle',
+                'name' => 'Entrega',
+                'slug' => 'entrega',
+                'description' => 'Pedido em rota de entrega ou pronto para retirada.',
+                'color' => '#60A5FA',
+                'icon' => 'truck',
                 'order_position' => 4,
                 'is_initial' => false,
                 'is_final' => false,
                 'integration_codes' => [
-                    'ifood' => ['READY_TO_PICKUP', 'READY_FOR_PICKUP'],
-                    '99food' => ['READY_FOR_PICKUP', 'READY'],
+                    'ifood' => [
+                        'READY_TO_PICKUP',
+                        'READY_FOR_PICKUP',
+                        'DISPATCHED',
+                        'OUT_FOR_DELIVERY',
+                        'IN_DELIVERY',
+                    ],
+                    '99food' => [
+                        'READY_FOR_PICKUP',
+                        'READY',
+                        'RIDER_ACCEPTED',
+                        'WAITING_RIDER',
+                        'DELIVERING',
+                        'ON_THE_WAY',
+                    ],
                 ],
             ],
             [
-                'name' => 'Aguardando Entregador',
-                'slug' => 'aguardando-entregador',
-                'description' => 'Pedido despachado; aguardando aceite/coleta pelo entregador (logística).',
-                'color' => '#8B5CF6',
-                'icon' => 'user',
-                'order_position' => 5,
-                'is_initial' => false,
-                'is_final' => false,
-                'integration_codes' => [
-                    'ifood' => ['DISPATCHED'],
-                    '99food' => ['RIDER_ACCEPTED', 'WAITING_RIDER'],
-                ],
-            ],
-            [
-                'name' => 'Em Entrega',
-                'slug' => 'em-entrega',
-                'description' => 'Pedido saiu para entrega (em rota até o cliente).',
-                'color' => '#60A5FA',
-                'icon' => 'truck',
-                'order_position' => 6,
-                'is_initial' => false,
-                'is_final' => false,
-                'integration_codes' => [
-                    'ifood' => ['OUT_FOR_DELIVERY', 'IN_DELIVERY'],
-                    '99food' => ['DELIVERING', 'ON_THE_WAY'],
-                ],
-            ],
-            [
-                'name' => 'Entregue',
-                'slug' => 'entregue',
-                'description' => 'Pedido concluído com sucesso (entrega ou retirada no balcão).',
+                'name' => 'Concluído',
+                'slug' => 'concluido',
+                'description' => 'Pedido concluído com sucesso.',
                 'color' => '#10B981',
                 'icon' => 'check-circle-2',
-                'order_position' => 7,
+                'order_position' => 5,
                 'is_initial' => false,
                 'is_final' => true,
                 'integration_codes' => [
@@ -125,10 +145,10 @@ class DefaultOrderStatusesSeeder extends Seeder
             [
                 'name' => 'Cancelado',
                 'slug' => 'cancelado',
-                'description' => 'Pedido cancelado pelo cliente, restaurante ou marketplace.',
+                'description' => 'Pedido cancelado pelo cliente, estabelecimento ou marketplace.',
                 'color' => '#EF4444',
                 'icon' => 'x-circle',
-                'order_position' => 8,
+                'order_position' => 6,
                 'is_initial' => false,
                 'is_final' => true,
                 'integration_codes' => [
@@ -154,6 +174,7 @@ class DefaultOrderStatusesSeeder extends Seeder
 
         foreach ($tenants as $tenant) {
             $this->syncTenantStatuses((int) $tenant->id, $definitions);
+            $this->remapOrderStatusNames((int) $tenant->id);
         }
 
         $this->command?->info('Status de pedidos sincronizados com sucesso.');
@@ -166,52 +187,130 @@ class DefaultOrderStatusesSeeder extends Seeder
     {
         $this->command?->info("Tenant #{$tenantId}");
 
+        $canonicalSlugs = array_column($definitions, 'slug');
+        $slugToId = [];
+
         foreach ($definitions as $definition) {
-            $payload = [
-                'name' => $definition['name'],
-                'description' => $definition['description'],
-                'color' => $definition['color'],
-                'icon' => $definition['icon'],
-                'order_position' => $definition['order_position'],
-                'is_initial' => $definition['is_initial'],
-                'is_final' => $definition['is_final'],
-                'is_active' => true,
-                'integration_codes' => $definition['integration_codes'] ?? null,
-            ];
+            $status = $this->resolveOrCreateStatus($tenantId, $definition);
+            $slugToId[$definition['slug']] = $status->id;
+            $this->command?->info("  ✓ {$definition['name']} ({$definition['slug']})");
+        }
 
-            $status = OrderStatus::query()
-                ->where('tenant_id', $tenantId)
-                ->where('slug', $definition['slug'])
-                ->first();
+        // Remapear pedidos ligados a status legados e desativar sobras
+        $legacyStatuses = OrderStatus::query()
+            ->where('tenant_id', $tenantId)
+            ->whereNotIn('slug', $canonicalSlugs)
+            ->get();
 
-            if ($status) {
-                // Garante um único status inicial por tenant
-                if ($definition['is_initial']) {
-                    OrderStatus::query()
-                        ->where('tenant_id', $tenantId)
-                        ->where('id', '!=', $status->id)
-                        ->update(['is_initial' => false]);
-                }
+        foreach ($legacyStatuses as $legacy) {
+            $targetSlug = self::LEGACY_SLUG_MAP[$legacy->slug] ?? null;
+            $targetId = $targetSlug ? ($slugToId[$targetSlug] ?? null) : null;
 
-                $status->update($payload);
-                $this->command?->info("  ↻ Atualizado: {$definition['name']}");
-
-                continue;
-            }
-
-            if ($definition['is_initial']) {
-                OrderStatus::query()
+            if ($targetId) {
+                Order::query()
                     ->where('tenant_id', $tenantId)
-                    ->update(['is_initial' => false]);
+                    ->where('order_status_id', $legacy->id)
+                    ->update(['order_status_id' => $targetId]);
+
+                $targetName = collect($definitions)->firstWhere('slug', $targetSlug)['name'] ?? null;
+                if ($targetName) {
+                    Order::query()
+                        ->where('tenant_id', $tenantId)
+                        ->where('order_status_id', $targetId)
+                        ->where('status', $legacy->name)
+                        ->update(['status' => $targetName]);
+                }
             }
 
-            OrderStatus::query()->create(array_merge($payload, [
-                'uuid' => (string) Str::uuid(),
-                'tenant_id' => $tenantId,
+            $legacy->update(['is_active' => false, 'is_initial' => false]);
+            $this->command?->info("  ⊘ Desativado legado: {$legacy->name} ({$legacy->slug})");
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $definition
+     */
+    protected function resolveOrCreateStatus(int $tenantId, array $definition): OrderStatus
+    {
+        $payload = [
+            'name' => $definition['name'],
+            'description' => $definition['description'],
+            'color' => $definition['color'],
+            'icon' => $definition['icon'],
+            'order_position' => $definition['order_position'],
+            'is_initial' => $definition['is_initial'],
+            'is_final' => $definition['is_final'],
+            'is_active' => true,
+            'integration_codes' => $definition['integration_codes'] ?? null,
+        ];
+
+        $status = OrderStatus::query()
+            ->where('tenant_id', $tenantId)
+            ->where('slug', $definition['slug'])
+            ->first();
+
+        if (! $status) {
+            // Preferir renomear o primeiro legado que aponta para este slug
+            $legacySlug = array_search($definition['slug'], self::LEGACY_SLUG_MAP, true);
+            if ($legacySlug !== false) {
+                $status = OrderStatus::query()
+                    ->where('tenant_id', $tenantId)
+                    ->where('slug', $legacySlug)
+                    ->first();
+            }
+        }
+
+        if ($definition['is_initial']) {
+            OrderStatus::query()
+                ->where('tenant_id', $tenantId)
+                ->when($status, fn ($q) => $q->where('id', '!=', $status->id))
+                ->update(['is_initial' => false]);
+        }
+
+        if ($status) {
+            $status->update(array_merge($payload, [
                 'slug' => $definition['slug'],
             ]));
 
-            $this->command?->info("  + Criado: {$definition['name']}");
+            return $status->fresh();
+        }
+
+        return OrderStatus::query()->create(array_merge($payload, [
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $tenantId,
+            'slug' => $definition['slug'],
+        ]));
+    }
+
+    protected function remapOrderStatusNames(int $tenantId): void
+    {
+        foreach (self::LEGACY_NAME_MAP as $from => $to) {
+            $updated = Order::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', $from)
+                ->update(['status' => $to]);
+
+            if ($updated > 0) {
+                $this->command?->info("  → {$updated} pedido(s): \"{$from}\" → \"{$to}\"");
+            }
+        }
+
+        // Alinhar order_status_id pelo nome canônico
+        $statuses = OrderStatus::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('slug', array_column(static::definitions(), 'slug'))
+            ->get()
+            ->keyBy('name');
+
+        foreach ($statuses as $name => $status) {
+            Order::query()
+                ->where('tenant_id', $tenantId)
+                ->where('status', $name)
+                ->where(function ($q) use ($status) {
+                    $q->whereNull('order_status_id')
+                        ->orWhere('order_status_id', '!=', $status->id);
+                })
+                ->update(['order_status_id' => $status->id]);
         }
     }
 }

@@ -102,15 +102,24 @@ class OrderApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Pedido não encontrado', 404);
             }
 
-            // Verificar se o pedido já foi faturado/entregue
-            if ($order->status === 'Entregue') {
-                return ApiResponseClass::sendResponse('', 'Pedido já foi entregue/faturado', 400);
+            // Verificar se o pedido já foi faturado/concluído
+            if (in_array($order->status, ['Concluído', 'Entregue'], true)) {
+                return ApiResponseClass::sendResponse('', 'Pedido já foi concluído/faturado', 400);
             }
 
-            // Atualizar status para entregue (faturado)
-            $order->update(['status' => 'Entregue']);
+            // Atualizar status para Concluído (faturado)
+            $tenantId = $order->tenant_id;
+            $concluido = app(\App\Repositories\Contracts\OrderStatusRepositoryInterface::class)
+                ->getByName($tenantId, 'Concluído')
+                ?? app(\App\Repositories\Contracts\OrderStatusRepositoryInterface::class)
+                    ->getByName($tenantId, 'Entregue');
 
-            return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido faturado com sucesso', 200);
+            $order->update([
+                'status' => $concluido?->name ?? 'Concluído',
+                'order_status_id' => $concluido?->id ?? $order->order_status_id,
+            ]);
+
+            return ApiResponseClass::sendResponse(new OrderResource($order->fresh()), 'Pedido faturado com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao faturar pedido');
         }
@@ -296,6 +305,44 @@ class OrderApiController extends Controller
             return ApiResponseClass::sendResponse($result, $message, Response::HTTP_OK);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar status dos pedidos em massa');
+        }
+    }
+
+    /**
+     * Pedidos abertos há mais de N dias (padrão 15) elegíveis para conclusão em lote.
+     */
+    public function staleForCompletion(\Illuminate\Http\Request $request): JsonResponse
+    {
+        try {
+            $days = max(1, (int) $request->query('days', 15));
+            $identifies = $this->orderService->getStaleOpenOrderIdentifies($days);
+
+            return ApiResponseClass::sendResponse([
+                'days' => $days,
+                'count' => count($identifies),
+                'order_ids' => $identifies,
+            ], 'Pedidos elegíveis obtidos com sucesso', Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao listar pedidos elegíveis');
+        }
+    }
+
+    /**
+     * Marca como Concluído todos os pedidos abertos com mais de N dias.
+     */
+    public function completeStale(\Illuminate\Http\Request $request): JsonResponse
+    {
+        try {
+            $days = max(1, (int) ($request->input('days') ?? 15));
+            $result = $this->orderService->completeStaleOpenOrders($days);
+
+            return ApiResponseClass::sendResponse($result, sprintf(
+                '%d pedido(s) marcado(s) como Concluído (critério: %d dias).',
+                $result['total_updated'],
+                $days
+            ), Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao concluir pedidos antigos');
         }
     }
 
