@@ -9,7 +9,9 @@ use App\Models\Client;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Events\SaleOrderConfirmedEvent;
+use App\Events\SaleOrderCreated;
 use App\Events\SaleOrderStatusChangedEvent;
+use Illuminate\Support\Facades\Log;
 use App\Repositories\Contracts\SaleOrderRepositoryInterface;
 use App\Services\CacheService;
 use App\Services\Commercial\CreditLimitService;
@@ -116,6 +118,12 @@ class SaleOrderService
         }
 
         $this->cacheService->invalidateSaleOrderCache($tenantId);
+
+        try {
+            SaleOrderCreated::dispatch($order->loadMissing('client'));
+        } catch (\Exception $e) {
+            Log::warning('Failed to broadcast SaleOrderCreated event: ' . $e->getMessage());
+        }
 
         // Dispara e-mail de confirmação quando o pedido é aprovado
         if (in_array($status, ['aprovado', 'separacao', 'faturado', 'em_transito', 'entregue'])) {

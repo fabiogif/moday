@@ -21,7 +21,6 @@ class PublicOrderService
         private readonly CouponService $couponService,
         private readonly PaymentMethodRepositoryInterface $paymentMethodRepository,
         private readonly CacheService $cacheService,
-        private readonly NotificationService $notificationService,
         private readonly OrderEmailService $orderEmailService,
     ) {}
 
@@ -79,9 +78,9 @@ class PublicOrderService
         });
 
         // Efeitos colaterais fora da transação para não corromper o commit
-        $saleOrder->loadMissing('items.product');
+        $saleOrder->loadMissing(['items.product', 'client']);
         $this->sendCompletionEmail($tenant, $saleOrder);
-        $this->notifyTenantUsers($saleOrder, $client, $tenant);
+        $this->broadcastSaleOrderCreated($saleOrder);
         $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
 
         return [
@@ -281,32 +280,12 @@ class PublicOrderService
         return ['message' => $message, 'link' => $link];
     }
 
-    private function notifyTenantUsers(SaleOrder $order, $client, Tenant $tenant): void
+    private function broadcastSaleOrderCreated(SaleOrder $order): void
     {
         try {
-            $users = \App\Models\User::where('tenant_id', $tenant->id)
-                ->where('is_active', true)
-                ->get();
-
-            foreach ($users as $user) {
-                $this->notificationService->send(
-                    $user->id,
-                    $tenant->id,
-                    'order_created',
-                    [
-                        'title'          => 'Novo Pedido de Venda',
-                        'message'        => "Pedido #{$order->identify} de {$client->name} — R$ " .
-                                            number_format((float) $order->total, 2, ',', '.'),
-                        'order_id'       => $order->identify,
-                        'order_total'    => $order->total,
-                        'client_name'    => $client->name,
-                        'notifiable_type' => SaleOrder::class,
-                        'notifiable_id'  => $order->id,
-                    ]
-                );
-            }
+            \App\Events\SaleOrderCreated::dispatch($order);
         } catch (\Exception $e) {
-            \Log::warning('PublicOrderService: falha ao notificar usuários', [
+            \Log::warning('PublicOrderService: falha ao broadcast SaleOrderCreated', [
                 'sale_order_id' => $order->id,
                 'error'         => $e->getMessage(),
             ]);
