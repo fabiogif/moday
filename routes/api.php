@@ -1054,6 +1054,8 @@ Route::prefix('admin')->middleware(['admin.auth', 'admin.log'])->group(function 
             ->middleware('admin.permission:tenants.view');
         Route::put('/{id}', [AdminTenantController::class, 'update'])
             ->middleware('admin.permission:tenants.manage');
+        Route::put('/{id}/owner-credentials', [AdminTenantController::class, 'updateOwnerCredentials'])
+            ->middleware('admin.permission:tenants.manage');
         Route::post('/{id}/activate', [AdminTenantController::class, 'activate'])
             ->middleware('admin.permission:tenants.manage');
         Route::post('/{id}/suspend', [AdminTenantController::class, 'suspend'])

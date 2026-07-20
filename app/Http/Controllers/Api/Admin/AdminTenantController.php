@@ -54,6 +54,26 @@ class AdminTenantController extends Controller
         ]);
     }
 
+    public function updateOwnerCredentials(Request $request, $id)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
+
+        $owner = $this->tenantService->updateOwnerCredentials(
+            auth()->guard('admin')->user(),
+            (int) $id,
+            $request->only(['email', 'password'])
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Credenciais do usuário atualizadas com sucesso.',
+            'data' => $owner,
+        ]);
+    }
+
     public function activate($id)
     {
         $this->tenantService->activateTenant(auth()->guard('admin')->user(), (int) $id);

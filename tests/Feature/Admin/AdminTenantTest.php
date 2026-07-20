@@ -5,7 +5,9 @@ namespace Tests\Feature\Admin;
 use App\Models\AdminUser;
 use App\Models\Tenant;
 use App\Models\AdminActionLog;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -158,6 +160,92 @@ class AdminTenantTest extends TestCase
             'tenant_id' => $tenant->id,
             'action' => 'tenant.suspend',
         ]);
+    }
+
+    #[Test]
+    public function it_shows_registrant_owner_in_tenant_details()
+    {
+        $tenant = Tenant::factory()->create();
+        $owner = User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'dono@empresa.com']);
+
+        $response = $this->actingAsAdmin()
+            ->getJson("/api/admin/tenants/{$tenant->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.owner.id', $owner->id)
+            ->assertJsonPath('data.owner.email', 'dono@empresa.com');
+    }
+
+    #[Test]
+    public function it_updates_owner_email_and_password()
+    {
+        $tenant = Tenant::factory()->create();
+        $owner = User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'antigo@empresa.com']);
+
+        $response = $this->actingAsAdmin()
+            ->putJson("/api/admin/tenants/{$tenant->id}/owner-credentials", [
+                'email' => 'novo@empresa.com',
+                'password' => 'novaSenha123',
+                'password_confirmation' => 'novaSenha123',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.email', 'novo@empresa.com');
+
+        $owner->refresh();
+        $this->assertEquals('novo@empresa.com', $owner->email);
+        $this->assertTrue(Hash::check('novaSenha123', $owner->password));
+    }
+
+    #[Test]
+    public function it_updates_owner_email_without_changing_password()
+    {
+        $tenant = Tenant::factory()->create();
+        $owner = User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'antigo@empresa.com']);
+        $originalPassword = $owner->password;
+
+        $response = $this->actingAsAdmin()
+            ->putJson("/api/admin/tenants/{$tenant->id}/owner-credentials", [
+                'email' => 'novo@empresa.com',
+            ]);
+
+        $response->assertStatus(200);
+
+        $owner->refresh();
+        $this->assertEquals('novo@empresa.com', $owner->email);
+        $this->assertEquals($originalPassword, $owner->password);
+    }
+
+    #[Test]
+    public function it_rejects_owner_email_already_used_by_another_user_in_same_tenant()
+    {
+        $tenant = Tenant::factory()->create();
+        $owner = User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'dono@empresa.com']);
+        User::factory()->create(['tenant_id' => $tenant->id, 'email' => 'colega@empresa.com']);
+
+        $response = $this->actingAsAdmin()
+            ->putJson("/api/admin/tenants/{$tenant->id}/owner-credentials", [
+                'email' => 'colega@empresa.com',
+            ]);
+
+        $response->assertStatus(422);
+
+        $owner->refresh();
+        $this->assertEquals('dono@empresa.com', $owner->email);
+    }
+
+    #[Test]
+    public function analyst_cannot_update_owner_credentials()
+    {
+        $tenant = Tenant::factory()->create();
+        User::factory()->create(['tenant_id' => $tenant->id]);
+
+        $response = $this->actingAsAdmin('analyst')
+            ->putJson("/api/admin/tenants/{$tenant->id}/owner-credentials", [
+                'email' => 'novo@empresa.com',
+            ]);
+
+        $response->assertStatus(403);
     }
 
     #[Test]

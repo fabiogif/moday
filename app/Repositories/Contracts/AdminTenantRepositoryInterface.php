@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface AdminTenantRepositoryInterface
@@ -28,4 +29,10 @@ interface AdminTenantRepositoryInterface
     public function forceDelete(Tenant $tenant): bool;
 
     public function getTenantsByIds(array $ids): mixed;
+
+    public function findOwnerUser(int $tenantId): ?User;
+
+    public function emailExistsForTenant(int $tenantId, string $email, int $excludeUserId): bool;
+
+    public function updateOwnerUser(User $user, array $data): User;
 }

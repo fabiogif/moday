@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Repositories\Contracts\AdminActionLogRepositoryInterface;
 use App\Repositories\Contracts\AdminTenantRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 readonly class AdminTenantService
 {
@@ -36,9 +37,15 @@ readonly class AdminTenantService
         $billing = $this->tenantRepository->getBillingHistory($id);
         $recentAccess = $this->tenantRepository->getRecentAccess($id);
         $actionHistory = $this->tenantRepository->getActionHistory($id);
+        $owner = $this->tenantRepository->findOwnerUser($id);
 
         return [
             'tenant' => $this->formatTenantDetail($tenant),
+            'owner' => $owner ? [
+                'id' => $owner->id,
+                'name' => $owner->name,
+                'email' => $owner->email,
+            ] : null,
             'metrics' => [
                 'total_orders' => $metrics30Days->sum('total_orders'),
                 'total_revenue' => $metrics30Days->sum('total_revenue'),
@@ -92,6 +99,50 @@ readonly class AdminTenantService
         );
 
         return $tenant;
+    }
+
+    public function updateOwnerCredentials($admin, int $id, array $data): array
+    {
+        $tenant = $this->tenantRepository->findOrFail($id);
+        $owner = $this->tenantRepository->findOwnerUser($id);
+
+        if (!$owner) {
+            throw ValidationException::withMessages([
+                'email' => 'Nenhum usuário responsável encontrado para esta empresa.',
+            ]);
+        }
+
+        if ($this->tenantRepository->emailExistsForTenant($id, $data['email'], $owner->id)) {
+            throw ValidationException::withMessages([
+                'email' => 'Este e-mail já está em uso por outro usuário desta empresa.',
+            ]);
+        }
+
+        $oldEmail = $owner->email;
+        $passwordChanged = !empty($data['password']);
+
+        $updatePayload = ['email' => $data['email']];
+        if ($passwordChanged) {
+            $updatePayload['password'] = $data['password'];
+        }
+
+        $owner = $this->tenantRepository->updateOwnerUser($owner, $updatePayload);
+
+        $this->actionLogRepository->logAction(
+            $admin,
+            'tenant.update_owner_credentials',
+            "Atualizou credenciais do usuário responsável ({$owner->name}) da empresa {$tenant->name}"
+                . ($passwordChanged ? ' — e-mail e senha alterados' : ' — e-mail alterado'),
+            $tenant,
+            ['email' => $oldEmail],
+            ['email' => $owner->email, 'password_changed' => $passwordChanged]
+        );
+
+        return [
+            'id' => $owner->id,
+            'name' => $owner->name,
+            'email' => $owner->email,
+        ];
     }
 
     public function activateTenant($admin, int $id): void

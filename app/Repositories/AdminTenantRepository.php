@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantAccessLog;
 use App\Models\TenantBilling;
 use App\Models\TenantMetrics;
+use App\Models\User;
 use App\Repositories\Contracts\AdminTenantRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -106,5 +107,26 @@ class AdminTenantRepository implements AdminTenantRepositoryInterface
     public function getTenantsByIds(array $ids): mixed
     {
         return Tenant::whereIn('id', $ids)->get();
+    }
+
+    public function findOwnerUser(int $tenantId): ?User
+    {
+        return User::where('tenant_id', $tenantId)->oldest()->first();
+    }
+
+    public function emailExistsForTenant(int $tenantId, string $email, int $excludeUserId): bool
+    {
+        return User::where('tenant_id', $tenantId)
+            ->where('email', $email)
+            ->where('id', '!=', $excludeUserId)
+            ->exists();
+    }
+
+    public function updateOwnerUser(User $user, array $data): User
+    {
+        $user->fill($data);
+        $user->save();
+
+        return $user->fresh();
     }
 }
