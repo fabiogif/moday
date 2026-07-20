@@ -31,9 +31,9 @@ class DefaultProfilesSeeder extends Seeder
             ],
         ],
         'Vendedor' => [
-            'description' => 'Criar e visualizar pedidos de venda e consultar preços.',
+            'description' => 'Criar, visualizar e avançar o status de pedidos de venda e consultar preços.',
             'permissions' => [
-                'sale-orders.index', 'sale-orders.store',
+                'sale-orders.index', 'sale-orders.store', 'sale-orders.update',
                 'clients.index', 'clients.show', 'clients.store', 'clients.update',
                 'price-tables.index',
                 'products.index', 'products.show',
