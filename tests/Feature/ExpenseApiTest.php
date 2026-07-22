@@ -31,6 +31,7 @@ class ExpenseApiTest extends TestCase
         $this->user = User::factory()->create([
             'tenant_id' => $this->tenant->id,
         ]);
+        $this->grantFullAccess($this->user, $this->tenant);
 
         $this->category = FinancialCategory::factory()->create([
             'tenant_id' => $this->tenant->id,

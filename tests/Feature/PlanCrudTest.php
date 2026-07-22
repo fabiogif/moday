@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AdminUser;
 use App\Models\Plan;
 use App\Models\DetailsPlan;
 use App\Models\Tenant;
@@ -21,7 +22,8 @@ class PlanCrudTest extends TestCase
     {
         parent::setUp();
 
-        // Criar tenant e usuário autenticado
+        // Criar tenant e usuário (não usado para autenticar aqui: a gestão do catálogo
+        // de planos agora exige um admin da plataforma, ver routes/api.php e AdminPlanTest).
         $this->tenant = Tenant::factory()->create([
             'name' => 'Test Tenant',
             'slug' => 'test-tenant',
@@ -32,7 +34,8 @@ class PlanCrudTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->token = auth('api')->login($this->user);
+        $admin = AdminUser::factory()->create(['role' => 'admin']);
+        $this->token = $admin->createToken('test-token')->plainTextToken;
         $this->defaultHeaders['Authorization'] = 'Bearer ' . $this->token;
     }
 

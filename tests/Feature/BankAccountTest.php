@@ -32,6 +32,7 @@ class BankAccountTest extends TestCase
         $this->user = User::factory()->create([
             'tenant_id' => $this->tenant->id,
         ]);
+        $this->grantFullAccess($this->user, $this->tenant);
 
         // Gerar token
         $this->token = JWTAuth::fromUser($this->user);
@@ -479,6 +480,7 @@ class BankAccountTest extends TestCase
     {
         $otherTenant = Tenant::factory()->create();
         $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);
+        $this->grantFullAccess($otherUser, $otherTenant);
         $otherToken = JWTAuth::fromUser($otherUser);
 
         $account = TenantBankAccount::factory()

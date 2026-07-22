@@ -58,6 +58,18 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Concede ao usuário de teste o profile "Administrador" com todas as permissões
+     * do tenant, replicando o que acontece de verdade no registro de um tenant
+     * (App\Services\TenantAclProvisioner). Necessário desde que as rotas de
+     * produtos/mesas/clientes/módulos financeiros passaram a exigir acl.permission.
+     */
+    protected function grantFullAccess(\App\Models\User $user, \App\Models\Tenant $tenant): void
+    {
+        app(\App\Services\TenantAclProvisioner::class)->provisionAndAssignOwner($tenant, $user);
+        $user->clearPermissionsCache();
+    }
+
+    /**
      * Helper para limpar cache entre testes
      */
     protected function tearDown(): void

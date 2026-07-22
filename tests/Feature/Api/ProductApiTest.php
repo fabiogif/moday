@@ -40,7 +40,8 @@ class ProductApiTest extends TestCase
         $this->user = User::factory()->create([
             'tenant_id' => $this->tenant->id
         ]);
-        
+        $this->grantFullAccess($this->user, $this->tenant);
+
         // Criar categoria
         $this->category = Category::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -257,6 +258,7 @@ class ProductApiTest extends TestCase
         ]);
 
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $this->grantFullAccess($user, $tenant);
         $token = JWTAuth::fromUser($user);
 
         $product = Product::factory()->create([
