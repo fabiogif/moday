@@ -25,6 +25,7 @@ class StoreUpdateProductRequest extends BaseRequest
 
         $uniqueRule = Rule::unique('products', 'name')
             ->where(function ($query) use ($tenantId) {
+                $query->whereNull('deleted_at');
                 if ($tenantId !== null) {
                     $query->where('tenant_id', $tenantId);
                 } else {
@@ -50,6 +51,7 @@ class StoreUpdateProductRequest extends BaseRequest
 
         $barcodeUniqueRule = Rule::unique('products', 'barcode')
             ->where(function ($query) use ($tenantId) {
+                $query->whereNull('deleted_at');
                 if ($tenantId !== null) {
                     $query->where('tenant_id', $tenantId);
                 } else {
@@ -195,6 +197,7 @@ class StoreUpdateProductRequest extends BaseRequest
     public function messages(): array
     {
         return [
+            'name.unique' => 'O campo nome já está sendo utilizado.',
             'barcode.regex' => 'O código de barras deve conter apenas números.',
             'barcode.unique' => 'Já existe um produto cadastrado com este código de barras.',
             'barcode.max' => 'Código de barras inválido.',
