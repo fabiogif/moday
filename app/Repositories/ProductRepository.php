@@ -43,11 +43,19 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
 
      public function delete($id, int $tenantId = null)
      {
-         $query = $this->entity->where('id', $id);
-         if($tenantId) {
+         $query = $this->entity->newQuery()->where('id', $id);
+         if ($tenantId) {
              $query->where('tenant_id', $tenantId);
          }
-         return $query->delete();
+
+         /** @var Product|null $product */
+         $product = $query->first();
+         if (!$product) {
+             return false;
+         }
+
+         // Usa delete() do model para disparar SoftDeletes + eventos (libera barcode).
+         return (bool) $product->delete();
      }
 
     public function getProductsByTenantUuid(int $idTenant, array $categories)
