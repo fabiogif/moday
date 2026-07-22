@@ -6,6 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
+/**
+ * Pedido de venda B2B oficial (desconto, crédito, tabela de preço, faturamento
+ * /NF-e, romaneio), distinto de `Order` (quadro Kanban operacional de preparo).
+ * Ver docblock de `App\Services\PublicOrderService` para a explicação completa
+ * de por que os dois modelos coexistem para o mesmo pedido vindo da loja
+ * pública.
+ */
 class SaleOrder extends Model
 {
     use HasFactory;
