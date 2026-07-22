@@ -28,6 +28,8 @@ class DistribtecModulePermissionDefinitions
             'accounts-payable' => 'Contas a Pagar',
             'suppliers' => 'Fornecedores',
             'offer-rules' => 'Ofertas Automáticas',
+            'expenses' => 'Despesas',
+            'bank-accounts' => 'Contas Bancárias',
         ];
 
         $actions = [

@@ -372,8 +372,8 @@ class MercadoPagoService
         string $secret
     ): bool {
         if (empty($secret)) {
-            Log::warning('MercadoPago: webhook secret não configurado, pulando validação');
-            return true;
+            Log::error('MercadoPago: webhook secret não configurado — rejeitando assinatura por padrão seguro');
+            return false;
         }
 
         $parts = [];
