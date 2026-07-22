@@ -22,14 +22,14 @@ final class BarcodeProductData
     {
         return [
             'barcode' => $this->barcode,
-            'name' => $this->name,
+            'name' => $this->capitalizeFirst($this->name),
             'brand' => $this->brand,
             'category' => $this->category,
             'unit_of_measure' => $this->unitOfMeasure,
             'weight' => $this->weight,
             'volume' => $this->volume,
             'image_url' => $this->imageUrl,
-            'description' => $this->description,
+            'description' => $this->capitalizeFirst($this->description ?? $this->name),
             'source' => $this->source,
         ];
     }
@@ -37,5 +37,22 @@ final class BarcodeProductData
     public function hasUsableData(): bool
     {
         return filled($this->name) || filled($this->brand) || filled($this->imageUrl);
+    }
+
+    private function capitalizeFirst(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return $value;
+        }
+
+        $first = mb_substr($trimmed, 0, 1, 'UTF-8');
+        $rest = mb_substr($trimmed, 1, null, 'UTF-8');
+
+        return mb_strtoupper($first, 'UTF-8') . $rest;
     }
 }

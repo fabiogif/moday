@@ -227,7 +227,13 @@ class ProductApiController extends Controller
                     $user->tenant->uuid
                 );
                 $data['image'] = $uploadResult['path'];
+            } elseif (!empty($data['image_url']) && empty($data['image'])) {
+                $data['image'] = $this->resolveImageFromUrl(
+                    (string) $data['image_url'],
+                    $user->tenant->uuid
+                ) ?? ($data['image'] ?? null);
             }
+            unset($data['image_url']);
             $product = $this->productService->store($data);
 
             if (isset($data['qtd_stock']) && (int) $data['qtd_stock'] > 0) {
@@ -347,7 +353,13 @@ class ProductApiController extends Controller
                     $user->tenant->uuid
                 );
                 $data['image'] = $uploadResult['path'];
+            } elseif (!empty($data['image_url']) && !$request->hasFile('image') && empty($existingProduct->image)) {
+                $resolved = $this->resolveImageFromUrl((string) $data['image_url'], $user->tenant->uuid);
+                if ($resolved) {
+                    $data['image'] = $resolved;
+                }
             }
+            unset($data['image_url']);
             
             $product = $this->productService->update($data, $existingProduct->id);
 
@@ -409,6 +421,23 @@ class ProductApiController extends Controller
             return ApiResponseClass::throw(new \RuntimeException('Falha ao deletar produto'), 'Erro ao remover produto');
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao remover produto');
+        }
+    }
+
+    private function resolveImageFromUrl(string $url, string $tenantUuid): ?string
+    {
+        try {
+            $uploadResult = app(\App\Services\FileUploadService::class)
+                ->uploadFromUrl($url, 'product', $tenantUuid);
+
+            return $uploadResult['path'] ?? null;
+        } catch (\Throwable $ex) {
+            Log::warning('Falha ao importar imagem remota do produto', [
+                'url' => $url,
+                'error' => $ex->getMessage(),
+            ]);
+
+            return null;
         }
     }
 }

@@ -158,15 +158,32 @@ class BarcodeLookupService
     {
         return [
             'barcode' => $cached->barcode,
-            'name' => $cached->name,
+            'name' => $this->capitalizeFirst($cached->name),
             'brand' => $cached->brand,
             'category' => $cached->category,
             'unit_of_measure' => $cached->unit_of_measure,
             'weight' => $cached->weight !== null ? (float) $cached->weight : null,
             'volume' => $cached->volume !== null ? (float) $cached->volume : null,
             'image_url' => $cached->image_url,
-            'description' => $cached->name,
+            'description' => $this->capitalizeFirst($cached->name),
             'source' => 'cache',
         ];
+    }
+
+    private function capitalizeFirst(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return $value;
+        }
+
+        $first = mb_substr($trimmed, 0, 1, 'UTF-8');
+        $rest = mb_substr($trimmed, 1, null, 'UTF-8');
+
+        return mb_strtoupper($first, 'UTF-8') . $rest;
     }
 }

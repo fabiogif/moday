@@ -91,7 +91,7 @@ class StoreUpdateProductRequest extends BaseRequest
             ],
             'weight' => 'nullable|numeric|min:0',
             'volume' => 'nullable|numeric|min:0',
-            'image_url' => 'nullable|string|max:500',
+            'image_url' => 'nullable|string|max:2048',
             'height' => 'nullable|numeric|min:0',
             'width' => 'nullable|numeric|min:0',
             'depth' => 'nullable|numeric|min:0',

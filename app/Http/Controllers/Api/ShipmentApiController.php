@@ -347,6 +347,7 @@ class ShipmentApiController extends Controller
             'total_weight_kg' => $shipment->total_weight_kg,
             'total_volume_m3' => $shipment->total_volume_m3,
             'optimized_route' => $shipment->optimized_route,
+            'route_order_source' => $shipment->route_order_source ?? 'system',
             'route_polyline' => $shipment->route_polyline,
             'depot_address' => $depotAddress,
             'carrier' => $shipment->carrier,
