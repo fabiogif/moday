@@ -16,7 +16,8 @@ class Product extends Model
 
     protected $fillable = [
         'uuid', 'name', 'flag', 'description', 'image', 'tenant_id', 'is_active',
-        'brand', 'sku', 'barcode', 'weight', 'height', 'width', 'depth',
+        'brand', 'sku', 'barcode', 'weight', 'height', 'width', 'depth', 'volume',
+        'image_url',
         // Pricing
         'price', 'price_cost', 'promotional_price', 'price_minimum',
         // Classification

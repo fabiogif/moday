@@ -73,8 +73,25 @@ class StoreUpdateProductRequest extends BaseRequest
             'promotional_price' => ["nullable", "regex:/^\d+(\.\d{1,2})?$/"],
             'brand' => 'nullable|string|max:255',
             'sku' => 'nullable|string|max:255',
-            'barcode' => ['nullable', 'string', 'max:255', $barcodeUniqueRule],
+            'barcode' => [
+                'nullable',
+                'string',
+                'regex:/^\d+$/',
+                'max:20',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    $len = strlen((string) $value);
+                    if (!in_array($len, [8, 12, 13], true)) {
+                        $fail('Código de barras inválido. Use EAN-8 (8 dígitos), UPC-A (12) ou EAN-13 (13).');
+                    }
+                },
+                $barcodeUniqueRule,
+            ],
             'weight' => 'nullable|numeric|min:0',
+            'volume' => 'nullable|numeric|min:0',
+            'image_url' => 'nullable|string|max:500',
             'height' => 'nullable|numeric|min:0',
             'width' => 'nullable|numeric|min:0',
             'depth' => 'nullable|numeric|min:0',
@@ -153,7 +170,7 @@ class StoreUpdateProductRequest extends BaseRequest
         }
         
         // Converter campos numéricos de string para número quando necessário
-        $numericFields = ['price', 'price_cost', 'promotional_price', 'qtd_stock', 'weight', 'height', 'width', 'depth'];
+        $numericFields = ['price', 'price_cost', 'promotional_price', 'qtd_stock', 'weight', 'volume', 'height', 'width', 'depth'];
         $data = [];
         
         foreach ($numericFields as $field) {
@@ -173,6 +190,15 @@ class StoreUpdateProductRequest extends BaseRequest
                 'barcode' => trim($this->barcode) !== '' ? trim($this->barcode) : null,
             ]);
         }
+    }
+
+    public function messages(): array
+    {
+        return [
+            'barcode.regex' => 'O código de barras deve conter apenas números.',
+            'barcode.unique' => 'Já existe um produto cadastrado com este código de barras.',
+            'barcode.max' => 'Código de barras inválido.',
+        ];
     }
 
     public function withValidator($validator)

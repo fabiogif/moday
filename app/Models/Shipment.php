@@ -14,6 +14,8 @@ class Shipment extends Model
         'pod_reference', 'delivery_token', 'notes', 'created_by',
         'region', 'optimized_route', 'route_polyline', 'estimated_km',
         'estimated_duration_minutes', 'delivery_cost', 'cost_per_delivery',
+        'freight_weight_amount', 'freight_weight_unit', 'freight_weight_charge_mode',
+        'freight_weight_quantity', 'freight_weight_breakdown',
         'total_weight_kg', 'total_volume_m3',
     ];
 
@@ -27,6 +29,10 @@ class Shipment extends Model
             'estimated_duration_minutes' => 'integer',
             'delivery_cost'     => 'decimal:2',
             'cost_per_delivery' => 'decimal:2',
+            'freight_weight_amount' => 'decimal:2',
+            'freight_weight_unit' => 'decimal:4',
+            'freight_weight_quantity' => 'decimal:3',
+            'freight_weight_breakdown' => 'array',
             'total_weight_kg'   => 'decimal:3',
             'total_volume_m3'   => 'decimal:4',
         ];

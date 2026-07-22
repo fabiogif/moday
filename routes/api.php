@@ -252,6 +252,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware('throttle:read');
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware('throttle:read');
     Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware('throttle:read')->where('code', '.+');
+    Route::get('/product/barcode-lookup/{code}', [\App\Http\Controllers\Api\ProductBarcodeLookupController::class, '__invoke'])->middleware('throttle:read')->where('code', '.+');
     Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware('throttle:read');
     Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware('throttle:read');
     Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware('throttle:read');
@@ -765,11 +766,20 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::get('/logistics/metrics', [\App\Http\Controllers\Api\LogisticsMetricsController::class, 'index'])
         ->middleware(['acl.permission:shipments.index', 'throttle:read']);
 
+    // Logística — Frete Peso (FP = (CF + CV) × MKP)
+    Route::prefix('logistics/freight-weight')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\FreightWeightController::class, 'showSettings'])
+            ->middleware(['acl.permission:shipments.index', 'throttle:read']);
+        Route::put('/', [\App\Http\Controllers\Api\FreightWeightController::class, 'updateSettings'])
+            ->middleware(['acl.permission:shipments.store', 'throttle:critical']);
+    });
+
     // Logística — Roteirização de Entregas
     Route::prefix('deliveries')->middleware('plan.feature:delivery_routing')->group(function () {
         Route::get('/suggest-groups', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'suggestGroups'])->middleware('throttle:read');
         Route::post('/{shipmentId}/optimize-route', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'optimizeRoute'])->middleware('throttle:critical');
         Route::get('/{shipmentId}/cost', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'calculateCost'])->middleware('throttle:read');
+        Route::post('/{shipmentId}/freight-weight', [\App\Http\Controllers\Api\FreightWeightController::class, 'calculate'])->middleware('throttle:critical');
         Route::patch('/{shipmentId}/orders/{orderId}/window', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'setDeliveryWindow'])->middleware('throttle:critical');
     });
 

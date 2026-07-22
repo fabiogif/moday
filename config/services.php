@@ -66,4 +66,16 @@ return [
         'key' => env('EVOLUTION_API_KEY'),
     ],
 
+    'cosmos' => [
+        'token' => env('COSMOS_API_TOKEN'),
+        'base_url' => env('COSMOS_API_BASE_URL', 'https://api.cosmos.bluesoft.com.br'),
+        'timeout' => (int) env('COSMOS_API_TIMEOUT', 2),
+    ],
+
+    'open_food_facts' => [
+        'base_url' => env('OPENFOODFACTS_BASE_URL', 'https://world.openfoodfacts.org'),
+        'timeout' => (int) env('OPENFOODFACTS_TIMEOUT', 3),
+        'user_agent' => env('OPENFOODFACTS_USER_AGENT', 'DistribTec/1.0 (barcode-lookup)'),
+    ],
+
 ];
