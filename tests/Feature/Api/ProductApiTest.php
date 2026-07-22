@@ -534,6 +534,38 @@ class ProductApiTest extends TestCase
     }
 
     #[Test]
+    public function pode_reutilizar_nome_e_barcode_apos_soft_delete(): void
+    {
+        $product = Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Produto Reciclável',
+            'barcode' => '7891234567890',
+            'description' => 'Descrição original',
+            'price' => 50.00,
+            'qtd_stock' => 5,
+        ]);
+
+        $product->delete();
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->postJson('/api/product', [
+            'name' => 'Produto Reciclável',
+            'description' => 'Novo cadastro após exclusão',
+            'price' => 60.00,
+            'qtd_stock' => 8,
+            'barcode' => '7891234567890',
+            'categories' => [$this->category->uuid],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.name', 'Produto Reciclável')
+            ->assertJsonPath('data.barcode', '7891234567890');
+    }
+
+    #[Test]
     public function pode_atualizar_produto_mantendo_mesmo_nome()
     {
         $product = Product::factory()->create([

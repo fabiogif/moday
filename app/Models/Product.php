@@ -118,6 +118,19 @@ class Product extends Model
                 $model->flag = Str::kebab($model->name);
             }
         });
+
+        // Libera o UNIQUE (tenant_id, barcode) para reutilização após soft delete.
+        static::deleting(function (Product $product) {
+            if ($product->isForceDeleting() || $product->barcode === null) {
+                return;
+            }
+
+            $product->newQueryWithoutScopes()
+                ->where($product->getKeyName(), $product->getKey())
+                ->update(['barcode' => null]);
+
+            $product->barcode = null;
+        });
     }
 
     public function categories()
