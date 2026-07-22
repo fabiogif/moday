@@ -40,7 +40,7 @@ class PlanApiController extends Controller
     public function store(StorePlanRequest $request): JsonResponse
     {
         try {
-            $data = $request->all();
+            $data = $request->validated();
             $details = $data['details'] ?? [];
 
             if ($this->planService->urlExists($data['url'])) {
@@ -69,7 +69,7 @@ class PlanApiController extends Controller
     public function update(UpdatePlanRequest $request, $id): JsonResponse
     {
         try {
-            $data = $request->all();
+            $data = $request->validated();
             $details = $data['details'] ?? [];
 
             $this->planService->updateWithDetails($data, $id, $details);

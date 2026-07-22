@@ -73,7 +73,7 @@ class ClientApiController extends Controller
     {
         try {
             [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
-            $data = $request->all();
+            $data = $request->validated();
             $data['tenant_id'] = $tenantId;
 
             // For B2B clients: derive name from company_name if name is absent
@@ -183,7 +183,7 @@ class ClientApiController extends Controller
                 return ApiResponseClass::forbidden('Acesso negado ao cliente');
             }
             
-            $client = $this->clientService->updateClient($id, $request->all());
+            $client = $this->clientService->updateClient($id, $request->validated());
             
             return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente atualizado com sucesso', 200);
         } catch (\Exception $ex) {
