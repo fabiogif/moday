@@ -27,6 +27,7 @@ class ProductBarcodeLookupApiTest extends TestCase
         $plan = \App\Models\Plan::factory()->create();
         $this->tenant = Tenant::factory()->create(['plan_id' => $plan->id]);
         $this->user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $this->grantFullAccess($this->user, $this->tenant);
         $this->token = JWTAuth::fromUser($this->user);
 
         config([

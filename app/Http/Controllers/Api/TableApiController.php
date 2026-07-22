@@ -54,7 +54,7 @@ class TableApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
-            $data = $request->all();
+            $data = $request->validated();
             $data['tenant_id'] = $user->tenant_id;
             
             $table = $this->tableService->store($data);
@@ -85,7 +85,7 @@ class TableApiController extends Controller
     public function update(StoreUpdateTableRequest $request, int $id): JsonResponse
     {
         try {
-            $updated = $this->tableService->update($request->all(), $id);
+            $updated = $this->tableService->update($request->validated(), $id);
             return ApiResponseClass::sendResponse(['updated' => (bool) $updated], 'Mesa atualizada com sucesso', 200);
         } catch (\Exception $ex) {
             Log::error('Erro ao atualizar mesa: '.$ex->getMessage());

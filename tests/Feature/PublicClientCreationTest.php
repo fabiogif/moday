@@ -521,6 +521,7 @@ class PublicClientCreationTest extends TestCase
         $user = User::factory()->create([
             'tenant_id' => $this->tenant->id,
         ]);
+        $this->grantFullAccess($user, $this->tenant);
 
         $response = $this->actingAs($user, 'api')->getJson('/api/client');
 

@@ -34,6 +34,7 @@ class DeletionGuardConflictTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'profile_id' => $profile->id,
         ]);
+        $this->grantFullAccess($this->user, $this->tenant);
 
         $this->token = JWTAuth::fromUser($this->user);
     }

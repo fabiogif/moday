@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Auth\AuthController;
 
-// Incluir rotas de teste
-require_once __DIR__ . '/test.php';
+// Rotas de teste (nunca carregadas em produção)
+if (!app()->isProduction()) {
+    require_once __DIR__ . '/test.php';
+}
 use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\Auth\RegisterApiController,
     Api\BankAccountController,
@@ -249,17 +251,17 @@ Route::get('/service-type/menu', [ServiceTypeApiController::class, 'menu'])->mid
 // Rotas protegidas por JWT e tenant
 Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
     // Produtos
-    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware('throttle:read');
-    Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware('throttle:read');
-    Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware('throttle:read')->where('code', '.+');
-    Route::get('/product/barcode-lookup/{code}', [\App\Http\Controllers\Api\ProductBarcodeLookupController::class, '__invoke'])->middleware('throttle:read')->where('code', '.+');
-    Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware('throttle:read');
-    Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware('throttle:read');
-    Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware('throttle:read');
-    Route::post('/product', [ProductApiController::class , 'store'])->middleware('throttle:critical');
-    Route::put('/product/{id}', [ProductApiController::class , 'update'])->middleware('throttle:critical');
-    Route::post('/product/{id}', [ProductApiController::class , 'update'])->middleware('throttle:critical'); // Para upload de imagem com _method=PUT
-    Route::delete('/product/{identify}', [ProductApiController::class , 'delete'])->middleware('throttle:critical');
+    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
+    Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
+    Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware(['acl.permission:products.show', 'throttle:read'])->where('code', '.+');
+    Route::get('/product/barcode-lookup/{code}', [\App\Http\Controllers\Api\ProductBarcodeLookupController::class, '__invoke'])->middleware(['acl.permission:products.show', 'throttle:read'])->where('code', '.+');
+    Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware(['acl.permission:products.index', 'throttle:read']);
+    Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware(['acl.permission:products.show', 'throttle:read']);
+    Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware(['acl.permission:products.show', 'throttle:read']);
+    Route::post('/product', [ProductApiController::class , 'store'])->middleware(['acl.permission:products.store', 'throttle:critical']);
+    Route::put('/product/{id}', [ProductApiController::class , 'update'])->middleware(['acl.permission:products.update', 'throttle:critical']);
+    Route::post('/product/{id}', [ProductApiController::class , 'update'])->middleware(['acl.permission:products.update', 'throttle:critical']); // Para upload de imagem com _method=PUT
+    Route::delete('/product/{identify}', [ProductApiController::class , 'delete'])->middleware(['acl.permission:products.destroy', 'throttle:critical']);
 
     // Offline Sync (app mobile / campo)
     Route::prefix('offline')->group(function () {
@@ -305,12 +307,12 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::put('/notifications/preferences', [\App\Http\Controllers\Api\NotificationController::class, 'updatePreferences'])->middleware('throttle:critical');
 
     // Mesas
-    Route::get('/table', [TableApiController::class , 'index'])->middleware('throttle:read');
-    Route::get('/table/stats', [TableApiController::class , 'stats'])->middleware('throttle:read');
-    Route::get('/table/{identify}', [TableApiController::class , 'show'])->middleware('throttle:read');
-    Route::post('/table', [TableApiController::class , 'store'])->middleware('throttle:critical');
-    Route::put('/table/{id}', [TableApiController::class , 'update'])->middleware('throttle:critical');
-    Route::delete('/table/{identify}', [TableApiController::class , 'delete'])->middleware('throttle:critical');
+    Route::get('/table', [TableApiController::class , 'index'])->middleware(['acl.permission:tables.index', 'throttle:read']);
+    Route::get('/table/stats', [TableApiController::class , 'stats'])->middleware(['acl.permission:tables.index', 'throttle:read']);
+    Route::get('/table/{identify}', [TableApiController::class , 'show'])->middleware(['acl.permission:tables.show', 'throttle:read']);
+    Route::post('/table', [TableApiController::class , 'store'])->middleware(['acl.permission:tables.store', 'throttle:critical']);
+    Route::put('/table/{id}', [TableApiController::class , 'update'])->middleware(['acl.permission:tables.update', 'throttle:critical']);
+    Route::delete('/table/{identify}', [TableApiController::class , 'delete'])->middleware(['acl.permission:tables.destroy', 'throttle:critical']);
 
     // Tipos de Atendimento
     Route::get('/service-type', [ServiceTypeApiController::class, 'index'])->middleware('throttle:read');
@@ -336,14 +338,14 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::put('/user/{user}', [UserApiController::class , 'update'])->middleware('throttle:critical');
     Route::delete('/user/{user}', [UserApiController::class , 'destroy'])->middleware('throttle:critical');
 
-    // Clientes (protegidas por autenticação)
-    Route::get('/client', [ClientApiController::class, 'index'])->middleware('throttle:read');
-    Route::get('/client/stats', [ClientApiController::class, 'stats'])->middleware('throttle:read');
-    Route::get('/client/check-cpf', [ClientApiController::class, 'checkCpf'])->middleware('throttle:read');
-    Route::get('/client/{id}', [ClientApiController::class, 'show'])->middleware('throttle:read');
-    Route::post('/client', [ClientApiController::class, 'store'])->middleware('throttle:critical');
-    Route::put('/client/{id}', [ClientApiController::class, 'update'])->middleware('throttle:critical');
-    Route::delete('/client/{id}', [ClientApiController::class, 'destroy'])->middleware('throttle:critical');
+    // Clientes (protegidas por autenticação + ACL)
+    Route::get('/client', [ClientApiController::class, 'index'])->middleware(['acl.permission:clients.index', 'throttle:read']);
+    Route::get('/client/stats', [ClientApiController::class, 'stats'])->middleware(['acl.permission:clients.index', 'throttle:read']);
+    Route::get('/client/check-cpf', [ClientApiController::class, 'checkCpf'])->middleware(['acl.permission:clients.index', 'throttle:read']);
+    Route::get('/client/{id}', [ClientApiController::class, 'show'])->middleware(['acl.permission:clients.show', 'throttle:read']);
+    Route::post('/client', [ClientApiController::class, 'store'])->middleware(['acl.permission:clients.store', 'throttle:critical']);
+    Route::put('/client/{id}', [ClientApiController::class, 'update'])->middleware(['acl.permission:clients.update', 'throttle:critical']);
+    Route::delete('/client/{id}', [ClientApiController::class, 'destroy'])->middleware(['acl.permission:clients.destroy', 'throttle:critical']);
 
     // Eventos - com rate limiting específico
     Route::prefix('events')->middleware('throttle:events')->group(function () {
@@ -378,11 +380,11 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 
     // Módulo Financeiro - Categorias
     Route::prefix('financial-categories')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'store'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'index'])->middleware(['acl.permission:financial-categories.index', 'throttle:read']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'show'])->middleware(['acl.permission:financial-categories.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'store'])->middleware(['acl.permission:financial-categories.store', 'throttle:critical']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'update'])->middleware(['acl.permission:financial-categories.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\FinancialCategoryApiController::class, 'destroy'])->middleware(['acl.permission:financial-categories.destroy', 'throttle:critical']);
     });
 
     Route::prefix('job-positions')->group(function () {
@@ -395,47 +397,47 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 
     // Módulo Financeiro - Fornecedores
     Route::prefix('suppliers')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\SupplierApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/check-document', [\App\Http\Controllers\Api\SupplierApiController::class, 'checkDocument'])->middleware('throttle:read');
-        Route::get('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [\App\Http\Controllers\Api\SupplierApiController::class, 'store'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [\App\Http\Controllers\Api\SupplierApiController::class, 'index'])->middleware(['acl.permission:suppliers.index', 'throttle:read']);
+        Route::get('/check-document', [\App\Http\Controllers\Api\SupplierApiController::class, 'checkDocument'])->middleware(['acl.permission:suppliers.index', 'throttle:read']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'show'])->middleware(['acl.permission:suppliers.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\SupplierApiController::class, 'store'])->middleware(['acl.permission:suppliers.store', 'throttle:critical']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'update'])->middleware(['acl.permission:suppliers.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\SupplierApiController::class, 'destroy'])->middleware(['acl.permission:suppliers.destroy', 'throttle:critical']);
     });
 
     // Módulo Financeiro - Despesas
     Route::prefix('expenses')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\ExpenseApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/stats', [\App\Http\Controllers\Api\ExpenseApiController::class, 'stats'])->middleware('throttle:read');
-        Route::get('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [\App\Http\Controllers\Api\ExpenseApiController::class, 'store'])->middleware('throttle:critical');
-        Route::post('/{uuid}/attachment', [\App\Http\Controllers\Api\ExpenseApiController::class, 'uploadAttachment'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [\App\Http\Controllers\Api\ExpenseApiController::class, 'index'])->middleware(['acl.permission:expenses.index', 'throttle:read']);
+        Route::get('/stats', [\App\Http\Controllers\Api\ExpenseApiController::class, 'stats'])->middleware(['acl.permission:expenses.index', 'throttle:read']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'show'])->middleware(['acl.permission:expenses.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\ExpenseApiController::class, 'store'])->middleware(['acl.permission:expenses.store', 'throttle:critical']);
+        Route::post('/{uuid}/attachment', [\App\Http\Controllers\Api\ExpenseApiController::class, 'uploadAttachment'])->middleware(['acl.permission:expenses.update', 'throttle:critical']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'update'])->middleware(['acl.permission:expenses.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\ExpenseApiController::class, 'destroy'])->middleware(['acl.permission:expenses.destroy', 'throttle:critical']);
     });
 
     // Módulo Financeiro - Contas a Pagar
     Route::prefix('accounts-payable')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/stats', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'stats'])->middleware('throttle:read');
-        Route::get('/alerts', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'alerts'])->middleware('throttle:read');
-        Route::get('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'store'])->middleware('throttle:critical');
-        Route::post('/{uuid}/pay', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'pay'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'index'])->middleware(['acl.permission:accounts-payable.index', 'throttle:read']);
+        Route::get('/stats', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'stats'])->middleware(['acl.permission:accounts-payable.index', 'throttle:read']);
+        Route::get('/alerts', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'alerts'])->middleware(['acl.permission:accounts-payable.index', 'throttle:read']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'show'])->middleware(['acl.permission:accounts-payable.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'store'])->middleware(['acl.permission:accounts-payable.store', 'throttle:critical']);
+        Route::post('/{uuid}/pay', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'pay'])->middleware(['acl.permission:accounts-payable.update', 'throttle:critical']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'update'])->middleware(['acl.permission:accounts-payable.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\AccountPayableApiController::class, 'destroy'])->middleware(['acl.permission:accounts-payable.destroy', 'throttle:critical']);
     });
 
     // Módulo Financeiro - Contas a Receber
     Route::prefix('accounts-receivable')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/stats', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'stats'])->middleware('throttle:read');
-        Route::get('/from-order/{orderId}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'fromOrder'])->middleware('throttle:read');
-        Route::get('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'store'])->middleware('throttle:critical');
-        Route::post('/{uuid}/receive', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'receive'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'index'])->middleware(['acl.permission:accounts-receivable.index', 'throttle:read']);
+        Route::get('/stats', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'stats'])->middleware(['acl.permission:accounts-receivable.index', 'throttle:read']);
+        Route::get('/from-order/{orderId}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'fromOrder'])->middleware(['acl.permission:accounts-receivable.index', 'throttle:read']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'show'])->middleware(['acl.permission:accounts-receivable.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'store'])->middleware(['acl.permission:accounts-receivable.store', 'throttle:critical']);
+        Route::post('/{uuid}/receive', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'receive'])->middleware(['acl.permission:accounts-receivable.update', 'throttle:critical']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'update'])->middleware(['acl.permission:accounts-receivable.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\AccountReceivableApiController::class, 'destroy'])->middleware(['acl.permission:accounts-receivable.destroy', 'throttle:critical']);
     });
 
     // Horários de Funcionamento
@@ -504,22 +506,25 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 
     // Bank Accounts (Contas Bancárias)
     Route::prefix('bank-accounts')->group(function () {
-        Route::get('/', [BankAccountController::class, 'index'])->middleware('throttle:read');
-        Route::post('/', [BankAccountController::class, 'store'])->middleware('throttle:critical');
-        Route::get('/banks', [BankAccountController::class, 'banks'])->middleware('throttle:read');
-        Route::get('/{uuid}', [BankAccountController::class, 'show'])->middleware('throttle:read');
-        Route::put('/{uuid}', [BankAccountController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [BankAccountController::class, 'destroy'])->middleware('throttle:critical');
-        Route::post('/{uuid}/set-primary', [BankAccountController::class, 'setPrimary'])->middleware('throttle:critical');
-        Route::post('/{uuid}/verify', [BankAccountController::class, 'verify'])->middleware('throttle:critical');
-        Route::get('/{uuid}/logs', [BankAccountController::class, 'logs'])->middleware('throttle:read');
+        Route::get('/', [BankAccountController::class, 'index'])->middleware(['acl.permission:bank-accounts.index', 'throttle:read']);
+        Route::post('/', [BankAccountController::class, 'store'])->middleware(['acl.permission:bank-accounts.store', 'throttle:critical']);
+        Route::get('/banks', [BankAccountController::class, 'banks'])->middleware(['acl.permission:bank-accounts.index', 'throttle:read']);
+        Route::get('/{uuid}', [BankAccountController::class, 'show'])->middleware(['acl.permission:bank-accounts.index', 'throttle:read']);
+        Route::put('/{uuid}', [BankAccountController::class, 'update'])->middleware(['acl.permission:bank-accounts.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [BankAccountController::class, 'destroy'])->middleware(['acl.permission:bank-accounts.destroy', 'throttle:critical']);
+        Route::post('/{uuid}/set-primary', [BankAccountController::class, 'setPrimary'])->middleware(['acl.permission:bank-accounts.update', 'throttle:critical']);
+        Route::post('/{uuid}/verify', [BankAccountController::class, 'verify'])->middleware(['acl.permission:bank-accounts.update', 'throttle:critical']);
+        Route::get('/{uuid}/logs', [BankAccountController::class, 'logs'])->middleware(['acl.permission:bank-accounts.index', 'throttle:read']);
     });
 });
 
 // Cliente (movido para dentro do middleware auth:api)
 
-Route::get('/tenant', [TenantApiController::class , 'index'])->middleware('throttle:read');
-Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware('throttle:read');
+// Listagem de todos os tenants é operação de administração da plataforma (PII: email/cnpj/telefone/endereço),
+// não uma consulta de tenant autenticado — mesma proteção do equivalente em /admin/tenants.
+Route::get('/tenant', [TenantApiController::class , 'index'])->middleware(['admin.auth', 'admin.permission:tenants.view', 'throttle:read']);
+// Consulta do próprio tenant (usada pelas telas autenticadas de configurações da empresa/admin).
+Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware(['auth:api', 'throttle:read']);
 Route::post('/tenant', [TenantApiController::class , 'store'])->middleware('throttle:register');
 Route::put('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']);
 Route::post('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']); // Para upload de arquivo com _method=PUT
@@ -537,14 +542,17 @@ Route::middleware(['auth:api'])->group(function () {
 });
 
 Route::get('/plan/{id}/details', [DetailPlanApiController::class , 'index'])->middleware('throttle:read');
-Route::post('/plan/{id}/details', [DetailPlanApiController::class , 'store'])->middleware('throttle:critical');
-Route::put('/plan/{url}/details/{idDetail}', [DetailPlanApiController::class , 'update'])->middleware('throttle:critical');
+// Mesma proteção aplicada às mutações de /plan acima: gestão do catálogo é admin da plataforma.
+Route::post('/plan/{id}/details', [DetailPlanApiController::class , 'store'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
+Route::put('/plan/{url}/details/{idDetail}', [DetailPlanApiController::class , 'update'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
 
 Route::get('/plan', [PlanApiController::class , 'index'])->middleware('throttle:read');
 Route::get('/plan/{id}', [PlanApiController::class , 'show'])->middleware('throttle:read');
-Route::post('/plan', [PlanApiController::class , 'store'])->middleware('throttle:critical');
-Route::delete('/plan/{id}', [PlanApiController::class , 'delete'])->middleware('throttle:critical');
-Route::put('/plan/{id}', [PlanApiController::class , 'update'])->middleware('throttle:critical');
+// Mutações do catálogo de planos exigem autenticação de admin da plataforma
+// (mesmo nível de proteção de /admin/plans, que é o caminho realmente usado pelo painel admin).
+Route::post('/plan', [PlanApiController::class , 'store'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
+Route::delete('/plan/{id}', [PlanApiController::class , 'delete'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
+Route::put('/plan/{id}', [PlanApiController::class , 'update'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
 
 // Rotas para gestão de usuários, perfis e permissões
 Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
@@ -606,12 +614,12 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 
     // Formas de Pagamento
     Route::prefix('payment-methods')->group(function () {
-        Route::get('/', [PaymentMethodApiController::class, 'index'])->middleware('throttle:read');
-        Route::get('/active', [PaymentMethodApiController::class, 'active'])->middleware('throttle:read');
-        Route::get('/{uuid}', [PaymentMethodApiController::class, 'show'])->middleware('throttle:read');
-        Route::post('/', [PaymentMethodApiController::class, 'store'])->middleware('throttle:critical');
-        Route::put('/{uuid}', [PaymentMethodApiController::class, 'update'])->middleware('throttle:critical');
-        Route::delete('/{uuid}', [PaymentMethodApiController::class, 'destroy'])->middleware('throttle:critical');
+        Route::get('/', [PaymentMethodApiController::class, 'index'])->middleware(['acl.permission:payment-methods.index', 'throttle:read']);
+        Route::get('/active', [PaymentMethodApiController::class, 'active'])->middleware(['acl.permission:payment-methods.index', 'throttle:read']);
+        Route::get('/{uuid}', [PaymentMethodApiController::class, 'show'])->middleware(['acl.permission:payment-methods.show', 'throttle:read']);
+        Route::post('/', [PaymentMethodApiController::class, 'store'])->middleware(['acl.permission:payment-methods.store', 'throttle:critical']);
+        Route::put('/{uuid}', [PaymentMethodApiController::class, 'update'])->middleware(['acl.permission:payment-methods.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [PaymentMethodApiController::class, 'destroy'])->middleware(['acl.permission:payment-methods.destroy', 'throttle:critical']);
     });
 
     // Status de Pedidos
@@ -778,6 +786,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
     Route::prefix('deliveries')->middleware('plan.feature:delivery_routing')->group(function () {
         Route::get('/suggest-groups', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'suggestGroups'])->middleware('throttle:read');
         Route::post('/{shipmentId}/optimize-route', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'optimizeRoute'])->middleware('throttle:critical');
+        Route::post('/{shipmentId}/reorder-stops', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'reorderStops'])->middleware('throttle:critical');
         Route::get('/{shipmentId}/cost', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'calculateCost'])->middleware('throttle:read');
         Route::post('/{shipmentId}/freight-weight', [\App\Http\Controllers\Api\FreightWeightController::class, 'calculate'])->middleware('throttle:critical');
         Route::patch('/{shipmentId}/orders/{orderId}/window', [\App\Http\Controllers\Api\DeliveryRouteController::class, 'setDeliveryWindow'])->middleware('throttle:critical');

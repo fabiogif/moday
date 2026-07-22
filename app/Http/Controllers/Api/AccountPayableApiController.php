@@ -140,11 +140,18 @@ class AccountPayableApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Conta a pagar não encontrada', 404);
             }
 
+            $validated = $request->validate([
+                'payment_date' => 'nullable|date',
+                'amount_paid' => 'required|numeric|min:0.01',
+                'payment_method_id' => 'nullable|string',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+
             $paymentData = [
-                'payment_date' => $request->input('payment_date', now()->format('Y-m-d')),
-                'amount_paid' => $request->input('amount_paid'),
-                'payment_method_id' => $request->input('payment_method_id'),
-                'notes' => $request->input('notes'),
+                'payment_date' => $validated['payment_date'] ?? now()->format('Y-m-d'),
+                'amount_paid' => $validated['amount_paid'],
+                'payment_method_id' => $validated['payment_method_id'] ?? null,
+                'notes' => $validated['notes'] ?? null,
             ];
 
             $updatedAccountPayable = $this->accountPayableService->markAsPaid(

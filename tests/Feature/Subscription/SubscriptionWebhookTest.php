@@ -16,14 +16,17 @@ class SubscriptionWebhookTest extends TestCase
 
     private Plan $plan;
     private Tenant $tenant;
+    private const WEBHOOK_SECRET = 'test-mp-webhook-secret';
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Disable MP signature verification in tests
-        config(['services.mercadopago.billing_mode' => 'legacy']);
-        config(['services.mercadopago.webhook_secret' => '']);
+        // A verificação de assinatura agora falha fechado sem secret configurado
+        // (ver App\Http\Middleware\VerifyMercadoPagoSignature), então os testes
+        // precisam de um secret real e assinaturas HMAC válidas — não mais pular
+        // a validação.
+        config(['services.mercadopago.webhook_secret' => self::WEBHOOK_SECRET]);
 
         // Register the middleware alias so the route doesn't throw BindingResolutionException
         app('router')->aliasMiddleware('mp.signature', \App\Http\Middleware\VerifyMercadoPagoSignature::class);
@@ -51,6 +54,22 @@ class SubscriptionWebhookTest extends TestCase
         parent::tearDown();
     }
 
+    /**
+     * Gera os headers de assinatura válidos no mesmo formato que
+     * MercadoPagoService::validateWebhookSignature espera.
+     */
+    private function signedHeaders(string $dataId, string $requestId): array
+    {
+        $ts = (string) time();
+        $manifest = "id:{$dataId};request-id:{$requestId};ts:{$ts};";
+        $v1 = hash_hmac('sha256', $manifest, self::WEBHOOK_SECRET);
+
+        return [
+            'x-signature'  => "ts={$ts},v1={$v1}",
+            'x-request-id' => $requestId,
+        ];
+    }
+
     public function test_preapproval_webhook_idempotency(): void
     {
         // Pre-create the event to simulate duplicate
@@ -65,10 +84,7 @@ class SubscriptionWebhookTest extends TestCase
         $response = $this->postJson('/api/webhooks/mercadopago/preapproval', [
             'type'    => 'preapproval',
             'data'    => ['id' => 'preapproval_test_999'],
-        ], [
-            'x-signature'  => 'ts=1,v1=fake',
-            'x-request-id' => 'req-001',
-        ]);
+        ], $this->signedHeaders('preapproval_test_999', 'req-001'));
 
         $response->assertOk()
             ->assertJson(['ok' => true, 'status' => 'duplicate']);
@@ -114,7 +130,7 @@ class SubscriptionWebhookTest extends TestCase
         $response = $this->postJson('/api/webhooks/mercadopago/preapproval', [
             'type' => 'unknown_event',
             'data' => ['id' => 'some_id'],
-        ]);
+        ], $this->signedHeaders('some_id', 'req-002'));
 
         $response->assertOk()->assertJson(['ok' => true]);
     }

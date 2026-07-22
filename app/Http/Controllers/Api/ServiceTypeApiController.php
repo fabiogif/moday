@@ -41,7 +41,7 @@ class ServiceTypeApiController extends Controller
     public function store(StoreServiceTypeRequest $request): JsonResponse
     {
         try {
-            $data = $request->all();
+            $data = $request->validated();
             $serviceType = $this->serviceTypeService->store($data);
             return ApiResponseClass::sendResponse(
                 new ServiceTypeResource($serviceType),
@@ -75,7 +75,7 @@ class ServiceTypeApiController extends Controller
     public function update(UpdateServiceTypeRequest $request, int $id): JsonResponse
     {
         try {
-            $updated = $this->serviceTypeService->update($request->all(), $id);
+            $updated = $this->serviceTypeService->update($request->validated(), $id);
             return ApiResponseClass::sendResponse(
                 ['updated' => (bool) $updated],
                 'Tipo de atendimento atualizado com sucesso',

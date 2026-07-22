@@ -19,9 +19,13 @@ class VerifyMercadoPagoSignature
         $xRequestId = $request->header('x-request-id', '');
         $dataId     = $request->query('data.id', $request->input('data.id', ''));
 
-        // In legacy/hybrid mode there is no preapproval webhook secret — skip
-        if (empty($secret) || config('services.mercadopago.billing_mode', 'legacy') === 'legacy') {
-            return $next($request);
+        // Falha fechado: sem secret configurado não há como validar a assinatura,
+        // então a requisição é rejeitada em vez de aceita (nunca pular a verificação).
+        if (empty($secret)) {
+            Log::error('VerifyMPSignature: MERCADOPAGO_WEBHOOK_SECRET não configurado — rejeitando webhook', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Webhook not configured'], 401);
         }
 
         if (!$xSignature || !$xRequestId) {

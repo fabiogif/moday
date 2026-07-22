@@ -30,6 +30,7 @@ class ProductVariationsOptionalsIntegrationTest extends TestCase
         parent::setUp();
         $this->tenant = Tenant::factory()->create();
         $this->user = User::factory()->for($this->tenant)->create();
+        $this->grantFullAccess($this->user, $this->tenant);
         $this->category = Category::factory()->create(['tenant_id' => $this->tenant->id]);
 
         $this->authHeaders = [

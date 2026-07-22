@@ -31,7 +31,7 @@ class OrderApiController extends Controller
     public function store(StoreOrderRequest  $request):JsonResponse
     {
         try {
-            $order = $this->orderService->createNewOrder($request->all());
+            $order = $this->orderService->createNewOrder($request->validated());
             return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido cadastrado com sucesso', Response::HTTP_CREATED);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);

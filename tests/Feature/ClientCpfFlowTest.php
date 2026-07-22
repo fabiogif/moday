@@ -27,6 +27,7 @@ class ClientCpfFlowTest extends TestCase
         $tenant = Tenant::factory()->accessible()->create(['plan_id' => $plan->id]);
         $profile = Profile::factory()->create(['tenant_id' => $tenant->id]);
         $user = User::factory()->create(['tenant_id' => $tenant->id, 'profile_id' => $profile->id]);
+        $this->grantFullAccess($user, $tenant);
         
         $client = Client::create([
             'uuid' => \Str::uuid(),
@@ -57,6 +58,7 @@ class ClientCpfFlowTest extends TestCase
         $tenant = Tenant::factory()->accessible()->create(['plan_id' => $plan->id]);
         $profile = Profile::factory()->create(['tenant_id' => $tenant->id]);
         $user = User::factory()->create(['tenant_id' => $tenant->id, 'profile_id' => $profile->id]);
+        $this->grantFullAccess($user, $tenant);
 
         $response = $this->actingAs($user, 'api')
             ->getJson('/api/client/check-cpf?cpf=39053344705');
@@ -219,6 +221,7 @@ class ClientCpfFlowTest extends TestCase
         $tenant = Tenant::factory()->accessible()->create(['plan_id' => $plan->id]);
         $profile = Profile::factory()->create(['tenant_id' => $tenant->id]);
         $user = User::factory()->create(['tenant_id' => $tenant->id, 'profile_id' => $profile->id]);
+        $this->grantFullAccess($user, $tenant);
 
         $response = $this->actingAs($user, 'api')
             ->getJson('/api/client/check-cpf');
@@ -251,6 +254,7 @@ class ClientCpfFlowTest extends TestCase
         $tenant2 = Tenant::factory()->accessible()->create(['plan_id' => $plan->id]);
         $profile2 = Profile::factory()->create(['tenant_id' => $tenant2->id]);
         $user2 = User::factory()->create(['tenant_id' => $tenant2->id, 'profile_id' => $profile2->id]);
+        $this->grantFullAccess($user2, $tenant2);
 
         // User do tenant 2 não deve encontrar o cliente do tenant 1
         $response = $this->actingAs($user2, 'api')

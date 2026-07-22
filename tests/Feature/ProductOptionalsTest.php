@@ -24,6 +24,7 @@ class ProductOptionalsTest extends TestCase
         $this->user = User::factory()->create([
             'tenant_id' => $this->tenant->id,
         ]);
+        $this->grantFullAccess($this->user, $this->tenant);
     }
 
     public function test_can_create_product_with_optionals()

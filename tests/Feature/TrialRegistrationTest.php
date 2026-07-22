@@ -164,6 +164,7 @@ class TrialRegistrationTest extends TestCase
             'tenant_id' => $tenant->id,
             'is_active' => true,
         ]);
+        $this->grantFullAccess($user, $tenant);
 
         $this->assertTrue($tenant->fresh()->canAccess());
 

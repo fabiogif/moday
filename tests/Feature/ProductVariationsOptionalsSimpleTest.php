@@ -26,6 +26,7 @@ class ProductVariationsOptionalsSimpleTest extends TestCase
         parent::setUp();
         $this->tenant = Tenant::factory()->create();
         $this->user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $this->grantFullAccess($this->user, $this->tenant);
         $this->category = Category::factory()->create(['tenant_id' => $this->tenant->id]);
     }
 

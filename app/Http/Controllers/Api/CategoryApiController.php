@@ -54,16 +54,9 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
-            $data = $request->all();
+            $data = $request->validated();
             $data['tenant_id'] = $user->tenant_id;
-            
-            // Debug log temporário
-            Log::info('CategoryApiController::store - Dados recebidos:', [
-                'request_data' => $request->all(),
-                'final_data' => $data,
-                'user_tenant_id' => $user->tenant_id
-            ]);
-            
+
             $category = $this->categoryService->store($data);
             return ApiResponseClass::sendResponse(new CategoryResource($category), 'Categoria cadastrada com sucesso', 201);
         } catch (\Exception $ex) {
@@ -88,7 +81,7 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
-            $category = $this->categoryService->update($request->all(), $id, $user->tenant_id);
+            $category = $this->categoryService->update($request->validated(), $id, $user->tenant_id);
             if (!$category) {
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }

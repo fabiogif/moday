@@ -141,11 +141,18 @@ class AccountReceivableApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Conta a receber não encontrada', 404);
             }
 
+            $validated = $request->validate([
+                'receipt_date' => 'nullable|date',
+                'amount_received' => 'required|numeric|min:0.01',
+                'payment_method_id' => 'nullable|string',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+
             $receiptData = [
-                'receipt_date' => $request->input('receipt_date', now()->format('Y-m-d')),
-                'amount_received' => $request->input('amount_received'),
-                'payment_method_id' => $request->input('payment_method_id'),
-                'notes' => $request->input('notes'),
+                'receipt_date' => $validated['receipt_date'] ?? now()->format('Y-m-d'),
+                'amount_received' => $validated['amount_received'],
+                'payment_method_id' => $validated['payment_method_id'] ?? null,
+                'notes' => $validated['notes'] ?? null,
             ];
 
             $updatedAccountReceivable = $this->accountReceivableService->markAsReceived(

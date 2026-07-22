@@ -29,7 +29,7 @@ class TenantApiController extends Controller
     public function store(StoreTenantRequest $request):JsonResponse
     {
         try {
-            $tenant = $this->tenantService->store($request->all());
+            $tenant = $this->tenantService->store($request->validated());
             return ApiResponseClass::sendResponse(new TenantResource($tenant), 'Empresa cadastrada com sucesso', Response::HTTP_CREATED);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);

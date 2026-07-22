@@ -44,7 +44,7 @@ class DetailPlanApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Detalhe do plano não encontrado', 404);
             }
 
-            $detailPlan = $plan->details()->create($request->all());
+            $detailPlan = $plan->details()->create($request->validated());
 
             return ApiResponseClass::sendResponse((new DetailPlanResource($detailPlan))->resolve(), 'Detalhe do plano adicionado com sucesso', 201);
         } catch (Exception $ex) {
@@ -67,7 +67,7 @@ class DetailPlanApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Detalhe do plano não encontrado', 404);
             }
 
-            $detailPlan->update($request->all());
+            $detailPlan->update($request->validated());
 
             return ApiResponseClass::sendResponse((new DetailPlanResource($detailPlan))->resolve(), 'Detalhe do plano atualizado com sucesso', 200);
         } catch (Exception $ex) {
