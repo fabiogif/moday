@@ -166,12 +166,14 @@ readonly class OrderService
 
         foreach ($productsOrder as $item) {
             $product = $this->productRepositoryInterface->getByUuid($item['identify']);
-            // Usar o preço fornecido no item (pode ter sido alterado) ou o preço do produto
-            $price = isset($item['price']) ? (float) $item['price'] : $product->price;
+            // O preço nunca vem do cliente: sempre o preço atual do produto no banco.
+            // O frontend só exibe este valor (campo read-only), então aceitar um preço
+            // enviado pelo request permitia a qualquer usuário autenticado zerar/alterar
+            // o total do pedido.
             array_push($products, [
                 'id' => $product->id,
                 'qty'=> $item['qty'],
-                'price' => $price
+                'price' => (float) $product->price,
             ]);
         }
         return $products;
