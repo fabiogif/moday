@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
-use App\Models\Shipment;
 use App\Services\AuthTenantService;
 use App\Services\Logistics\DeliveryRouteService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -20,16 +20,13 @@ class DeliveryRouteController extends Controller
 
     /**
      * GET /api/deliveries/suggest-groups?order_ids[]=1&order_ids[]=2
-     *
-     * Suggests how to group pending sale orders by geographic region.
      */
     public function suggestGroups(Request $request): JsonResponse
     {
         try {
-            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $orderIds = array_map('intval', $request->get('order_ids', []));
-
             $groups = $this->routeService->groupByRegion($tenantId, $orderIds);
 
             return ApiResponseClass::sendResponse([
@@ -44,63 +41,85 @@ class DeliveryRouteController extends Controller
 
     /**
      * POST /api/deliveries/{shipmentId}/optimize-route
-     *
-     * Calculates the optimal stop sequence for a shipment,
-     * considering delivery windows and geographic proximity.
      */
     public function optimizeRoute(Request $request, int $shipmentId): JsonResponse
     {
         try {
-            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
-            $shipment = Shipment::forTenant($tenantId)
-                ->with('saleOrders.client')
-                ->findOrFail($shipmentId);
-
-            $result = $this->routeService->optimizeRoute($shipment);
+            $result = $this->routeService->optimizeForTenant($tenantId, $shipmentId);
 
             return ApiResponseClass::sendResponse($result, 'Rota otimizada com sucesso', 200);
+        } catch (ModelNotFoundException) {
+            return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao otimizar rota');
         }
     }
 
     /**
-     * GET /api/deliveries/{shipmentId}/cost?km_per_liter=10&fuel_price=6.50&driver_cost_km=0.50
-     *
-     * Calculates the delivery cost breakdown for a shipment.
+     * GET /api/deliveries/{shipmentId}/cost
      */
     public function calculateCost(Request $request, int $shipmentId): JsonResponse
     {
         try {
-            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
-            $shipment = Shipment::forTenant($tenantId)
-                ->with('saleOrders')
-                ->findOrFail($shipmentId);
-
-            $cost = $this->routeService->calculateCost(
-                $shipment,
+            $cost = $this->routeService->calculateCostForTenant(
+                $tenantId,
+                $shipmentId,
                 (float) $request->get('km_per_liter', 10.0),
                 (float) $request->get('fuel_price', 6.50),
                 (float) $request->get('driver_cost_km', 0.50),
             );
 
             return ApiResponseClass::sendResponse($cost, 'Custo por entrega calculado', 200);
+        } catch (ModelNotFoundException) {
+            return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao calcular custo de entrega');
         }
     }
 
     /**
+     * POST /api/deliveries/{shipmentId}/reorder-stops
+     */
+    public function reorderStops(Request $request, int $shipmentId): JsonResponse
+    {
+        try {
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $validated = $request->validate([
+                'sale_order_ids' => ['required', 'array', 'min:1'],
+                'sale_order_ids.*' => ['integer', 'distinct'],
+            ]);
+
+            $result = $this->routeService->reorderStopsForTenant(
+                $tenantId,
+                $shipmentId,
+                $validated['sale_order_ids'],
+            );
+
+            return ApiResponseClass::sendResponse($result, 'Ordem das paradas atualizada', 200);
+        } catch (ValidationException $ex) {
+            return ApiResponseClass::validationError(
+                $ex->errors(),
+                'Ordem das paradas inválida'
+            );
+        } catch (ModelNotFoundException) {
+            return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao reordenar paradas');
+        }
+    }
+
+    /**
      * PATCH /api/deliveries/{shipmentId}/orders/{orderId}/window
-     *
-     * Sets the delivery time window for a specific order within a shipment.
      */
     public function setDeliveryWindow(Request $request, int $shipmentId, int $orderId): JsonResponse
     {
         try {
-            [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $validated = $request->validate([
                 'window_start' => ['required', 'date_format:H:i'],
@@ -113,15 +132,9 @@ class DeliveryRouteController extends Controller
                 ], 'Janela de entrega inválida');
             }
 
-            $shipment = Shipment::forTenant($tenantId)->findOrFail($shipmentId);
-
-            $linked = $shipment->saleOrders()->where('sale_orders.id', $orderId)->exists();
-            if (!$linked) {
-                return ApiResponseClass::sendResponse(null, 'Pedido não pertence a este romaneio', 404);
-            }
-
-            $this->routeService->setDeliveryWindow(
-                $shipment,
+            $this->routeService->setDeliveryWindowForTenant(
+                $tenantId,
+                $shipmentId,
                 $orderId,
                 $this->normalizeTime($validated['window_start']),
                 $this->normalizeTime($validated['window_end']),
@@ -133,6 +146,12 @@ class DeliveryRouteController extends Controller
                 $ex->errors(),
                 'Janela de entrega inválida'
             );
+        } catch (ModelNotFoundException $ex) {
+            $message = $ex->getModel() === \App\Models\SaleOrder::class
+                ? 'Pedido não pertence a este romaneio'
+                : 'Romaneio não encontrado';
+
+            return ApiResponseClass::sendResponse(null, $message, 404);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao definir janela de entrega');
         }

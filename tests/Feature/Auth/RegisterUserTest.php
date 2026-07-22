@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,6 +15,10 @@ class RegisterUserTest extends TestCase
 	#[Test]
 	public function usuario_pode_se_registrar_com_sucesso()
 	{
+		// AuthService::register precisa de um plano ativo para criar o tenant
+		// do registro self-service (não gera mais um plano fake automaticamente).
+		Plan::factory()->create(['is_active' => true, 'price' => 0]);
+
 		$payload = [
 			'name' => 'Usuário Teste',
 			'email' => 'usuario.teste@example.com',

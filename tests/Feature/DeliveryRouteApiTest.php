@@ -130,4 +130,93 @@ class DeliveryRouteApiTest extends TestCase
             'delivery_window_end' => '13:00:00',
         ]);
     }
+
+    #[Test]
+    public function it_reorders_stops_manually_and_marks_source(): void
+    {
+        Config::set('services.google_maps.api_key', null);
+
+        $shipment = Shipment::create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'draft',
+            'route_order_source' => 'system',
+        ]);
+
+        $orderA = SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'faturado',
+            'shipping_zipcode' => '01310-100',
+            'shipping_city' => 'São Paulo',
+            'shipping_state' => 'SP',
+        ]);
+        $orderB = SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'faturado',
+            'shipping_zipcode' => '04038-001',
+            'shipping_city' => 'São Paulo',
+            'shipping_state' => 'SP',
+        ]);
+
+        DB::table('shipment_sale_order')->insert([
+            [
+                'shipment_id' => $shipment->id,
+                'sale_order_id' => $orderA->id,
+                'delivery_sequence' => 1,
+            ],
+            [
+                'shipment_id' => $shipment->id,
+                'sale_order_id' => $orderB->id,
+                'delivery_sequence' => 2,
+            ],
+        ]);
+
+        $response = $this->postJson("/api/deliveries/{$shipment->id}/reorder-stops", [
+            'sale_order_ids' => [$orderB->id, $orderA->id],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.route_order_source', 'manual')
+            ->assertJsonPath('data.optimized_route.0.sale_order_id', $orderB->id)
+            ->assertJsonPath('data.optimized_route.1.sale_order_id', $orderA->id);
+
+        $this->assertDatabaseHas('shipments', [
+            'id' => $shipment->id,
+            'route_order_source' => 'manual',
+        ]);
+        $this->assertDatabaseHas('shipment_sale_order', [
+            'shipment_id' => $shipment->id,
+            'sale_order_id' => $orderB->id,
+            'delivery_sequence' => 1,
+        ]);
+        $this->assertDatabaseHas('shipment_sale_order', [
+            'shipment_id' => $shipment->id,
+            'sale_order_id' => $orderA->id,
+            'delivery_sequence' => 2,
+        ]);
+    }
+
+    #[Test]
+    public function it_rejects_reorder_when_shipment_is_not_draft(): void
+    {
+        $shipment = Shipment::create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'dispatched',
+        ]);
+
+        $order = SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'status' => 'faturado',
+        ]);
+
+        DB::table('shipment_sale_order')->insert([
+            'shipment_id' => $shipment->id,
+            'sale_order_id' => $order->id,
+        ]);
+
+        $response = $this->postJson("/api/deliveries/{$shipment->id}/reorder-stops", [
+            'sale_order_ids' => [$order->id],
+        ]);
+
+        $response->assertStatus(422);
+    }
 }

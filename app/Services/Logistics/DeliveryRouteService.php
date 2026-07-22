@@ -5,9 +5,11 @@ namespace App\Services\Logistics;
 use App\Models\SaleOrder;
 use App\Models\Shipment;
 use App\Models\Tenant;
+use App\Repositories\Contracts\ShipmentRepositoryInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class DeliveryRouteService
 {
@@ -21,23 +23,12 @@ class DeliveryRouteService
 
     public function __construct(
         private readonly GoogleMapsRoutingClient $googleMaps,
+        private readonly ShipmentRepositoryInterface $shipmentRepository,
     ) {}
 
     public function groupByRegion(int $tenantId, array $saleOrderIds = []): array
     {
-        $query = SaleOrder::where('tenant_id', $tenantId)
-            ->whereIn('status', ['faturado', 'separacao'])
-            ->whereNotNull('shipping_zipcode')
-            ->select('id', 'identify', 'client_id', 'total', 'shipping_zipcode',
-                'shipping_city', 'shipping_state', 'shipping_address',
-                'estimated_delivery', 'delivery_window_start', 'delivery_window_end')
-            ->with('client:id,name,company_name,trade_name,phone');
-
-        if (!empty($saleOrderIds)) {
-            $query->whereIn('id', $saleOrderIds);
-        }
-
-        $orders = $query->orderBy('shipping_zipcode')->get();
+        $orders = $this->shipmentRepository->listOrdersForRouteGrouping($tenantId, $saleOrderIds);
         $groups = [];
 
         foreach ($orders as $order) {
@@ -56,9 +47,20 @@ class DeliveryRouteService
         }, $groups, array_keys($groups));
     }
 
+    public function optimizeForTenant(int $tenantId, int $shipmentId): array
+    {
+        $shipment = $this->shipmentRepository->findForTenantOrFail(
+            $tenantId,
+            $shipmentId,
+            ['saleOrders.client', 'tenant', 'vehicle'],
+        );
+
+        return $this->optimizeRoute($shipment);
+    }
+
     public function optimizeRoute(Shipment $shipment): array
     {
-        $shipment->load(['saleOrders.client', 'tenant']);
+        $shipment->loadMissing(['saleOrders.client', 'tenant']);
 
         if ($this->googleMaps->isConfigured()) {
             try {
@@ -74,13 +76,28 @@ class DeliveryRouteService
         return $this->optimizeWithHeuristic($shipment);
     }
 
+    public function calculateCostForTenant(
+        int $tenantId,
+        int $shipmentId,
+        float $kmPerLiter = self::DEFAULT_KM_PER_LITER,
+        float $fuelPricePerL = self::DEFAULT_FUEL_PRICE,
+        float $driverCostKm = self::DEFAULT_DRIVER_COST_KM,
+    ): array {
+        $shipment = $this->shipmentRepository->findForTenantOrFail(
+            $tenantId,
+            $shipmentId,
+            ['saleOrders', 'tenant', 'vehicle'],
+        );
+
+        return $this->calculateCost($shipment, $kmPerLiter, $fuelPricePerL, $driverCostKm);
+    }
+
     public function calculateCost(
         Shipment $shipment,
         float $kmPerLiter = self::DEFAULT_KM_PER_LITER,
         float $fuelPricePerL = self::DEFAULT_FUEL_PRICE,
         float $driverCostKm = self::DEFAULT_DRIVER_COST_KM,
     ): array {
-        // Use vehicle-specific fuel efficiency if available
         if ($shipment->vehicle_id && $shipment->vehicle?->km_per_liter > 0) {
             $kmPerLiter = (float) $shipment->vehicle->km_per_liter;
         }
@@ -88,8 +105,8 @@ class DeliveryRouteService
         $km = (float) ($shipment->estimated_km ?? 0);
 
         if ($km <= 0) {
-            $this->optimizeRoute($shipment->fresh(['saleOrders', 'tenant']));
-            $km = (float) $shipment->fresh()->estimated_km;
+            $this->optimizeRoute($shipment->fresh(['saleOrders', 'tenant']) ?? $shipment);
+            $km = (float) ($shipment->fresh()->estimated_km ?? 0);
         }
 
         $stopCount = $shipment->saleOrders()->count();
@@ -98,14 +115,14 @@ class DeliveryRouteService
         $totalCost = round($fuelCost + $driverCost, 2);
         $costPerDelivery = $stopCount > 0 ? round($totalCost / $stopCount, 2) : 0.0;
 
-        $shipment->update([
+        $this->shipmentRepository->update($shipment, [
             'delivery_cost' => $totalCost,
             'cost_per_delivery' => $costPerDelivery,
         ]);
 
         return [
             'estimated_km' => $km,
-            'estimated_duration_minutes' => $shipment->estimated_duration_minutes,
+            'estimated_duration_minutes' => $shipment->fresh()->estimated_duration_minutes,
             'stop_count' => $stopCount,
             'fuel_cost' => round($fuelCost, 2),
             'driver_cost' => round($driverCost, 2),
@@ -119,19 +136,136 @@ class DeliveryRouteService
         ];
     }
 
+    public function setDeliveryWindowForTenant(
+        int $tenantId,
+        int $shipmentId,
+        int $saleOrderId,
+        string $windowStart,
+        string $windowEnd,
+    ): void {
+        $shipment = $this->shipmentRepository->findForTenantOrFail($tenantId, $shipmentId);
+
+        if (!$this->shipmentRepository->hasSaleOrder($shipment->id, $saleOrderId)) {
+            throw (new ModelNotFoundException())->setModel(SaleOrder::class, [$saleOrderId]);
+        }
+
+        $this->setDeliveryWindow($shipment, $saleOrderId, $windowStart, $windowEnd);
+    }
+
     public function setDeliveryWindow(
         Shipment $shipment,
         int $saleOrderId,
         string $windowStart,
         string $windowEnd,
     ): void {
-        DB::table('shipment_sale_order')
-            ->where('shipment_id', $shipment->id)
-            ->where('sale_order_id', $saleOrderId)
-            ->update([
-                'delivery_window_start' => $windowStart,
-                'delivery_window_end' => $windowEnd,
+        $this->shipmentRepository->updatePivotDeliveryWindow(
+            $shipment->id,
+            $saleOrderId,
+            $windowStart,
+            $windowEnd,
+        );
+    }
+
+    /**
+     * @param  array<int, int>  $orderedSaleOrderIds
+     * @return array<string, mixed>
+     */
+    public function reorderStopsForTenant(int $tenantId, int $shipmentId, array $orderedSaleOrderIds): array
+    {
+        $shipment = $this->shipmentRepository->findForTenantOrFail(
+            $tenantId,
+            $shipmentId,
+            ['saleOrders.client', 'tenant'],
+        );
+
+        if ($shipment->status !== 'draft') {
+            throw ValidationException::withMessages([
+                'status' => ['Só é possível reordenar paradas em romaneios em rascunho.'],
             ]);
+        }
+
+        return $this->reorderStops($shipment, $orderedSaleOrderIds);
+    }
+
+    /**
+     * Reorders shipment stops manually (before dispatch).
+     *
+     * @param  array<int, int>  $orderedSaleOrderIds
+     * @return array<string, mixed>
+     */
+    public function reorderStops(Shipment $shipment, array $orderedSaleOrderIds): array
+    {
+        $shipment->loadMissing(['saleOrders.client', 'tenant']);
+
+        $linkedIds = $shipment->saleOrders->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all();
+        $requestedIds = array_values(array_map('intval', $orderedSaleOrderIds));
+        $sortedRequested = $requestedIds;
+        sort($sortedRequested);
+
+        if ($linkedIds === [] || $sortedRequested !== $linkedIds) {
+            throw ValidationException::withMessages([
+                'sale_order_ids' => ['A lista de pedidos deve conter exatamente as paradas deste romaneio.'],
+            ]);
+        }
+
+        if (count($requestedIds) !== count(array_unique($requestedIds))) {
+            throw ValidationException::withMessages([
+                'sale_order_ids' => ['A lista de pedidos não pode conter duplicatas.'],
+            ]);
+        }
+
+        $tenantId = (int) $shipment->tenant_id;
+        $depot = $this->resolveDepotCoordinatesSafe($shipment->tenant);
+        $ordersById = $shipment->saleOrders->keyBy('id');
+
+        $orderedStops = [];
+        foreach ($requestedIds as $orderId) {
+            /** @var SaleOrder $order */
+            $order = $ordersById[$orderId];
+            $pivot = $order->pivot;
+            $coords = $this->resolveOrderCoordinatesSafe($tenantId, $order);
+
+            $orderedStops[] = [
+                'sale_order_id' => $order->id,
+                'identify' => $order->identify,
+                'client_name' => $order->client?->company_name ?? $order->client?->name ?? 'Sem cliente',
+                'shipping_zipcode' => $pivot->delivery_zipcode ?? $order->shipping_zipcode,
+                'shipping_city' => $order->shipping_city,
+                'shipping_state' => $order->shipping_state,
+                'shipping_address' => $this->formatAddressString($order->shipping_address),
+                'delivery_window_start' => $pivot->delivery_window_start ?? $order->delivery_window_start,
+                'delivery_window_end' => $pivot->delivery_window_end ?? $order->delivery_window_end,
+                'order_total' => (float) $order->total,
+                'lat' => $coords['lat'],
+                'lng' => $coords['lng'],
+            ];
+        }
+
+        $metrics = $this->estimateMetricsFromPath($depot, $orderedStops);
+        $routeSummary = $this->buildRouteSummary($orderedStops, $metrics['legs']);
+        $region = $this->dominantRegionLabel($orderedStops);
+
+        $shipment = $this->persistRoute(
+            $shipment,
+            $routeSummary,
+            $metrics['km'],
+            $metrics['duration_minutes'],
+            null,
+            $region,
+            'manual',
+        );
+
+        return [
+            'shipment_id' => $shipment->id,
+            'stops' => count($routeSummary),
+            'estimated_km' => $metrics['km'],
+            'estimated_duration_minutes' => $metrics['duration_minutes'],
+            'optimized_route' => $shipment->optimized_route,
+            'route_polyline' => null,
+            'route_order_source' => 'manual',
+            'window_violations' => count(array_filter($routeSummary, fn ($s) => $s['window_violation'] ?? false)),
+            'provider' => 'manual',
+        ];
     }
 
     private function optimizeWithGoogle(Shipment $shipment): array
@@ -207,15 +341,16 @@ class DeliveryRouteService
         }
         $region = $this->dominantRegionLabel($orderedStops);
 
-        $this->persistRoute($shipment, $orderedStops, $routeSummary, $estimatedKm, $durationMinutes, $route['polyline'] ?? null, $region);
+        $shipment = $this->persistRoute($shipment, $routeSummary, $estimatedKm, $durationMinutes, $route['polyline'] ?? null, $region);
 
         return [
             'shipment_id' => $shipment->id,
             'stops' => count($routeSummary),
             'estimated_km' => $estimatedKm,
             'estimated_duration_minutes' => $durationMinutes,
-            'optimized_route' => $shipment->fresh()->optimized_route,
+            'optimized_route' => $shipment->optimized_route,
             'route_polyline' => $route['polyline'] ?? null,
+            'route_order_source' => 'system',
             'window_violations' => count(array_filter($routeSummary, fn ($s) => $s['window_violation'] ?? false)),
             'provider' => ($route['polyline'] ?? null) ? 'google' : 'estimated',
         ];
@@ -256,14 +391,14 @@ class DeliveryRouteService
         $routeSummary = $this->buildRouteSummary($sorted, $metrics['legs']);
         $region = $this->dominantRegionLabel($sorted);
 
-        $this->persistRoute(
+        $shipment = $this->persistRoute(
             $shipment,
-            $sorted,
             $routeSummary,
             $metrics['km'],
             $metrics['duration_minutes'],
             null,
             $region,
+            'system',
         );
 
         return [
@@ -271,8 +406,9 @@ class DeliveryRouteService
             'stops' => count($routeSummary),
             'estimated_km' => $metrics['km'],
             'estimated_duration_minutes' => $metrics['duration_minutes'],
-            'optimized_route' => $shipment->fresh()->optimized_route,
+            'optimized_route' => $shipment->optimized_route,
             'route_polyline' => null,
+            'route_order_source' => 'system',
             'window_violations' => 0,
             'provider' => 'estimated',
         ];
@@ -322,8 +458,7 @@ class DeliveryRouteService
                 'client' => $stop['client_name'],
                 'address' => $address,
                 'zipcode' => $stop['shipping_zipcode'] ?? null,
-                'lat' => $this->normalizeCoordinate($stop['lat'] ?? null),
-                'lng' => $this->normalizeCoordinate($stop['lng'] ?? null),
+                ...$this->sanitizeCoordinatePair($stop['lat'] ?? null, $stop['lng'] ?? null),
                 'eta' => $currentTime->format('H:i'),
                 'window' => $windowStart && $windowEnd ? "{$windowStart} - {$windowEnd}" : null,
                 'window_violation' => $windowViolation,
@@ -336,35 +471,29 @@ class DeliveryRouteService
 
     private function persistRoute(
         Shipment $shipment,
-        array $stops,
         array $routeSummary,
         float $estimatedKm,
         ?int $durationMinutes,
         ?string $polyline,
         ?string $region,
-    ): void {
-        DB::transaction(function () use ($shipment, $stops, $routeSummary, $estimatedKm, $durationMinutes, $polyline, $region) {
-            foreach ($routeSummary as $item) {
-                DB::table('shipment_sale_order')
-                    ->where('shipment_id', $shipment->id)
-                    ->where('sale_order_id', $item['sale_order_id'])
-                    ->update(['delivery_sequence' => $item['sequence']]);
-            }
-
-            $shipment->update([
-                'optimized_route' => $routeSummary,
-                'estimated_km' => $estimatedKm,
-                'estimated_duration_minutes' => $durationMinutes,
-                'route_polyline' => $polyline,
-                'region' => $region,
-            ]);
-        });
+        string $orderSource = 'system',
+    ): Shipment {
+        return $this->shipmentRepository->persistRoute(
+            $shipment,
+            $routeSummary,
+            $estimatedKm,
+            $durationMinutes,
+            $polyline,
+            $region,
+            $orderSource,
+        );
     }
 
     private function emptyRouteResult(Shipment $shipment): array
     {
-        $shipment->update([
+        $this->shipmentRepository->update($shipment, [
             'optimized_route' => [],
+            'route_order_source' => 'system',
             'estimated_km' => 0,
             'estimated_duration_minutes' => 0,
             'route_polyline' => null,
@@ -377,6 +506,7 @@ class DeliveryRouteService
             'estimated_duration_minutes' => 0,
             'optimized_route' => [],
             'route_polyline' => null,
+            'route_order_source' => 'system',
             'window_violations' => 0,
             'provider' => 'google',
         ];
@@ -398,19 +528,13 @@ class DeliveryRouteService
     {
         try {
             $coords = $this->resolveOrderCoordinates($tenantId, $order);
-            return [
-                'lat' => $this->normalizeCoordinate($coords['lat']),
-                'lng' => $this->normalizeCoordinate($coords['lng']),
-            ];
+            return $this->sanitizeCoordinatePair($coords['lat'] ?? null, $coords['lng'] ?? null);
         } catch (\Throwable $ex) {
             Log::warning('Order geocode failed', [
                 'sale_order_id' => $order->id,
                 'error' => $ex->getMessage(),
             ]);
-            return [
-                'lat' => $this->normalizeCoordinate($order->shipping_latitude),
-                'lng' => $this->normalizeCoordinate($order->shipping_longitude),
-            ];
+            return $this->sanitizeCoordinatePair($order->shipping_latitude, $order->shipping_longitude);
         }
     }
 
@@ -427,10 +551,9 @@ class DeliveryRouteService
         $coordStops = [];
 
         foreach ($stops as $stop) {
-            $lat = $this->normalizeCoordinate($stop['lat'] ?? null);
-            $lng = $this->normalizeCoordinate($stop['lng'] ?? null);
-            if ($lat !== null && $lng !== null) {
-                $coordStops[] = ['lat' => $lat, 'lng' => $lng];
+            $coords = $this->sanitizeCoordinatePair($stop['lat'] ?? null, $stop['lng'] ?? null);
+            if ($coords['lat'] !== null && $coords['lng'] !== null) {
+                $coordStops[] = ['lat' => $coords['lat'], 'lng' => $coords['lng']];
             }
         }
 
@@ -558,10 +681,7 @@ class DeliveryRouteService
 
         $coords = $this->googleMaps->geocode($tenantId, $query);
 
-        $order->update([
-            'shipping_latitude' => $coords['lat'],
-            'shipping_longitude' => $coords['lng'],
-        ]);
+        $this->shipmentRepository->updateSaleOrderCoordinates($order, (float) $coords['lat'], (float) $coords['lng']);
 
         return $coords;
     }
@@ -682,5 +802,27 @@ class DeliveryRouteService
         }
 
         return (float) $value;
+    }
+
+    /** @return array{lat: ?float, lng: ?float} */
+    private function sanitizeCoordinatePair(mixed $lat, mixed $lng): array
+    {
+        $normalizedLat = $this->normalizeCoordinate($lat);
+        $normalizedLng = $this->normalizeCoordinate($lng);
+
+        if ($normalizedLat === null || $normalizedLng === null) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        // Reject Null Island (0,0) — typical fallback for failed geocoding.
+        if (abs($normalizedLat) < 0.000001 && abs($normalizedLng) < 0.000001) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        if ($normalizedLat < -90 || $normalizedLat > 90 || $normalizedLng < -180 || $normalizedLng > 180) {
+            return ['lat' => null, 'lng' => null];
+        }
+
+        return ['lat' => $normalizedLat, 'lng' => $normalizedLng];
     }
 }

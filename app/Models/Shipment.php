@@ -12,7 +12,7 @@ class Shipment extends Model
         'route_name', 'status',
         'driver_name', 'vehicle_plate', 'shipped_at', 'delivered_at',
         'pod_reference', 'delivery_token', 'notes', 'created_by',
-        'region', 'optimized_route', 'route_polyline', 'estimated_km',
+        'region', 'optimized_route', 'route_order_source', 'route_polyline', 'estimated_km',
         'estimated_duration_minutes', 'delivery_cost', 'cost_per_delivery',
         'freight_weight_amount', 'freight_weight_unit', 'freight_weight_charge_mode',
         'freight_weight_quantity', 'freight_weight_breakdown',

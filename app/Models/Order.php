@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Coupon;
 
+/**
+ * Pedido do quadro Kanban operacional (preparo de cozinha/balcão), distinto de
+ * `SaleOrder` (pedido de venda B2B/faturamento). Ver docblock de
+ * `App\Services\PublicOrderService` para a explicação completa de por que os
+ * dois modelos coexistem para o mesmo pedido vindo da loja pública.
+ */
 class Order extends Model
 {
     use HasFactory;

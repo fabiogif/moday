@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Tenant;
@@ -19,12 +20,16 @@ class AuthenticationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Criar profile padrão para testes
         Profile::factory()->create([
             'name' => 'user',
             'description' => 'Usuário padrão'
         ]);
+
+        // AuthService::register precisa de um plano ativo para criar o tenant
+        // do registro self-service (não gera mais um plano fake automaticamente).
+        Plan::factory()->create(['is_active' => true, 'price' => 0]);
     }
 
     #[Test]

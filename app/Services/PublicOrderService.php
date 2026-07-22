@@ -12,6 +12,32 @@ use App\Models\Tenant;
 use App\Repositories\Contracts\PaymentMethodRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * ATENÇÃO — este service cria DOIS registros para o mesmo pedido, de propósito:
+ *
+ * 1. `SaleOrder` (+ `SaleOrderItem`): o pedido de venda B2B oficial — desconto,
+ *    limite de crédito, tabela de preço, faturamento/NF-e e vínculo com romaneio
+ *    de entrega. Fluxo de status de logística de atacado (aprovado → separação
+ *    → faturado → em trânsito → entregue).
+ * 2. `Order` (+ `OrderProduct`), criado em `createDashboardOrder()`: alimenta o
+ *    quadro Kanban operacional (`/orders/board` no frontend) usado pela
+ *    cozinha/balcão para acompanhar o preparo em tempo real. Fluxo de status de
+ *    preparo (pendente → preparo → pronto → entregue), sem relação com
+ *    faturamento.
+ *
+ * Os dois registros compartilham o mesmo `identify` (mesmo número de pedido)
+ * mas representam bounded contexts diferentes — um não substitui o outro. Isso
+ * NÃO é duplicação por descuido: o quadro Kanban nunca foi adaptado para ler
+ * direto de `SaleOrder`, então este service "espelha" o pedido B2B como um
+ * `Order` legado só para a equipe de operação enxergá-lo no quadro.
+ *
+ * Antes de tentar unificar os dois modelos, note que os vocabulários de status
+ * são conceitualmente distintos (logística de atacado vs. preparo de balcão) —
+ * unificar exigiria redesenhar o quadro Kanban para consumir `SaleOrder`
+ * diretamente, migração de dados e testes de regressão dedicados. Decisão
+ * registrada em 2026-07-22 (auditoria de arquitetura): manter os dois
+ * domínios separados por ora.
+ */
 class PublicOrderService
 {
     public function __construct(

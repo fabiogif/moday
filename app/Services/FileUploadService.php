@@ -143,6 +143,89 @@ class FileUploadService
     }
 
     /**
+     * Baixa uma imagem remota e faz upload no storage do tenant.
+     *
+     * @return array{path: string, url: string, filename: string, size: int, mime_type: string, disk: string}
+     */
+    public function uploadFromUrl(string $url, string $type, string $tenantUuid, array $options = []): array
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            throw new Exception('URL de imagem inválida');
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        if (!in_array(strtolower((string) $scheme), ['http', 'https'], true)) {
+            throw new Exception('URL de imagem deve usar HTTP ou HTTPS');
+        }
+
+        $response = \Illuminate\Support\Facades\Http::timeout(15)
+            ->withHeaders([
+                'User-Agent' => 'DistribTec/1.0',
+                'Accept' => 'image/*,*/*',
+            ])
+            ->get($url);
+
+        if (!$response->successful()) {
+            throw new Exception('Não foi possível baixar a imagem remota');
+        }
+
+        $contents = $response->body();
+        if ($contents === '' || strlen($contents) < 32) {
+            throw new Exception('Imagem remota vazia ou inválida');
+        }
+
+        $mime = (string) ($response->header('Content-Type') ?? '');
+        $mime = strtolower(trim(explode(';', $mime)[0]));
+        $extension = match (true) {
+            str_contains($mime, 'png') => 'png',
+            str_contains($mime, 'gif') => 'gif',
+            str_contains($mime, 'webp') => 'webp',
+            str_contains($mime, 'svg') => 'svg',
+            default => 'jpg',
+        };
+
+        if ($mime === '' || !str_starts_with($mime, 'image/')) {
+            $imageInfo = @getimagesizefromstring($contents);
+            if ($imageInfo === false) {
+                throw new Exception('Conteúdo remoto não é uma imagem válida');
+            }
+            $mime = $imageInfo['mime'] ?? 'image/jpeg';
+            $extension = match ($mime) {
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                'image/svg+xml' => 'svg',
+                default => 'jpg',
+            };
+        }
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'product_img_');
+        if ($tmpPath === false) {
+            throw new Exception('Falha ao criar arquivo temporário para imagem');
+        }
+
+        $tmpFile = $tmpPath . '.' . $extension;
+        rename($tmpPath, $tmpFile);
+        file_put_contents($tmpFile, $contents);
+
+        try {
+            $uploaded = new UploadedFile(
+                $tmpFile,
+                'barcode-product.' . $extension,
+                $mime,
+                null,
+                true
+            );
+
+            return $this->uploadFile($uploaded, $type, $tenantUuid, $options);
+        } finally {
+            if (is_file($tmpFile)) {
+                @unlink($tmpFile);
+            }
+        }
+    }
+
+    /**
      * Verificar se arquivo existe
      */
     public function fileExists(string $path, string $disk = 'public'): bool
