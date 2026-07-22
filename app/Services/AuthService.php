@@ -22,6 +22,8 @@ class AuthService
     public function __construct(
         private readonly UserRepositoryInterface $userRepository,
         private readonly TenantRepositoryInterface $tenantRepository,
+        private readonly TenantAclProvisioner $tenantAclProvisioner,
+        private readonly TenantFinancialCategoryProvisioner $financialCategoryProvisioner,
     ) {}
     /**
      * Realiza o login do usuário
@@ -130,8 +132,9 @@ class AuthService
             $data['is_active'] = $data['is_active'] ?? true;
 
             $tenant = null;
+            $isNewTenant = empty($data['tenant_id']);
 
-            if (empty($data['tenant_id'])) {
+            if ($isNewTenant) {
                 $tenant = $this->createTenantForRegistration($data);
                 $data['tenant_id'] = $tenant->id;
             } else {
@@ -152,6 +155,15 @@ class AuthService
                 'tenant_id' => $data['tenant_id'],
                 'is_active' => $data['is_active'],
             ]);
+
+            if ($isNewTenant) {
+                // Mesmo provisionamento de ACL/categorias financeiras que
+                // TenantRegistrationService::register() faz — sem isso, o
+                // usuário fica sem nenhuma permissão e cai em 403 em toda
+                // rota protegida por acl.permission.
+                $this->tenantAclProvisioner->provisionAndAssignOwner($tenant, $user);
+                $this->financialCategoryProvisioner->provision($tenant);
+            }
 
             DB::commit();
 
@@ -389,12 +401,11 @@ class AuthService
         $plan = Plan::query()->where('is_active', true)->orderBy('price')->first();
 
         if (!$plan) {
-            $plan = Plan::factory()->create([
-                'name' => 'Plano Padrão',
-                'price' => 0,
-                'description' => 'Plano gerado automaticamente para registro de usuário.',
-                'is_active' => true,
-            ]);
+            // Nunca fabricar um plano fake em produção (Model::factory() é
+            // ferramenta de teste/seed): sem plano ativo configurado, isso é
+            // um erro de configuração que precisa de atenção operacional.
+            Log::error('Registro de tenant sem CNPJ falhou: nenhum plano ativo configurado no sistema');
+            throw new \RuntimeException('Nenhum plano ativo disponível para registro. Contate o suporte.');
         }
 
         $slug = $this->generateUniqueTenantSlug($data['name']);
@@ -402,7 +413,10 @@ class AuthService
         return Tenant::create([
             'plan_id' => $plan->id,
             'uuid' => (string) Str::uuid(),
-            'cnpj' => $this->generateCnpj(),
+            // Este fluxo (registro rápido sem dados de empresa) não coleta CNPJ;
+            // não inventamos um valor — o dado fica nulo até o tenant completar
+            // o cadastro em Configurações > Empresa.
+            'cnpj' => null,
             'name' => $data['name'],
             'email' => $data['email'],
             'url' => $slug,
@@ -430,10 +444,5 @@ class AuthService
         }
 
         return $slug;
-    }
-
-    private function generateCnpj(): string
-    {
-        return str_pad((string) random_int(0, 99999999999999), 14, '0', STR_PAD_LEFT);
     }
 }
