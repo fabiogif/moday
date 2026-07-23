@@ -198,13 +198,13 @@ class ShipmentApiController extends Controller
                 ->find($id);
 
             if (!$shipment) {
-                return ApiResponseClass::sendResponse(null, 'Romaneio não encontrado', 404);
+                return ApiResponseClass::sendResponse(null, 'Romaneio nÃ£o encontrado', 404);
             }
 
             if ($shipment->status !== 'dispatched') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'O link de entrega só pode ser enviado para romaneios em trânsito.',
+                    'message' => 'O link de entrega sÃ³ pode ser enviado para romaneios em trÃ¢nsito.',
                 ], 422);
             }
 

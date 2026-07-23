@@ -5,21 +5,25 @@ namespace App\Http\Controllers\Api;
 use App\Classes\ApiResponseClass;
 use App\Http\Requests\StoreUpdateDetailPlanRequest;
 use App\Http\Resources\DetailPlanResource;
+use App\Models\Plan;
 use App\Services\DetailPlanService;
 use App\Services\PlanService;
 use Exception;
+use Illuminate\Http\JsonResponse;
 
 class DetailPlanApiController extends Controller
 {
-    public function __construct(protected DetailPlanService $detailPlanService, protected PlanService $planService)
-    {
+    public function __construct(
+        protected DetailPlanService $detailPlanService,
+        protected PlanService $planService
+    ) {
     }
 
-    public function index(string $planIdentifier)
+    public function index(string $planIdentifier): JsonResponse
     {
         try {
             $plan = $this->findPlan($planIdentifier);
-            if (!$plan) {
+            if (!$plan instanceof Plan) {
                 return ApiResponseClass::sendResponse('', 'Detalhe do plano não encontrado', 404);
             }
 
@@ -35,29 +39,36 @@ class DetailPlanApiController extends Controller
         }
     }
 
-    public function store(StoreUpdateDetailPlanRequest $request, string $planIdentifier)
+    public function store(StoreUpdateDetailPlanRequest $request, string $planIdentifier): JsonResponse
     {
         try {
             $plan = $this->findPlan($planIdentifier);
 
-            if (!$plan) {
+            if (!$plan instanceof Plan) {
                 return ApiResponseClass::sendResponse('', 'Detalhe do plano não encontrado', 404);
             }
 
             $detailPlan = $plan->details()->create($request->validated());
 
-            return ApiResponseClass::sendResponse((new DetailPlanResource($detailPlan))->resolve(), 'Detalhe do plano adicionado com sucesso', 201);
+            return ApiResponseClass::sendResponse(
+                (new DetailPlanResource($detailPlan))->resolve(),
+                'Detalhe do plano adicionado com sucesso',
+                201
+            );
         } catch (Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }
     }
 
-    public function update(StoreUpdateDetailPlanRequest $request, string $planIdentifier, $idDetailPlan)
-    {
+    public function update(
+        StoreUpdateDetailPlanRequest $request,
+        string $planIdentifier,
+        $idDetailPlan
+    ): JsonResponse {
         try {
             $plan = $this->findPlan($planIdentifier);
 
-            if (!$plan) {
+            if (!$plan instanceof Plan) {
                 return ApiResponseClass::sendResponse('', 'Detalhe do plano não encontrado', 404);
             }
 
@@ -69,18 +80,22 @@ class DetailPlanApiController extends Controller
 
             $detailPlan->update($request->validated());
 
-            return ApiResponseClass::sendResponse((new DetailPlanResource($detailPlan))->resolve(), 'Detalhe do plano atualizado com sucesso', 200);
+            return ApiResponseClass::sendResponse(
+                (new DetailPlanResource($detailPlan))->resolve(),
+                'Detalhe do plano atualizado com sucesso',
+                200
+            );
         } catch (Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }
     }
 
-    private function findPlan(string $identifier)
+    private function findPlan(string $identifier): ?Plan
     {
-        if (is_numeric($identifier)) {
-            return $this->planService->getById((int) $identifier);
-        }
+        $plan = is_numeric($identifier)
+            ? $this->planService->getById((int) $identifier)
+            : $this->planService->getByUrl($identifier);
 
-        return $this->planService->getByUrl($identifier);
+        return $plan instanceof Plan ? $plan : null;
     }
 }
