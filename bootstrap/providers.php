@@ -16,6 +16,7 @@ return [
     App\Providers\MarketingRepositoryServiceProvider::class,
     App\Providers\PDVRepositoryServiceProvider::class,
     App\Providers\DistribtecRepositoryServiceProvider::class,
+    App\Providers\VisitRepositoryServiceProvider::class,
     App\Providers\AdminRepositoryServiceProvider::class,
     App\Providers\TelescopeServiceProvider::class,
     App\Providers\DotenvServiceProvider::class,

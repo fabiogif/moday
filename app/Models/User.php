@@ -118,6 +118,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(JobPosition::class);
     }
 
+    public function visits()
+    {
+        return $this->hasMany(Visit::class);
+    }
+
     /**
      * Relacionamento com roles (many-to-many)
      */
