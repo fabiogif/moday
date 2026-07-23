@@ -686,6 +686,16 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::get('/{id}/calendar-link', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'calendarLink'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
     });
 
+    // Agenda de Atendimento do Vendedor
+    Route::prefix('visits')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Api\VisitApiController::class, 'index'])->middleware(['acl.permission:visits.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\VisitApiController::class, 'store'])->middleware(['acl.permission:visits.store', 'throttle:critical']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'show'])->middleware(['acl.permission:visits.index', 'throttle:read']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'update'])->middleware(['acl.permission:visits.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'destroy'])->middleware(['acl.permission:visits.destroy', 'throttle:critical']);
+        Route::post('/{uuid}/status', [\App\Http\Controllers\Api\VisitStatusApiController::class, 'changeStatus'])->middleware(['acl.permission:visits.change-status', 'throttle:critical']);
+    });
+
     // Sugestões de Reposição (P1)
     Route::prefix('reorder')->middleware('plan.feature:reorder_suggestions')->group(function () {
         Route::get('/suggestions', [ReorderSuggestionController::class, 'index'])->middleware('throttle:read');
