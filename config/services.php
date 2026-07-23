@@ -31,19 +31,6 @@ return [
         ],
     ],
 
-    'ifood' => [
-        'client_id' => env('IFOOD_CLIENT_ID'),
-        'client_secret' => env('IFOOD_CLIENT_SECRET'),
-        'merchant_id' => env('IFOOD_MERCHANT_ID'),
-        'oauth_url' => env('IFOOD_OAUTH_URL', 'https://merchant-api.ifood.com.br/authentication/v1.0'),
-        'base_url' => env('IFOOD_BASE_URL', 'https://merchant-api.ifood.com.br'),
-        'catalog_base_url' => env('IFOOD_CATALOG_BASE_URL', 'https://merchant-api.ifood.com.br/catalog/v2.0'),
-        'scope' => env('IFOOD_SCOPE'),
-        'webhook_secret' => env('IFOOD_WEBHOOK_SECRET'),
-        'authorization_code' => env('IFOOD_AUTHORIZATION_CODE'),
-
-    ],
-
     'mailchimp' => [
         'api_key' => env('MAILCHIMP_API_KEY'),
         'api_url' => env('MAILCHIMP_API_URL', 'https://mandrillapp.com/api/1.0'),

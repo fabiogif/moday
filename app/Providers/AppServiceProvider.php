@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Adapters\Integrations\Ifood\Http\IfoodAuthHttpAdapter;
-use App\Adapters\Integrations\Ifood\Http\IfoodOrderHttpAdapter;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\Order;
@@ -20,13 +18,8 @@ use App\Observers\PlanObserver;
 use App\Observers\ProductObserver;
 use App\Observers\TableObserver;
 use App\Observers\TenantObserver;
-use App\Ports\Integrations\Ifood\IfoodAuthPort;
-use App\Ports\Integrations\Ifood\IfoodOrderPort;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -39,25 +32,6 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(\App\Services\AuthService::class);
         $this->app->singleton(\App\Services\CacheService::class);
-
-        $this->app->singleton(IfoodAuthPort::class, function () {
-            try {
-                return IfoodAuthHttpAdapter::makeFromConfig();
-            } catch (\RuntimeException $exception) {
-                $config = config('services.ifood', []);
-
-                return new IfoodAuthHttpAdapter(
-                    $config['client_id'] ?? '',
-                    $config['client_secret'] ?? '',
-                    $config['oauth_url'] ?? '',
-                    $config['scope'] ?? null,
-                );
-            }
-        });
-
-        $this->app->singleton(IfoodOrderPort::class, function () {
-            return IfoodOrderHttpAdapter::makeFromConfig();
-        });
 
         $this->app->singleton(\App\Services\EmailService::class, function ($app) {
             return new \App\Services\EmailService();
@@ -119,4 +93,3 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 }
-

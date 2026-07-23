@@ -118,14 +118,6 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'ifood' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/ifood.log'),
-            'level' => env('LOG_IFOOD_LEVEL', 'info'),
-            'days' => env('LOG_IFOOD_DAYS', 14),
-            'replace_placeholders' => true,
-        ],
-
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,

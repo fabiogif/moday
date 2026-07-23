@@ -10,7 +10,6 @@ return [
     App\Providers\FinancialRepositoryServiceProvider::class,
     App\Providers\LoyaltyRepositoryServiceProvider::class,
     App\Providers\SalesGoalRepositoryServiceProvider::class,
-    App\Providers\IntegrationRepositoryServiceProvider::class,
     App\Providers\AnalyticsRepositoryServiceProvider::class,
     App\Providers\NotificationRepositoryServiceProvider::class,
     App\Providers\MarketingRepositoryServiceProvider::class,

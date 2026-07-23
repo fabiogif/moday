@@ -56,12 +56,6 @@ class Kernel extends ConsoleKernel
             ->name('archive-old-orders')
             ->withoutOverlapping();
 
-        // Mantém tokens do iFood renovados a cada 15 minutos
-        $schedule->job(new \App\Jobs\RefreshIfoodTokensJob(15))
-            ->everyFifteenMinutes()
-            ->name('refresh-ifood-tokens')
-            ->withoutOverlapping();
-
         // Ativa pedidos de venda agendados que chegaram ao horário
         $schedule->command('orders:process-scheduled')
             ->everyMinute()
