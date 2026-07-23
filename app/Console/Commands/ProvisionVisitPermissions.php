@@ -13,11 +13,9 @@ use Illuminate\Console\Command;
  * segurança (App\Console\Commands\BackfillCrudAclPermissions, que "regrandfatheia"
  * acesso que já era irrestrito antes de virar uma correção), aqui não existia
  * acesso nenhum antes, então o padrão correto é menor privilégio por padrão:
- * só o profile "Administrador" de cada tenant recebe as novas permissões
- * automaticamente (mesmo comportamento de App\Services\TenantAclProvisioner
- * para tenants novos). Perfis "Vendedor"/"Supervisor" devem ser configurados
- * manualmente pelo tenant na tela de Perfis, escolhendo as permissões visits.*
- * adequadas a cada papel.
+ * - Administrador: todas as visits.*
+ * - Gerente Comercial: agenda completa + view-all
+ * - Vendedor: index/store/update + check-in/out/status/mídia
  *
  * Idempotente: seguro rodar mais de uma vez.
  */
@@ -25,7 +23,21 @@ class ProvisionVisitPermissions extends Command
 {
     protected $signature = 'visits:provision-permissions {--dry-run : Apenas mostra o que seria alterado, sem gravar}';
 
-    protected $description = 'Cria as permissões visits.* para todos os tenants existentes e concede ao profile Administrador de cada um';
+    protected $description = 'Cria as permissões visits.* para todos os tenants existentes e concede aos profiles padrão';
+
+    /** @var array<string, list<string>|string> */
+    private const PROFILE_GRANTS = [
+        'administrador' => '*',
+        'gerente comercial' => [
+            'visits.index', 'visits.store', 'visits.update', 'visits.destroy',
+            'visits.checkin', 'visits.checkout', 'visits.change-status', 'visits.media.store',
+            'visits.recurrence.manage', 'visits.reports.index', 'visits.view-all',
+        ],
+        'vendedor' => [
+            'visits.index', 'visits.store', 'visits.update',
+            'visits.checkin', 'visits.checkout', 'visits.change-status', 'visits.media.store',
+        ],
+    ];
 
     public function handle(): int
     {
@@ -49,11 +61,15 @@ class ProvisionVisitPermissions extends Command
         $totalGranted = 0;
 
         foreach ($tenantIds as $tenantId) {
-            $permissionIds = [];
+            $permissionsBySlug = [];
 
             foreach ($visitDefinitions as $definition) {
                 if ($dryRun) {
                     $permission = Permission::where('slug', $definition['slug'])->where('tenant_id', $tenantId)->first();
+                    if (! $permission) {
+                        $this->line("[dry-run] tenant={$tenantId}: criaria permission {$definition['slug']}");
+                        continue;
+                    }
                 } else {
                     $permission = Permission::firstOrCreate(
                         ['slug' => $definition['slug'], 'tenant_id' => $tenantId],
@@ -62,42 +78,55 @@ class ProvisionVisitPermissions extends Command
                 }
 
                 if ($permission) {
-                    $permissionIds[] = $permission->id;
+                    $permissionsBySlug[$permission->slug] = $permission->id;
                 }
             }
 
-            if ($permissionIds === []) {
+            if ($permissionsBySlug === []) {
                 continue;
             }
 
-            $adminProfile = Profile::where('tenant_id', $tenantId)
-                ->whereRaw('LOWER(name) = ?', ['administrador'])
-                ->first();
+            foreach (self::PROFILE_GRANTS as $profileName => $grant) {
+                $profile = Profile::where('tenant_id', $tenantId)
+                    ->whereRaw('LOWER(name) = ?', [$profileName])
+                    ->first();
 
-            if (!$adminProfile) {
-                $this->line("[skip] tenant={$tenantId}: profile \"Administrador\" não encontrado");
-                continue;
-            }
+                if (! $profile) {
+                    $this->line("[skip] tenant={$tenantId}: profile \"{$profileName}\" não encontrado");
+                    continue;
+                }
 
-            $existingIds = $adminProfile->permissions()->pluck('permissions.id')->all();
-            $missingIds = array_values(array_diff($permissionIds, $existingIds));
+                $permissionIds = $grant === '*'
+                    ? array_values($permissionsBySlug)
+                    : array_values(array_filter(array_map(
+                        fn (string $slug) => $permissionsBySlug[$slug] ?? null,
+                        $grant
+                    )));
 
-            if ($missingIds === []) {
-                continue;
-            }
+                if ($permissionIds === []) {
+                    continue;
+                }
 
-            $totalGranted += count($missingIds);
-            $this->line(sprintf(
-                '%s tenant=%s profile="%s" (#%d): +%d permissões',
-                $dryRun ? '[dry-run]' : '[grant]',
-                $tenantId,
-                $adminProfile->name,
-                $adminProfile->id,
-                count($missingIds)
-            ));
+                $existingIds = $profile->permissions()->pluck('permissions.id')->all();
+                $missingIds = array_values(array_diff($permissionIds, $existingIds));
 
-            if (!$dryRun) {
-                $adminProfile->permissions()->attach($missingIds);
+                if ($missingIds === []) {
+                    continue;
+                }
+
+                $totalGranted += count($missingIds);
+                $this->line(sprintf(
+                    '%s tenant=%s profile="%s" (#%d): +%d permissões',
+                    $dryRun ? '[dry-run]' : '[grant]',
+                    $tenantId,
+                    $profile->name,
+                    $profile->id,
+                    count($missingIds)
+                ));
+
+                if (! $dryRun) {
+                    $profile->permissions()->attach($missingIds);
+                }
             }
         }
 

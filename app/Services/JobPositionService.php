@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 class JobPositionService
 {
     public const DEFAULT_POSITIONS = [
+        ['name' => 'Vendedor', 'description' => 'Responsável por vendas, atendimento e agenda de visitas a clientes'],
         ['name' => 'Motorista', 'description' => 'Responsável por conduzir veículos de entrega'],
         ['name' => 'Entregador', 'description' => 'Realiza entregas aos clientes'],
         ['name' => 'Ajudante', 'description' => 'Apoio na carga, descarga e entregas'],

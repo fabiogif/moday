@@ -172,11 +172,18 @@ class User extends Authenticatable implements JWTSubject
     /**
      * Check if user has a specific profile.
      * Uses case-insensitive comparison on profile name.
+     * Considers both users.profile_id and the user_profiles pivot.
      */
     public function hasProfile(string $profileName): bool
     {
+        $needle = strtolower($profileName);
+
+        if ($this->profile()->whereRaw('LOWER(name) = ?', [$needle])->exists()) {
+            return true;
+        }
+
         return $this->profiles()
-            ->whereRaw('LOWER(name) = ?', [strtolower($profileName)])
+            ->whereRaw('LOWER(name) = ?', [$needle])
             ->exists();
     }
 
@@ -236,20 +243,35 @@ class User extends Authenticatable implements JWTSubject
 
     /**
      * Check if user has a specific permission (direct or through profiles).
+     * Administrador (e equivalentes) tem acesso a todos os recursos.
      */
     public function hasPermissionTo(string $permission): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
         // Check direct permissions
         if ($this->permissions()->where('slug', $permission)->exists()) {
             return true;
         }
 
-        // Check permissions through profiles
-        return $this->profiles()
+        // Check permissions through profiles (pivot)
+        if ($this->profiles()
             ->whereHas('permissions', function ($query) use ($permission) {
                 $query->where('slug', $permission);
             })
-            ->exists();
+            ->exists()) {
+            return true;
+        }
+
+        // Check permissions through users.profile_id
+        $directProfile = $this->profile;
+        if ($directProfile && $directProfile->permissions()->where('slug', $permission)->exists()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -257,17 +279,30 @@ class User extends Authenticatable implements JWTSubject
      */
     public function hasAnyPermission(array $permissions): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
         // Check direct permissions
         if ($this->permissions()->whereIn('slug', $permissions)->exists()) {
             return true;
         }
 
-        // Check permissions through profiles
-        return $this->profiles()
+        // Check permissions through profiles (pivot)
+        if ($this->profiles()
             ->whereHas('permissions', function ($query) use ($permissions) {
                 $query->whereIn('slug', $permissions);
             })
-            ->exists();
+            ->exists()) {
+            return true;
+        }
+
+        $directProfile = $this->profile;
+        if ($directProfile && $directProfile->permissions()->whereIn('slug', $permissions)->exists()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -275,6 +310,10 @@ class User extends Authenticatable implements JWTSubject
      */
     public function hasAllPermissions(array $permissions): bool
     {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
         $userPermissions = $this->getAllPermissions()->pluck('slug')->toArray();
         return count(array_intersect($permissions, $userPermissions)) === count($permissions);
     }
@@ -284,10 +323,21 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getAllPermissions()
     {
+        if ($this->isAdmin()) {
+            return Permission::query()
+                ->where('tenant_id', $this->tenant_id)
+                ->where('is_active', true)
+                ->get();
+        }
+
         $directPermissions = $this->permissions;
         $profilePermissions = $this->profiles()->with('permissions')->get()
             ->pluck('permissions')
             ->flatten();
+
+        if ($this->profile) {
+            $profilePermissions = $profilePermissions->merge($this->profile->permissions);
+        }
 
         return $directPermissions->merge($profilePermissions)->unique('id');
     }
@@ -371,15 +421,25 @@ class User extends Authenticatable implements JWTSubject
      */
     public function isSuperAdmin(): bool
     {
-        return $this->hasProfile('super-admin') || $this->hasProfile('super_admin');
+        return $this->hasProfile('super-admin')
+            || $this->hasProfile('super_admin')
+            || $this->hasProfile('Super Admin');
     }
 
     /**
-     * Check if user is admin (via profile).
+     * Check if user is admin (acesso total a páginas e recursos).
+     * Perfil padrão do tenant: "Administrador".
      */
     public function isAdmin(): bool
     {
-        return $this->hasProfile('admin') || $this->isSuperAdmin();
+        $adminEmails = config('acl.admin_emails', []);
+        if ($this->email && in_array($this->email, $adminEmails, true)) {
+            return true;
+        }
+
+        return $this->hasProfile(\App\Services\TenantAclProvisioner::ADMIN_PROFILE_NAME)
+            || $this->hasProfile('admin')
+            || $this->isSuperAdmin();
     }
 
     /**
