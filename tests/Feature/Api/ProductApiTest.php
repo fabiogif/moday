@@ -566,6 +566,44 @@ class ProductApiTest extends TestCase
     }
 
     #[Test]
+    public function exclusao_via_api_libera_barcode_para_novo_cadastro(): void
+    {
+        $product = Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Produto API Delete',
+            'barcode' => '7891000000015',
+            'description' => 'Será excluído via API',
+            'price' => 10.00,
+            'qtd_stock' => 1,
+        ]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->deleteJson("/api/product/{$product->id}")
+            ->assertStatus(204);
+
+        $this->assertSoftDeleted('products', ['id' => $product->id]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'barcode' => null,
+        ]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->postJson('/api/product', [
+            'name' => 'Produto API Delete',
+            'description' => 'Recadastrado após exclusão via API',
+            'price' => 12.00,
+            'qtd_stock' => 2,
+            'barcode' => '7891000000015',
+            'categories' => [$this->category->uuid],
+        ])->assertStatus(201)
+            ->assertJsonPath('data.barcode', '7891000000015');
+    }
+
+    #[Test]
     public function pode_atualizar_produto_mantendo_mesmo_nome()
     {
         $product = Product::factory()->create([
