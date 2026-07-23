@@ -75,6 +75,7 @@ class VisitService
                 'priority' => $data['priority'] ?? 'normal',
                 'status' => 'agendada',
                 'objective_notes' => $data['objective_notes'] ?? null,
+                'recurrence_id' => $data['recurrence_id'] ?? null,
                 'client_request_id' => $data['client_request_id'] ?? null,
                 'notes' => $data['notes'] ?? null,
             ]);

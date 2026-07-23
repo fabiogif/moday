@@ -119,4 +119,15 @@ class VisitRepository implements VisitRepositoryInterface
 
         return $query->lockForUpdate()->get();
     }
+
+    public function scheduledDatesForRecurrence(int $tenantId, int $recurrenceId): array
+    {
+        return Visit::query()
+            ->forTenant($tenantId)
+            ->where('recurrence_id', $recurrenceId)
+            ->whereNotIn('status', ['cancelada'])
+            ->get()
+            ->map(fn (Visit $visit) => $visit->scheduled_date->format('Y-m-d'))
+            ->all();
+    }
 }

@@ -63,6 +63,7 @@ class VisitResource extends JsonResource
             'client_alert' => $this->when(isset($this->client_alert), fn () => $this->client_alert),
 
             'status_histories' => VisitStatusHistoryResource::collection($this->whenLoaded('statusHistories')),
+            'media' => VisitMediaResource::collection($this->whenLoaded('media')),
 
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

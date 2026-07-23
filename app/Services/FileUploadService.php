@@ -52,6 +52,33 @@ class FileUploadService
             'use_hash_name' => true,
             'visibility' => 'public',
         ],
+        'visit_photo' => [
+            'disk' => 'public',
+            'max_size' => 5120, // 5MB
+            'allowed_types' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_width' => 2048,
+            'max_height' => 2048,
+            'quality' => 80,
+            'path_prefix' => 'visits/{tenant_uuid}',
+            'use_hash_name' => true,
+            'visibility' => 'public',
+        ],
+        'visit_document' => [
+            'disk' => 'public',
+            'max_size' => 10240, // 10MB
+            'allowed_types' => ['pdf', 'doc', 'docx'],
+            'path_prefix' => 'visits/{tenant_uuid}',
+            'use_hash_name' => true,
+            'visibility' => 'public',
+        ],
+        'visit_audio' => [
+            'disk' => 'public',
+            'max_size' => 15360, // 15MB
+            'allowed_types' => ['mp3', 'm4a', 'wav', 'aac', 'ogg'],
+            'path_prefix' => 'visits/{tenant_uuid}',
+            'use_hash_name' => true,
+            'visibility' => 'public',
+        ],
     ];
 
     /**

@@ -29,4 +29,12 @@ interface VisitRepositoryInterface
      * Deve ser chamado dentro de uma transação — aplica lock pessimista.
      */
     public function lockOverlappingForUser(int $tenantId, int $userId, string $date, ?int $excludeVisitId = null): Collection;
+
+    /**
+     * Datas (Y-m-d) já materializadas para uma recorrência, para evitar duplicar
+     * visitas ao gerar ocorrências mais de uma vez sobre a mesma janela.
+     *
+     * @return string[]
+     */
+    public function scheduledDatesForRecurrence(int $tenantId, int $recurrenceId): array;
 }
