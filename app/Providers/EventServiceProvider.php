@@ -65,6 +65,20 @@ class EventServiceProvider extends ServiceProvider
             \App\Listeners\UpdateGoalProgressOnSaleOrder::class,
         ],
 
+        // Visit Events (Agenda de Visitas — Fase D)
+        \App\Events\VisitScheduled::class => [
+            \App\Listeners\SendVisitScheduledEmail::class,
+            \App\Listeners\SendVisitScheduledWhatsApp::class,
+        ],
+        \App\Events\VisitCancelled::class => [
+            \App\Listeners\SendVisitCancelledEmail::class,
+            \App\Listeners\SendVisitCancelledWhatsApp::class,
+        ],
+        \App\Events\VisitRescheduled::class => [
+            \App\Listeners\SendVisitRescheduledEmail::class,
+            \App\Listeners\SendVisitRescheduledWhatsApp::class,
+        ],
+
         // Subscription Events
         \App\Events\SubscriptionActivated::class => [
             \App\Listeners\SendSubscriptionActivatedNotification::class,

@@ -29,7 +29,7 @@ class DefaultOrderStatusesSeederTest extends TestCase
         $this->assertNotNull($initial);
         $this->assertSame('pendente', $initial->slug);
         $this->assertSame('Pendente', $initial->name);
-        $this->assertContains('PLACED', $initial->integration_codes['ifood'] ?? []);
+        $this->assertContains('PENDING', $initial->integration_codes['99food'] ?? []);
 
         $names = OrderStatus::query()
             ->where('tenant_id', $tenant->id)

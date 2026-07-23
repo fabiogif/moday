@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Listeners;
+
+use App\Events\VisitScheduled;
+use App\Mail\VisitNotificationMail;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Mail;
+
+class SendVisitScheduledEmail implements ShouldQueue
+{
+    public string $queue = 'emails';
+
+    public function handle(VisitScheduled $event): void
+    {
+        $client = $event->visit->loadMissing('client')->client;
+        if (!$client) {
+            return;
+        }
+
+        $email = $client->contact_email ?: $client->email;
+        if (empty($email)) {
+            return;
+        }
+
+        Mail::to($email)->queue(new VisitNotificationMail($event->visit, 'scheduled'));
+    }
+}

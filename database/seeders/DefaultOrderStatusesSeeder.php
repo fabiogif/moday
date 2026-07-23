@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
  * Fluxo operacional padrão de pedidos:
  * Pendente → Aceito → Preparo → Entrega → Concluído (+ Cancelado)
  *
- * Mantém códigos de integração iFood/99Food e remapeia slugs legados.
+ * Mantém códigos de integração 99Food e remapeia slugs legados.
  */
 class DefaultOrderStatusesSeeder extends Seeder
 {
@@ -69,7 +69,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => true,
                 'is_final' => false,
                 'integration_codes' => [
-                    'ifood' => ['PLACED', 'WAITING', 'INTEGRATED'],
                     '99food' => ['PENDING', 'WAITING_MERCHANT_CONFIRM'],
                 ],
             ],
@@ -83,7 +82,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => false,
                 'is_final' => false,
                 'integration_codes' => [
-                    'ifood' => ['CONFIRMED'],
                     '99food' => ['MERCHANT_CONFIRMED', 'CONFIRMED'],
                 ],
             ],
@@ -97,7 +95,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => false,
                 'is_final' => false,
                 'integration_codes' => [
-                    'ifood' => ['PREPARATION_STARTED', 'PREPARING'],
                     '99food' => ['PREPARING', 'IN_PREPARATION'],
                 ],
             ],
@@ -111,13 +108,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => false,
                 'is_final' => false,
                 'integration_codes' => [
-                    'ifood' => [
-                        'READY_TO_PICKUP',
-                        'READY_FOR_PICKUP',
-                        'DISPATCHED',
-                        'OUT_FOR_DELIVERY',
-                        'IN_DELIVERY',
-                    ],
                     '99food' => [
                         'READY_FOR_PICKUP',
                         'READY',
@@ -138,7 +128,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => false,
                 'is_final' => true,
                 'integration_codes' => [
-                    'ifood' => ['DELIVERED', 'CONCLUDED', 'COMPLETED'],
                     '99food' => ['DELIVERED', 'COMPLETED', 'FINISHED'],
                 ],
             ],
@@ -152,7 +141,6 @@ class DefaultOrderStatusesSeeder extends Seeder
                 'is_initial' => false,
                 'is_final' => true,
                 'integration_codes' => [
-                    'ifood' => ['CANCELLED', 'CANCELLATION_REQUESTED'],
                     '99food' => ['CANCELLED', 'CANCELED', 'REFUNDED'],
                 ],
             ],

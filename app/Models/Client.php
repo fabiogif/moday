@@ -50,6 +50,13 @@ class Client extends Authenticatable implements JWTSubject
         'notes',
         'is_active',
         'tenant_id',
+        'latitude',
+        'longitude',
+        'abc_classification',
+        'is_vip',
+        'business_hours_start',
+        'business_hours_end',
+        'last_visit_at',
     ];
 
     protected function casts(): array
@@ -59,6 +66,10 @@ class Client extends Authenticatable implements JWTSubject
             'is_blocked' => 'boolean',
             'credit_limit' => 'decimal:2',
             'payment_term_days' => 'integer',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'is_vip' => 'boolean',
+            'last_visit_at' => 'datetime',
         ];
     }
 
@@ -104,6 +115,16 @@ class Client extends Authenticatable implements JWTSubject
     public function OrderEvaluation()
     {
         return $this->hasMany(OrderEvaluation::class);
+    }
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class);
+    }
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     /**

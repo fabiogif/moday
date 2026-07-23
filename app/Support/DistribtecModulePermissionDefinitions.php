@@ -30,6 +30,7 @@ class DistribtecModulePermissionDefinitions
             'offer-rules' => 'Ofertas Automáticas',
             'expenses' => 'Despesas',
             'bank-accounts' => 'Contas Bancárias',
+            'visits' => 'Agenda de Visitas',
         ];
 
         $actions = [
@@ -64,6 +65,13 @@ class DistribtecModulePermissionDefinitions
             'sale-orders.fiscal.request' => ['module' => 'sale-orders', 'action' => 'fiscal.request', 'resource' => 'sale-orders', 'name' => 'Solicitar NF-e'],
             'discount-approvals.index' => ['module' => 'discount-approvals', 'action' => 'index', 'resource' => 'discount-approvals', 'name' => 'Visualizar Aprovações de Desconto'],
             'discount-approvals.approve' => ['module' => 'discount-approvals', 'action' => 'approve', 'resource' => 'discount-approvals', 'name' => 'Aprovar/Rejeitar Descontos'],
+            'visits.checkin' => ['module' => 'visits', 'action' => 'checkin', 'resource' => 'visits', 'name' => 'Check-in de Visita'],
+            'visits.checkout' => ['module' => 'visits', 'action' => 'checkout', 'resource' => 'visits', 'name' => 'Check-out de Visita'],
+            'visits.change-status' => ['module' => 'visits', 'action' => 'change-status', 'resource' => 'visits', 'name' => 'Alterar Situação da Visita'],
+            'visits.media.store' => ['module' => 'visits', 'action' => 'media.store', 'resource' => 'visits', 'name' => 'Anexar Mídia à Visita'],
+            'visits.recurrence.manage' => ['module' => 'visits', 'action' => 'recurrence.manage', 'resource' => 'visits', 'name' => 'Gerenciar Recorrência de Visitas'],
+            'visits.reports.index' => ['module' => 'visits', 'action' => 'reports.index', 'resource' => 'visits', 'name' => 'Ver Relatórios de Visitas'],
+            'visits.view-all' => ['module' => 'visits', 'action' => 'view-all', 'resource' => 'visits', 'name' => 'Ver Agenda de Todos os Vendedores'],
         ] as $slug => $meta) {
             $permissions[] = [
                 'name' => $meta['name'],

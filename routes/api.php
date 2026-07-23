@@ -53,9 +53,6 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\PDVFeedbackController,
     Api\PlanLimitApiController,
     Api\PlanMigrationApiController};
-use App\Http\Controllers\Api\Integrations\Ifood\IfoodAuthController;
-use App\Http\Controllers\Api\Integrations\Ifood\IfoodOrderController;
-use App\Http\Controllers\Api\Integrations\Ifood\IfoodWebhookController;
 use App\Http\Controllers\Api\OfflineSyncController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -141,12 +138,8 @@ Route::post('/contact', [ContactApiController::class, 'send'])
 Route::post('/newsletter/subscribe', [NewsletterApiController::class, 'subscribe'])
     ->middleware('throttle:10,1');
 
-// Webhook do iFood (assinatura validada via header)
 Route::post('/webhooks/fiscal/{tenantId}', [\App\Http\Controllers\Api\FiscalWebhookController::class, '__invoke'])
     ->middleware('throttle:critical');
-
-Route::post('/integrations/ifood/webhook', IfoodWebhookController::class)
-    ->name('integrations.ifood.webhook');
 
 // ============================================================================
 // LOCATION API (PUBLIC) - Estados e Municípios
@@ -207,27 +200,6 @@ Route::middleware(['auth:api', 'tenant.blocked'])->group(function () {
         Route::delete('/downgrade', [SubscriptionApiController::class, 'cancelDowngrade'])->middleware('throttle:critical');
         Route::put('/card', [SubscriptionApiController::class, 'updateCard'])->middleware('throttle:critical');
         Route::get('/invoices', [SubscriptionApiController::class, 'invoices'])->middleware('throttle:read');
-    });
-
-    Route::prefix('integrations/ifood')->group(function () {
-        Route::post('/token', [IfoodAuthController::class, 'store'])->middleware('throttle:critical');
-        Route::post('/token/refresh', [IfoodAuthController::class, 'refresh'])->middleware('throttle:critical');
-        Route::get('/token', [IfoodAuthController::class, 'show'])->middleware('throttle:read');
-
-        Route::post('/oauth/user-code', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOAuthController::class, 'requestUserCode'])->middleware('throttle:critical');
-
-        Route::get('/orders', [IfoodOrderController::class, 'index'])->middleware('throttle:read');
-        Route::get('/orders/{externalOrderId}', [IfoodOrderController::class, 'show'])->middleware('throttle:read');
-        Route::post('/orders/{externalOrderId}/status', [IfoodOrderController::class, 'resendStatus'])->middleware('throttle:critical');
-        Route::post('/orders/{externalOrderId}/confirm', [IfoodOrderController::class, 'confirm'])->middleware('throttle:critical');
-
-        Route::get('/catalogs', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'catalogs'])->middleware('throttle:read');
-        Route::get('/catalogs/{catalogId}/categories', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'categories'])->middleware('throttle:read');
-        Route::get('/catalogs/{catalogId}/groups', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'groups'])->middleware('throttle:read');
-        Route::get('/catalogs/{catalogId}/unsellable-items', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'unsellableItems'])->middleware('throttle:read');
-        Route::get('/catalog-groups/{groupId}/sellable-items', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'sellableItems'])->middleware('throttle:read');
-        Route::get('/catalog/version', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'version'])->middleware('throttle:read');
-        Route::get('/catalog/snapshots', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'snapshots'])->middleware('throttle:read');
     });
 
     // Broadcasting authentication
@@ -684,6 +656,32 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
         Route::post('/{id}/schedule', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'schedule'])->middleware(['acl.permission:sale-orders.update', 'throttle:critical']);
         Route::delete('/{id}/schedule', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'cancelSchedule'])->middleware(['acl.permission:sale-orders.update', 'throttle:critical']);
         Route::get('/{id}/calendar-link', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'calendarLink'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
+    });
+
+    // Agenda de Atendimento do Vendedor
+    Route::prefix('visits')->group(function () {
+        // Rotas de segmento fixo (reports, recurrences) precisam vir antes de
+        // '/{uuid}' abaixo — caso contrário o Laravel casa "reports"/"recurrences"
+        // como se fossem um uuid e roteia para VisitApiController::show por engano.
+        Route::get('/reports', [\App\Http\Controllers\Api\VisitReportApiController::class, 'index'])->middleware(['acl.permission:visits.reports.index', 'throttle:read']);
+
+        Route::prefix('recurrences')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'index'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:read']);
+            Route::post('/', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'store'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:critical']);
+            Route::get('/{uuid}', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'show'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:read']);
+            Route::put('/{uuid}', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'update'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:critical']);
+            Route::delete('/{uuid}', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'destroy'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:critical']);
+            Route::post('/{uuid}/generate', [\App\Http\Controllers\Api\VisitRecurrenceApiController::class, 'generate'])->middleware(['acl.permission:visits.recurrence.manage', 'throttle:critical']);
+        });
+
+        Route::get('/', [\App\Http\Controllers\Api\VisitApiController::class, 'index'])->middleware(['acl.permission:visits.index', 'throttle:read']);
+        Route::post('/', [\App\Http\Controllers\Api\VisitApiController::class, 'store'])->middleware(['acl.permission:visits.store', 'throttle:critical']);
+        Route::get('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'show'])->middleware(['acl.permission:visits.index', 'throttle:read']);
+        Route::put('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'update'])->middleware(['acl.permission:visits.update', 'throttle:critical']);
+        Route::delete('/{uuid}', [\App\Http\Controllers\Api\VisitApiController::class, 'destroy'])->middleware(['acl.permission:visits.destroy', 'throttle:critical']);
+        Route::post('/{uuid}/status', [\App\Http\Controllers\Api\VisitStatusApiController::class, 'changeStatus'])->middleware(['acl.permission:visits.change-status', 'throttle:critical']);
+        Route::get('/{uuid}/media', [\App\Http\Controllers\Api\VisitMediaApiController::class, 'index'])->middleware(['acl.permission:visits.index', 'throttle:read']);
+        Route::post('/{uuid}/media', [\App\Http\Controllers\Api\VisitMediaApiController::class, 'store'])->middleware(['acl.permission:visits.media.store', 'throttle:critical']);
     });
 
     // Sugestões de Reposição (P1)
