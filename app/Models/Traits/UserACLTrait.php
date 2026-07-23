@@ -128,12 +128,25 @@ trait UserACLTrait
     }
 
     /**
-     * Verifica se o usuário é admin
+     * Verifica se o usuário é admin (acesso total).
+     * Nota: User sobrescreve este método; mantido alinhado para o trait.
      */
     public function isAdmin(): bool
     {
         $adminEmails = config('acl.admin_emails', []);
-        return in_array($this->email, $adminEmails);
+        if ($this->email && in_array($this->email, $adminEmails, true)) {
+            return true;
+        }
+
+        if (method_exists($this, 'hasProfile')) {
+            return $this->hasProfile(\App\Services\TenantAclProvisioner::ADMIN_PROFILE_NAME)
+                || $this->hasProfile('admin')
+                || $this->hasProfile('Super Admin')
+                || $this->hasProfile('super-admin')
+                || $this->hasProfile('super_admin');
+        }
+
+        return false;
     }
 
     /**

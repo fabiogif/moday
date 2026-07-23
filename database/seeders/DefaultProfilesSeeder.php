@@ -28,6 +28,9 @@ class DefaultProfilesSeeder extends Seeder
                 'products.index', 'products.show',
                 'categories.index',
                 'reports.index', 'reports.generate',
+                'visits.index', 'visits.store', 'visits.update', 'visits.destroy',
+                'visits.checkin', 'visits.checkout', 'visits.change-status', 'visits.media.store',
+                'visits.recurrence.manage', 'visits.reports.index', 'visits.view-all',
             ],
         ],
         'Vendedor' => [
@@ -38,6 +41,8 @@ class DefaultProfilesSeeder extends Seeder
                 'price-tables.index',
                 'products.index', 'products.show',
                 'categories.index',
+                'visits.index', 'visits.store', 'visits.update',
+                'visits.checkin', 'visits.checkout', 'visits.change-status', 'visits.media.store',
             ],
         ],
         'Comprador' => [

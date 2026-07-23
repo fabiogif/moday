@@ -178,4 +178,24 @@ class JobPositionApiTest extends TestCase
         $this->getJson("/api/job-positions/{$otherPosition->uuid}")
             ->assertStatus(404);
     }
+
+    #[Test]
+    public function seed_defaults_cria_vendedor_sem_duplicar(): void
+    {
+        $service = app(\App\Services\JobPositionService::class);
+
+        $service->seedDefaultsForTenant($this->tenant->id);
+        $service->seedDefaultsForTenant($this->tenant->id);
+
+        $this->assertDatabaseHas('job_positions', [
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Vendedor',
+            'is_active' => true,
+        ]);
+
+        $this->assertSame(
+            1,
+            JobPosition::where('tenant_id', $this->tenant->id)->where('name', 'Vendedor')->count()
+        );
+    }
 }

@@ -170,4 +170,49 @@ class UserTest extends TestCase
         $this->assertSoftDeleted($user);
         $this->assertNotNull($user->deleted_at);
     }
+
+    #[Test]
+    public function administrador_tem_acesso_a_todas_as_permissoes_mesmo_sem_grant_explicito()
+    {
+        $tenant = Tenant::factory()->create();
+        $adminProfile = Profile::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Administrador',
+        ]);
+
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->profiles()->attach($adminProfile->id);
+
+        $this->assertTrue($user->isAdmin());
+        $this->assertTrue($user->hasPermissionTo('visits.index'));
+        $this->assertTrue($user->hasPermissionTo('qualquer.permissao.inexistente'));
+        $this->assertTrue($user->hasAnyPermission(['visits.destroy', 'x.y']));
+        $this->assertTrue($user->hasAllPermissions(['a.b', 'c.d']));
+    }
+
+    #[Test]
+    public function has_permission_to_respeita_profile_id_sem_pivot()
+    {
+        $tenant = Tenant::factory()->create();
+        $permission = Permission::factory()->create([
+            'tenant_id' => $tenant->id,
+            'slug' => 'clients.index.' . uniqid(),
+            'name' => 'clients.index',
+            'is_active' => true,
+        ]);
+        $profile = Profile::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Vendedor',
+        ]);
+        $profile->permissions()->syncWithoutDetaching([$permission->id]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'profile_id' => $profile->id,
+        ]);
+
+        $this->assertFalse($user->isAdmin());
+        $this->assertTrue($user->hasPermissionTo($permission->slug));
+        $this->assertFalse($user->hasPermissionTo('clients.destroy.' . uniqid()));
+    }
 }
