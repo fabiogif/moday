@@ -20,14 +20,14 @@ class DeliveryLinkWhatsAppService
 
         $plan = $shipment->tenant?->plan;
         if (!$plan || !$plan->has_whatsapp_notifications) {
-            throw new \RuntimeException('Plano n„o inclui notificaÁıes WhatsApp.');
+            throw new \RuntimeException('Plano n√£o inclui notifica√ß√µes WhatsApp.');
         }
 
         $instance = $shipment->tenant?->evolution_instance;
         $phone    = $shipment->driver?->phone;
 
         if (!$instance) {
-            throw new \RuntimeException('Inst‚ncia WhatsApp n„o configurada para esta empresa.');
+            throw new \RuntimeException('Inst√¢ncia WhatsApp n√£o configurada para esta empresa.');
         }
 
         if (!$phone) {

@@ -19,8 +19,8 @@ class EvolutionApiService
     /**
      * Envia mensagem de texto via Evolution API.
      *
-     * @param  string  $instance     Nome da instância configurada na Evolution API
-     * @param  string  $number       Número do destinatário (somente dígitos, com DDI)
+     * @param  string  $instance     Nome da instÃ¢ncia configurada na Evolution API
+     * @param  string  $number       NÃºmero do destinatÃ¡rio (somente dÃ­gitos, com DDI)
      * @param  string  $text         Corpo da mensagem
      * @param  bool    $linkPreview  Habilita preview (foto/card) de URLs no WhatsApp
      */
