@@ -175,6 +175,7 @@ Route::prefix('auth')->group(function () {
 
 // Rotas protegidas por JWT específicas para autenticação do usuário
 Route::prefix('auth')->middleware([
+    'inject.token.cookie:auth_token',
     \App\Http\Middleware\JwtMiddleware::class,
     'tenant.blocked',
 ])->group(function () {
@@ -185,7 +186,7 @@ Route::prefix('auth')->middleware([
 });
 
 // Rotas protegidas por JWT
-Route::middleware(['auth:api', 'tenant.blocked'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked'])->group(function () {
     // Trial e Subscription
     Route::prefix('subscription')->group(function () {
         Route::get('/trial-status', [SubscriptionApiController::class, 'trialStatus'])->middleware('throttle:read');
@@ -221,7 +222,7 @@ Route::get('/store/{slug}/promotions', [\App\Http\Controllers\Api\PublicStoreCon
 Route::get('/service-type/menu', [ServiceTypeApiController::class, 'menu'])->middleware('throttle:read');
 
 // Rotas protegidas por JWT e tenant
-Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
     // Produtos
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
@@ -496,14 +497,14 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 // não uma consulta de tenant autenticado — mesma proteção do equivalente em /admin/tenants.
 Route::get('/tenant', [TenantApiController::class , 'index'])->middleware(['admin.auth', 'admin.permission:tenants.view', 'throttle:read']);
 // Consulta do próprio tenant (usada pelas telas autenticadas de configurações da empresa/admin).
-Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware(['auth:api', 'throttle:read']);
+Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'throttle:read']);
 Route::post('/tenant', [TenantApiController::class , 'store'])->middleware('throttle:register');
-Route::put('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']);
-Route::post('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']); // Para upload de arquivo com _method=PUT
+Route::put('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']);
+Route::post('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']); // Para upload de arquivo com _method=PUT
 
 
 // Rotas de verificação de limites e migração de planos (DEVEM VIR ANTES DE /plan/{id})
-Route::middleware(['auth:api'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api'])->group(function () {
     // Verificação de limites
     Route::get('/plan/limits/check', [PlanLimitApiController::class, 'checkLimits'])->middleware('throttle:read');
     Route::get('/plan/current-usage', [PlanLimitApiController::class, 'getCurrentUsage'])->middleware('throttle:read');
@@ -527,7 +528,7 @@ Route::delete('/plan/{id}', [PlanApiController::class , 'delete'])->middleware([
 Route::put('/plan/{id}', [PlanApiController::class , 'update'])->middleware(['admin.auth', 'admin.permission:tenants.manage', 'throttle:critical']);
 
 // Rotas para gestão de usuários, perfis e permissões
-Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
     // Usuários
     Route::prefix('users')->group(function () {
         Route::get('/', [UserApiController::class, 'index'])->middleware(['acl.permission:users.index', 'throttle:read']);
@@ -900,7 +901,7 @@ Route::middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function
 // REPORTS ROUTES (AUTHENTICATED)
 // ============================================================================
 
-Route::prefix('reports')->middleware(['auth:api', 'tenant.blocked', 'trial.check', 'plan.feature:reports'])->group(function () {
+Route::prefix('reports')->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'plan.feature:reports'])->group(function () {
     // Lista relatórios disponíveis
     Route::get('/', [ReportController::class, 'index']);
     
@@ -970,7 +971,7 @@ Route::prefix('store/{slug}')->group(function () {
     Route::post('/auth/login', [ClientAuthController::class, 'login'])
         ->middleware('throttle:10,1'); // 10 login attempts per minute
     
-    Route::middleware('auth:client')->group(function () {
+    Route::middleware(['inject.token.cookie:client_auth_token', 'auth:client'])->group(function () {
         Route::get('/auth/me', [ClientAuthController::class, 'me']);
         Route::post('/auth/logout', [ClientAuthController::class, 'logout']);
         Route::get('/orders', [ClientAuthController::class, 'getOrders']);
@@ -1007,7 +1008,7 @@ Route::prefix('public')->group(function () {
 // REVIEWS MANAGEMENT (AUTHENTICATED USERS - ADMIN)
 // ============================================================================
 
-Route::prefix('reviews')->middleware(['auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
+Route::prefix('reviews')->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
     // List & Stats
     Route::get('/', [ReviewApiController::class, 'index'])->middleware('throttle:read'); // Lista com filtros
     Route::get('/pending', [ReviewApiController::class, 'pending'])->middleware('throttle:read'); // Apenas pendentes
@@ -1048,7 +1049,7 @@ Route::prefix('admin/auth')->group(function () {
 });
 
 // Admin Protected Routes
-Route::prefix('admin')->middleware(['admin.auth', 'admin.log'])->group(function () {
+Route::prefix('admin')->middleware(['inject.token.cookie:admin_token', 'admin.auth', 'admin.log'])->group(function () {
     // Auth
     Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
     Route::get('/auth/me', [AdminAuthController::class, 'me']);
