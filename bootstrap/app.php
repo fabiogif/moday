@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
             RateLimiter::for('login', function (Request $request) {
-                return Limit::perMinute(150)->by($request->ip())
+                return Limit::perMinute(10)->by($request->ip())
                     ->response(function () {
                         return response()->json([
                             'message' => 'Muitas tentativas de login. Tente novamente em alguns minutos.'

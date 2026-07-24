@@ -42,7 +42,9 @@ class UserUpdateRequest extends FormRequest
             'avatar' => 'nullable|string|max:255',
             'is_active' => 'sometimes|boolean',
             'profiles' => 'nullable|array',
-            'profiles.*' => 'exists:profiles,id',
+            'profiles.*' => Rule::exists('profiles', 'id')->where(
+                fn ($q) => $q->where('tenant_id', auth()->user()->tenant_id)
+            ),
         ];
     }
 

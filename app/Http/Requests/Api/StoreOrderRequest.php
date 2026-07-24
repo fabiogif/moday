@@ -143,20 +143,15 @@ class StoreOrderRequest extends BaseRequest
         
         // Validate tenant and get tenant_id
         if ($this->input('token_company')) {
-            \Log::info('Validating token_company', ['token_company' => $this->input('token_company')]);
-            
             $tenant = \App\Models\Tenant::where('uuid', $this->input('token_company'))->first();
             if (!$tenant) {
-                \Log::error('Tenant not found', ['token_company' => $this->input('token_company')]);
                 $validator->errors()->add('token_company', 'O tenant selecionado é inválido.');
                 return; // Stop validation if tenant is invalid
             }
             $tenantId = $tenant->id;
-            \Log::info('Tenant found', ['tenant_id' => $tenantId, 'tenant_name' => $tenant->name]);
         } else {
             // If no token_company, try to get from authenticated user
             $tenantId = auth()->user()?->tenant_id;
-            \Log::info('Using auth user tenant_id', ['tenant_id' => $tenantId]);
         }
         
         // If we still don't have tenant_id, we can't validate properly
@@ -165,45 +160,15 @@ class StoreOrderRequest extends BaseRequest
             return;
         }
         
-        // Validate client with tenant scope - TEMPORARILY DISABLED FOR DEBUG
-        /*
+        // Validate client with tenant scope
         if ($this->input('client_id')) {
-            \Log::info('Validating client_id', [
-                'client_id' => $this->input('client_id'),
-                'tenant_id' => $tenantId
-            ]);
-            
-            $clientQuery = \App\Models\Client::where('uuid', $this->input('client_id'))
-                ->where('tenant_id', $tenantId);
-            
-            $client = $clientQuery->first();
-            
-            if (!$client) {
-                // Debug: Check if client exists in any tenant
-                $clientAnyTenant = \App\Models\Client::where('uuid', $this->input('client_id'))->first();
-                \Log::error('Client validation failed', [
-                    'client_id' => $this->input('client_id'),
-                    'expected_tenant_id' => $tenantId,
-                    'client_exists_globally' => $clientAnyTenant ? true : false,
-                    'client_actual_tenant_id' => $clientAnyTenant ? $clientAnyTenant->tenant_id : null,
-                    'client_name' => $clientAnyTenant ? $clientAnyTenant->name : null
-                ]);
+            $clientExists = \App\Models\Client::where('uuid', $this->input('client_id'))
+                ->where('tenant_id', $tenantId)
+                ->exists();
+
+            if (!$clientExists) {
                 $validator->errors()->add('client_id', 'O cliente selecionado é inválido.');
-            } else {
-                \Log::info('Client validation passed', [
-                    'client_name' => $client->name,
-                    'client_tenant_id' => $client->tenant_id
-                ]);
             }
-        }
-        */
-        
-        // Let the OrderService handle client validation for now
-        if ($this->input('client_id')) {
-            \Log::info('Client validation bypassed - will be handled by OrderService', [
-                'client_id' => $this->input('client_id'),
-                'tenant_id' => $tenantId
-            ]);
         }
         
         // Validate table with tenant scope

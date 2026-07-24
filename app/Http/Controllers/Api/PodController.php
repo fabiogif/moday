@@ -45,7 +45,7 @@ class PodController extends Controller
             ->first();
 
         if (!$shipment) {
-            return response()->json(['success' => false, 'message' => 'Romaneio n„o encontrado ou j· encerrado'], 404);
+            return response()->json(['success' => false, 'message' => 'Romaneio n√£o encontrado ou j√° encerrado'], 404);
         }
 
         return response()->json([
@@ -61,7 +61,7 @@ class PodController extends Controller
             ->first();
 
         if (!$shipment) {
-            return response()->json(['success' => false, 'message' => 'Romaneio n„o encontrado ou j· encerrado'], 404);
+            return response()->json(['success' => false, 'message' => 'Romaneio n√£o encontrado ou j√° encerrado'], 404);
         }
 
         $exists = DB::table('shipment_sale_order')
@@ -70,7 +70,7 @@ class PodController extends Controller
             ->exists();
 
         if (!$exists) {
-            return response()->json(['success' => false, 'message' => 'Pedido n„o encontrado neste romaneio'], 404);
+            return response()->json(['success' => false, 'message' => 'Pedido n√£o encontrado neste romaneio'], 404);
         }
 
         $photoFile = $request->file('photo');
@@ -110,7 +110,7 @@ class PodController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => $validator->errors()->first() ?: 'Dados inv·lidos.',
+                'message' => $validator->errors()->first() ?: 'Dados inv√°lidos.',
             ], 422);
         }
 
