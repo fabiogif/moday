@@ -106,7 +106,7 @@ class ClientAuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         try {
-            $client = JWTAuth::parseToken()->authenticate();
+            $client = $request->user('client');
 
             if (!$client) {
                 return ApiResponseClass::sendResponse('', 'Cliente não autenticado', 401);
@@ -156,7 +156,7 @@ class ClientAuthController extends Controller
     public function getOrders(Request $request): JsonResponse
     {
         try {
-            $client = JWTAuth::parseToken()->authenticate();
+            $client = $request->user('client');
 
             if (!$client) {
                 return response()->json([
