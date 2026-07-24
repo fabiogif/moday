@@ -33,6 +33,9 @@ class ClientAuthController extends Controller
 
             [$client, $token] = $this->authService->registerClient($request->validated(), $tenant);
 
+            $ttlMinutes = config('jwt.ttl', 120);
+            $cookie = cookie('client_auth_token', $token, $ttlMinutes, '/', null, true, true, false, 'strict');
+
             return ApiResponseClass::sendResponse([
                 'client' => [
                     'uuid' => $client->uuid,
@@ -43,8 +46,8 @@ class ClientAuthController extends Controller
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
-                'expires_in' => config('jwt.ttl') * 60
-            ], 'Cliente registrado com sucesso', 201);
+                'expires_in' => $ttlMinutes * 60
+            ], 'Cliente registrado com sucesso', 201)->withCookie($cookie);
 
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao registrar cliente');
@@ -69,6 +72,9 @@ class ClientAuthController extends Controller
 
             $token = $this->authService->generateTokenForClient($client);
 
+            $ttlMinutes = config('jwt.ttl', 120);
+            $cookie = cookie('client_auth_token', $token, $ttlMinutes, '/', null, true, true, false, 'strict');
+
             return ApiResponseClass::sendResponse([
                 'client' => [
                     'uuid' => $client->uuid,
@@ -86,8 +92,8 @@ class ClientAuthController extends Controller
                 ],
                 'token' => $token,
                 'token_type' => 'bearer',
-                'expires_in' => config('jwt.ttl') * 60
-            ], 'Login realizado com sucesso', 200);
+                'expires_in' => $ttlMinutes * 60
+            ], 'Login realizado com sucesso', 200)->withCookie($cookie);
 
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao fazer login');
@@ -133,7 +139,11 @@ class ClientAuthController extends Controller
     {
         try {
             JWTAuth::parseToken()->invalidate();
-            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso', 200);
+
+            $cookie = cookie('client_auth_token', '', -1, '/', null, true, true, false, 'strict');
+
+            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso', 200)
+                ->withCookie($cookie);
 
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao fazer logout');
