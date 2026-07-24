@@ -40,6 +40,39 @@ class AdminAuthTest extends TestCase
     }
 
     #[Test]
+    public function login_seta_cookie_httponly_e_autentica_sem_header_authorization()
+    {
+        AdminUser::factory()->create([
+            'email' => 'cookie@admin.com',
+            'password' => Hash::make('password123'),
+            'is_active' => true,
+        ]);
+
+        $loginResponse = $this->postJson('/api/admin/auth/login', [
+            'email' => 'cookie@admin.com',
+            'password' => 'password123',
+        ]);
+
+        $loginResponse->assertStatus(200);
+        $cookie = $loginResponse->headers->getCookies()[0] ?? null;
+
+        $this->assertNotNull($cookie, 'Login deveria retornar um Set-Cookie');
+        $this->assertSame('admin_token', $cookie->getName());
+        $this->assertTrue($cookie->isHttpOnly());
+        $this->assertSame('strict', strtolower((string) $cookie->getSameSite()));
+
+        $meResponse = $this->withCredentials()
+            ->withUnencryptedCookies(['admin_token' => $cookie->getValue()])
+            ->getJson('/api/admin/auth/me');
+
+        $meResponse->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => ['id', 'name', 'email', 'role', 'permissions'],
+            ]);
+    }
+
+    #[Test]
     public function it_rejects_invalid_credentials()
     {
         AdminUser::factory()->create([

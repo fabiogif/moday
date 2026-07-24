@@ -36,10 +36,12 @@ class AdminAuthController extends Controller
                 };
             }
 
+            $cookie = cookie('admin_token', $result['token'], 720, '/', null, true, true, false, 'strict');
+
             return ApiResponseClass::sendResponse([
                 'admin' => $result['admin'],
                 'token' => $result['token'],
-            ], 'Login realizado com sucesso.');
+            ], 'Login realizado com sucesso.')->withCookie($cookie);
         } catch (\Exception $e) {
             Log::error('AdminAuthController internal error', [
                 'message' => $e->getMessage(),
@@ -63,7 +65,10 @@ class AdminAuthController extends Controller
 
             $this->authService->logout($admin);
 
-            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso.');
+            $cookie = cookie('admin_token', '', -1, '/', null, true, true, false, 'strict');
+
+            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso.')
+                ->withCookie($cookie);
         } catch (\Exception $e) {
             Log::error('AdminAuthController logout error', [
                 'message' => $e->getMessage(),
@@ -108,9 +113,11 @@ class AdminAuthController extends Controller
 
             $newToken = $this->authService->refreshToken($admin);
 
+            $cookie = cookie('admin_token', $newToken, 720, '/', null, true, true, false, 'strict');
+
             return ApiResponseClass::sendResponse([
                 'token' => $newToken,
-            ], 'Token renovado com sucesso.');
+            ], 'Token renovado com sucesso.')->withCookie($cookie);
         } catch (\Exception $e) {
             Log::error('AdminAuthController refresh error', [
                 'message' => $e->getMessage(),
