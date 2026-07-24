@@ -105,7 +105,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'plan.feature' => \App\Http\Middleware\CheckPlanFeatures::class,
             'plan.order_limit' => \App\Http\Middleware\CheckOrderLimit::class,
             'plan.user_limit' => \App\Http\Middleware\CheckUserLimit::class,
+            'inject.token.cookie' => \App\Http\Middleware\InjectBearerTokenFromCookie::class,
         ]);
+
+        // O Laravel força middlewares de auth (via AuthenticatesRequests) a
+        // rodar antes de middlewares customizados, independente da ordem
+        // declarada na rota. Sem isso, InjectBearerTokenFromCookie nunca
+        // roda a tempo de o guard enxergar o token vindo do cookie.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\InjectBearerTokenFromCookie::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

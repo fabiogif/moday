@@ -120,8 +120,10 @@ class AuthController extends ApiController
                 $ttlMinutes,
                 '/',
                 null,
-                true, // secure (HTTPS)
-                true  // httpOnly
+                true,   // secure (HTTPS)
+                true,   // httpOnly
+                false,  // raw
+                'strict' // sameSite
             );
 
             return ApiResponseClass::sendResponse([
@@ -314,7 +316,7 @@ class AuthController extends ApiController
             auth('api')->logout();
             
             // Limpar cookie HttpOnly
-            $cookie = cookie('auth_token', '', -1, '/', null, true, true);
+            $cookie = cookie('auth_token', '', -1, '/', null, true, true, false, 'strict');
             
             return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso')
                 ->withCookie($cookie);
@@ -341,7 +343,9 @@ class AuthController extends ApiController
                 '/',
                 null,
                 true,
-                true
+                true,
+                false,
+                'strict'
             );
 
             return ApiResponseClass::sendResponse([
