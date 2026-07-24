@@ -8,7 +8,7 @@ name: distribtec-evolution
 
 services:
   evolution:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:latest
     container_name: evolution
     restart: unless-stopped
     # Remove CONFIG_SESSION_PHONE_VERSION do .env interno para usar fetchLatestBaileysVersion()

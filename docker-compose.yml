@@ -40,7 +40,7 @@ services:
             MYSQL_ALLOW_EMPTY_PASSWORD: 1
         volumes:
             - 'sail-mysql:/var/lib/mysql'
-            - './docker/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - './docker/mysql/20-create-evolution-database.sh:/docker-entrypoint-initdb.d/20-create-evolution-database.sh'
         networks:
             - sail
         healthcheck:
@@ -49,8 +49,10 @@ services:
                 - mysqladmin
                 - ping
                 - '-p${DB_PASSWORD:-password}'
-            retries: 3
+            retries: 10
+            interval: 5s
             timeout: 5s
+            start_period: 20s
         command: --default-authentication-plugin=mysql_native_password
     redis:
         image: 'redis:alpine'
@@ -143,7 +145,7 @@ services:
             - mailpit
         command: php artisan queue:work redis --queue=whatsapp,emails,default --sleep=3 --tries=3 --timeout=90
     evolution:
-        image: 'atendai/evolution-api:v2.2.3'
+        image: 'evoapicloud/evolution-api:v2.2.3'
         ports:
             - '8181:8080'
         environment:
@@ -168,8 +170,11 @@ services:
         networks:
             - sail
         depends_on:
-            - mysql
-            - redis
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        restart: unless-stopped
 networks:
     sail:
         driver: bridge
