@@ -70,6 +70,7 @@ class FinancialCategoryApiTest extends TestCase
             'type' => 'receita',
             'applies_to_receivable' => true,
             'applies_to_payable' => false,
+            'is_active' => true,
         ]);
 
         FinancialCategory::factory()->count(2)->create([
@@ -77,6 +78,7 @@ class FinancialCategoryApiTest extends TestCase
             'type' => 'despesa',
             'applies_to_receivable' => false,
             'applies_to_payable' => true,
+            'is_active' => true,
         ]);
 
         $response = $this->withHeaders($this->getAuthHeaders())->getJson('/api/financial-categories?type=receita');

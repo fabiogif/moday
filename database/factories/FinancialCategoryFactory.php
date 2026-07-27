@@ -24,8 +24,17 @@ class FinancialCategoryFactory extends Factory
                 '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6',
                 '#ec4899', '#f97316', '#06b6d4', '#6366f1', '#6b7280'
             ]),
-            'is_active' => $this->faker->boolean(95),
+            // Default ativo: filtros da API usam scope active(); boolean(95) deixava
+            // testes de listagem por tipo flaky no CI.
+            'is_active' => true,
         ];
+    }
+
+    public function inactive(): self
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
     }
 
     public function receita(): self
