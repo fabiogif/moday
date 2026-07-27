@@ -98,6 +98,29 @@ class OfferEngineServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_confirms_offer_rule_when_client_already_sent_the_same_discount_percent(): void
+    {
+        $product = $this->product(['price' => 100]);
+
+        $rule = OfferRule::create([
+            'tenant_id'        => $this->tenant->id,
+            'name'             => 'Acima de 10 unidades',
+            'type'             => 'quantity_discount',
+            'discount_percent' => 15,
+            'is_active'        => true,
+        ]);
+        $rule->products()->create(['product_id' => $product->id, 'role' => 'trigger', 'min_quantity' => 10]);
+
+        // Simula payload do wizard/mobile após o preview ter aplicado 15%
+        $result = $this->service->evaluate($this->tenant->id, [
+            ['product_id' => $product->id, 'quantity' => 10, 'unit_price' => 100, 'discount_percent' => 15],
+        ]);
+
+        $this->assertSame(15, (int) $result['items'][0]['discount_percent']);
+        $this->assertSame($rule->id, $result['items'][0]['offer_rule_id']);
+    }
+
+    #[Test]
     public function it_applies_combo_discount_when_all_trigger_products_are_present(): void
     {
         $productA = $this->product(['price' => 50]);

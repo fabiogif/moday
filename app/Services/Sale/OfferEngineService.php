@@ -66,8 +66,15 @@ class OfferEngineService
             }
 
             $current = (float) ($item['discount_percent'] ?? 0);
-            if ($bestDiscount[$productId]['percent'] > $current) {
-                $item['discount_percent'] = $bestDiscount[$productId]['percent'];
+            $offerPercent = $bestDiscount[$productId]['percent'];
+
+            // `>` aplica desconto maior; `==` confirma offer_rule_id quando o
+            // cliente já mandou o percentual do preview (wizard/mobile) — sem
+            // isso o desconto permanece mas a auditoria da regra some.
+            if ($offerPercent > $current) {
+                $item['discount_percent'] = $offerPercent;
+                $item['offer_rule_id'] = $bestDiscount[$productId]['rule_id'];
+            } elseif ($offerPercent > 0 && abs($offerPercent - $current) < 0.0001) {
                 $item['offer_rule_id'] = $bestDiscount[$productId]['rule_id'];
             }
 

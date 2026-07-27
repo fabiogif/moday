@@ -229,4 +229,37 @@ class OfferRuleApiTest extends TestCase
             'offer_rule_id'    => $rule->id,
         ]);
     }
+
+    #[Test]
+    public function creating_a_sale_order_keeps_offer_rule_when_preview_discount_is_resent(): void
+    {
+        $product = $this->product(['price' => 100]);
+
+        $rule = OfferRule::create([
+            'tenant_id'        => $this->tenant->id,
+            'name'             => 'Acima de 10 unidades',
+            'type'             => 'quantity_discount',
+            'discount_percent' => 15,
+            'is_active'        => true,
+        ]);
+        $rule->products()->create(['product_id' => $product->id, 'role' => 'trigger', 'min_quantity' => 10]);
+
+        $payload = [
+            'status' => 'orcamento',
+            'items'  => [
+                // Cliente reenvia o % já mostrado no preview (bug clássico do badge/auditoria)
+                ['product_id' => $product->id, 'quantity' => 10, 'unit_price' => 100, 'discount_percent' => 15],
+            ],
+        ];
+
+        $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', $payload)
+            ->assertStatus(201);
+
+        $this->assertDatabaseHas('sale_order_items', [
+            'product_id'       => $product->id,
+            'discount_percent' => 15,
+            'offer_rule_id'    => $rule->id,
+        ]);
+    }
 }
