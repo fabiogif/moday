@@ -3,7 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $expiry_date
+ */
 class PurchaseOrderItem extends Model
 {
     public $timestamps = false;

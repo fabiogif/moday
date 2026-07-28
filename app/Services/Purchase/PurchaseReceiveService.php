@@ -7,6 +7,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
 use App\Services\Stock\StockService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseReceiveService
@@ -89,7 +90,11 @@ class PurchaseReceiveService
 
         $batchNumber     = $data['batch_number'] ?? $item->batch_number ?? 'PC-' . $order->id . '-' . $item->id;
         $manufactureDate = $data['manufacture_date'] ?? null;
-        $expiryDate      = $data['expiry_date'] ?? $item->expiry_date?->toDateString();
+        $expiryDate = $data['expiry_date'] ?? (
+            $item->expiry_date !== null
+                ? Carbon::parse($item->expiry_date)->toDateString()
+                : null
+        );
 
         $this->stockService->recordEntry(
             tenantId: $order->tenant_id,
