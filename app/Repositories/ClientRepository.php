@@ -41,6 +41,28 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ->get();
     }
 
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $query = $this->entity->where('tenant_id', $tenantId)
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
+            ->orderBy('created_at', 'desc');
+
+        if ($search !== null && $search !== '') {
+            $term = '%' . $search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', $term)
+                    ->orWhere('company_name', 'like', $term)
+                    ->orWhere('trade_name', 'like', $term)
+                    ->orWhere('email', 'like', $term)
+                    ->orWhere('phone', 'like', $term);
+            });
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
     public function getClientById($id)
     {
         return $this->entity

@@ -50,6 +50,17 @@ class ClientService {
         });
     }
 
+    public function paginateClientsByTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $params = ['page' => $page, 'per_page' => $perPage, 'search' => $search];
+
+        return $this->cacheService->getClientListPaginated(
+            $tenantId,
+            $params,
+            fn () => $this->clientRepositoryInterface->paginateForTenant($tenantId, $page, $perPage, $search)
+        );
+    }
+
     public function getClientById($id)
     {
         return $this->clientRepositoryInterface->getClientById($id);

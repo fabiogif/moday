@@ -41,8 +41,31 @@ class ClientApiController extends Controller
     {
         try {
             [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
-            $clients = $this->clientService->getClientsByTenant($tenantId);
-            return ApiResponseClass::sendResponse(ClientResource::collection($clients), 'Clientes listados com sucesso', 200);
+
+            if (!$request->has('page') && !$request->has('per_page') && !$request->has('search')) {
+                $clients = $this->clientService->getClientsByTenant($tenantId);
+                return ApiResponseClass::sendResponse(ClientResource::collection($clients), 'Clientes listados com sucesso', 200);
+            }
+
+            $page    = max((int) $request->get('page', 1), 1);
+            $perPage = min((int) $request->get('per_page', 50), 100);
+            $search  = $request->get('search');
+            $search  = is_string($search) ? trim($search) : null;
+            $search  = $search !== '' ? $search : null;
+
+            $paginated = $this->clientService->paginateClientsByTenant($tenantId, $page, $perPage, $search);
+
+            return response()->json([
+                'success' => true,
+                'data'    => ClientResource::collection($paginated->items()),
+                'meta'    => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ],
+                'message' => 'Clientes listados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar clientes');
         }

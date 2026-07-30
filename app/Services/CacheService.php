@@ -148,8 +148,18 @@ class CacheService
     {
         $cacheKey = "client_list_{$tenantId}";
         $ttl = self::CACHE_TTL['client_list'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached paginated client list (search/paginação para telas com muitos clientes).
+     */
+    public function getClientListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("client_list_v_{$tenantId}", 0);
+        $key = "client_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['client_list'], $callback);
     }
 
     /**
@@ -349,6 +359,7 @@ class CacheService
     {
         Cache::forget("client_stats_{$tenantId}");
         Cache::forget("client_list_{$tenantId}");
+        Cache::increment("client_list_v_{$tenantId}");
         Cache::forget("dashboard_data_{$tenantId}");
     }
 

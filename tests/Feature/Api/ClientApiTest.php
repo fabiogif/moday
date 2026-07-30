@@ -231,4 +231,47 @@ class ClientApiTest extends TestCase
         $this->assertSame(1, $byId[$withOrder->id]['total_orders']);
         $this->assertSame(0, $byId[$withoutOrder->id]['total_orders']);
     }
+
+    #[Test]
+    public function it_paginates_clients_when_page_params_are_present(): void
+    {
+        Client::factory()->count(15)->create(['tenant_id' => $this->tenant->id]);
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson('/api/clients?page=1&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(10, 'data');
+
+        $this->assertSame(1, $response->json('meta.current_page'));
+        $this->assertSame(2, $response->json('meta.last_page'));
+        $this->assertSame(15, $response->json('meta.total'));
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?page=2&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(5, 'data');
+    }
+
+    #[Test]
+    public function it_filters_clients_by_search_when_paginated(): void
+    {
+        Client::factory()->create(['tenant_id' => $this->tenant->id, 'company_name' => 'Farmácia Central']);
+        Client::factory()->create(['tenant_id' => $this->tenant->id, 'company_name' => 'Distribuidora Norte']);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?page=1&per_page=10&search=Central')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.company_name', 'Farmácia Central');
+    }
+
+    #[Test]
+    public function it_caps_per_page_at_100_for_paginated_clients(): void
+    {
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?page=1&per_page=500')
+            ->assertStatus(200)
+            ->assertJsonPath('meta.per_page', 100);
+    }
 }
