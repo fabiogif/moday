@@ -169,7 +169,7 @@ class CacheService
     {
         $cacheKey = "product_list_{$tenantId}";
         $ttl = self::CACHE_TTL['product_list'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
     }
 
@@ -182,6 +182,26 @@ class CacheService
         $ttl = self::CACHE_TTL['product_list'];
 
         return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached paginated product list (search/paginação para catálogos grandes).
+     */
+    public function getProductListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("product_list_v_{$tenantId}", 0);
+        $key = "product_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['product_list'], $callback);
+    }
+
+    /**
+     * Get cached paginated product catalog list.
+     */
+    public function getProductCatalogListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("product_list_v_{$tenantId}", 0);
+        $key = "product_catalog_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['product_list'], $callback);
     }
 
     /**
@@ -371,6 +391,7 @@ class CacheService
         Cache::forget("product_stats_{$tenantId}");
         Cache::forget("product_list_{$tenantId}");
         Cache::forget("product_catalog_list_{$tenantId}");
+        Cache::increment("product_list_v_{$tenantId}");
         Cache::forget("dashboard_data_{$tenantId}");
     }
 

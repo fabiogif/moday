@@ -8,11 +8,14 @@ use App\Models\TenantAccessLog;
 use App\Models\TenantBilling;
 use App\Models\TenantMetrics;
 use App\Models\User;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\AdminTenantRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class AdminTenantRepository implements AdminTenantRepositoryInterface
 {
+    use SearchesFullText;
+
     public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = Tenant::query();
@@ -30,11 +33,7 @@ class AdminTenantRepository implements AdminTenantRepositoryInterface
         }
 
         if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('subdomain', 'like', "%{$search}%");
-            });
+            $this->applyFullTextSearch($query, ['name'], $filters['search'], ['subdomain']);
         }
 
         $sortBy = $filters['sort_by'] ?? 'created_at';

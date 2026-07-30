@@ -25,7 +25,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         
         // Apply filters
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
         
         if (isset($filters['email'])) {
@@ -95,14 +95,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->where('tenant_id', $tenantId);
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%');
-            });
+            $this->applyFullTextSearch($query, ['name'], $search, ['email']);
         }
 
         if (!empty($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
 
         if (!empty($filters['email'])) {

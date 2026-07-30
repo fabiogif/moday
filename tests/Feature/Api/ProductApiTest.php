@@ -735,4 +735,71 @@ class ProductApiTest extends TestCase
 
         $response->assertStatus(404);
     }
+
+    #[Test]
+    public function pagina_produtos_quando_page_params_estao_presentes(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+        Product::factory()->count(15)->create(['tenant_id' => $this->tenant->id]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product?page=1&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(10, 'data');
+
+        $this->assertSame(1, $response->json('meta.current_page'));
+        $this->assertSame(2, $response->json('meta.last_page'));
+        $this->assertSame(15, $response->json('meta.total'));
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product?page=2&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(5, 'data');
+    }
+
+    #[Test]
+    public function filtra_produtos_por_busca_quando_paginado(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+        Product::factory()->create(['tenant_id' => $this->tenant->id, 'name' => 'Furadeira Industrial']);
+        Product::factory()->create(['tenant_id' => $this->tenant->id, 'name' => 'Parafusadeira Elétrica']);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product?page=1&per_page=10&search=Furadeira')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Furadeira Industrial');
+    }
+
+    #[Test]
+    public function pagina_catalogo_de_produtos_quando_page_params_estao_presentes(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+        Product::factory()->count(12)->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+            'qtd_stock' => 10,
+        ]);
+        // Fora do catálogo (inativo) — não deve contar no total paginado.
+        Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => false,
+            'qtd_stock' => 10,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product/catalog?page=1&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(10, 'data');
+
+        $this->assertSame(12, $response->json('meta.total'));
+    }
 }

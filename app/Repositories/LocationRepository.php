@@ -4,12 +4,15 @@ namespace App\Repositories;
 
 use App\Models\State;
 use App\Models\City;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\LocationRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class LocationRepository implements LocationRepositoryInterface
 {
+    use SearchesFullText;
+
     /**
      * Get all states ordered by name
      */
@@ -45,7 +48,7 @@ class LocationRepository implements LocationRepositoryInterface
             ->orderBy('name');
 
         if ($search) {
-            $query->where('name', 'like', "%{$search}%");
+            $this->applyFullTextSearch($query, ['name'], $search);
         }
 
         return $query->paginate($perPage);
@@ -67,9 +70,10 @@ class LocationRepository implements LocationRepositoryInterface
      */
     public function searchCities(string $search, int $limit = 50): Collection
     {
-        return City::with('state:id,uf,name')
-            ->where('name', 'like', "%{$search}%")
-            ->orderBy('name')
+        $query = City::with('state:id,uf,name');
+        $this->applyFullTextSearch($query, ['name'], $search);
+
+        return $query->orderBy('name')
             ->limit($limit)
             ->get(['id', 'state_id', 'name', 'is_capital']);
     }

@@ -4,12 +4,15 @@ namespace App\Repositories;
 
 use App\Models\Permission;
 use App\Models\Profile;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\ProfileRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class ProfileRepository implements ProfileRepositoryInterface
 {
+    use SearchesFullText;
+
     public function __construct(protected Model $entity = new Profile())
     {
     }
@@ -20,7 +23,7 @@ class ProfileRepository implements ProfileRepositoryInterface
             ->where('tenant_id', $tenantId);
 
         if (!empty($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
 
         if (!empty($filters['description'])) {

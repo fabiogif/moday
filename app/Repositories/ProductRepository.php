@@ -3,11 +3,14 @@
 namespace App\Repositories;
 
 use App\Models\Product;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class ProductRepository extends BaseRepository implements ProductRepositoryInterface
 {
+    use SearchesFullText;
+
     public function __construct(protected Model $entity =  new Product())
     {
     }
@@ -15,15 +18,15 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
     public function index(string $filter = null, int $tenantId = null): array
     {
         $query = $this->entity->with('categories');
-        
+
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
-        
+
         if ($filter) {
-            $query->where('name', 'like', "%{$filter}%");
+            $this->applyFullTextSearch($query, ['name'], $filter);
         }
-        
+
         return $query->orderBy('created_at', 'desc')->get()->toArray();
     }
 
@@ -85,6 +88,37 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         }
 
         return $query->with('categories');
+    }
+
+    private function applyProductSearch($query, ?string $search)
+    {
+        if ($search === null || $search === '') {
+            return $query;
+        }
+
+        return $this->applyFullTextSearch(
+            $query,
+            ['products.name', 'products.brand'],
+            $search,
+            ['products.sku', 'products.barcode']
+        );
+    }
+
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $query = $this->applyProductSearch($this->buildTenantProductsQuery($tenantId, []), $search)
+            ->orderBy('products.created_at', 'desc');
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    public function paginateCatalogForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $query = $this->applyProductSearch($this->buildTenantProductsQuery($tenantId, []), $search)
+            ->visibleInCatalog()
+            ->orderBy('products.name');
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
     public function attachCategories(int $productId, array $categories)
     {

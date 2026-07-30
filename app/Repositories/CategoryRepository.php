@@ -18,7 +18,7 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     {
         return $this->entity->where(function($query) use($filter) {
             if($filter) {
-                $query->where('name', 'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
         })->get()->toArray();
     }
@@ -39,7 +39,7 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     {
         $result = $this->entity->withCount('products')->where(function($query) use($filter, $tenantId) {
             if($filter) {
-                $query->where('name', 'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
             $query->where('tenant_id', $tenantId);
         })->paginate(perPage: $totalPerPage, columns: ['*'], pageName:'page', page: $page, total: null);

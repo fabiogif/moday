@@ -8,7 +8,7 @@ use Illuminate\Routing\Controller;
 use App\Http\Requests\{Api\TenantFormRequest, StoreUpdateProductRequest, UpdateProductRequest};
 use App\Http\Resources\ProductResource;
 use App\Services\ProductService;
-use Illuminate\Http\{Response, JsonResponse};
+use Illuminate\Http\{Request, Response, JsonResponse};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -56,20 +56,20 @@ class ProductApiController extends Controller
     {
         try {
             Log::info('ProductApiController::index - Iniciando listagem de produtos');
-            
+
             $data = $this->productService->index();
-            
+
             Log::info('ProductApiController::index - Dados retornados:', [
                 'count' => $data ? count($data) : 0,
                 'is_collection' => $data instanceof \Illuminate\Database\Eloquent\Collection,
                 'user_id' => Auth::id(),
                 'tenant_id' => Auth::user()?->tenant_id
             ]);
-            
+
             if (!$data) {
                 return ApiResponseClass::sendResponse([], 'Nenhum produto encontrado', 404);
             }
-            
+
             $resource = ProductResource::collection($data);
             return ApiResponseClass::sendResponse($resource, 'Produtos listados com sucesso', 200);
         } catch (\Exception $ex) {
@@ -107,24 +107,46 @@ class ProductApiController extends Controller
         }
     }
 
-    public function productsByAuthenticatedUser(): JsonResponse
+    public function productsByAuthenticatedUser(Request $request): JsonResponse
     {
         try {
             $user = Auth::user();
-            
+
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }
-            
+
             if (!$user->tenant_id) {
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
-            
+
+            if ($request->has('page') || $request->has('per_page') || $request->has('search')) {
+                $page    = max((int) $request->get('page', 1), 1);
+                $perPage = min((int) $request->get('per_page', 50), 100);
+                $search  = $request->get('search');
+                $search  = is_string($search) ? trim($search) : null;
+                $search  = $search !== '' ? $search : null;
+
+                $paginated = $this->productService->paginateProductsByTenant($user->tenant_id, $page, $perPage, $search);
+
+                return response()->json([
+                    'success' => true,
+                    'data'    => ProductResource::collection($paginated->items()),
+                    'meta'    => [
+                        'current_page' => $paginated->currentPage(),
+                        'last_page'    => $paginated->lastPage(),
+                        'per_page'     => $paginated->perPage(),
+                        'total'        => $paginated->total(),
+                    ],
+                    'message' => 'Produtos listados com sucesso',
+                ], 200);
+            }
+
             $products = $this->productService->getProductsByTenantId($user->tenant_id);
             if (!$products) {
                 return ApiResponseClass::sendResponse([], 'Nenhum produto encontrado', 404);
             }
-    
+
             return ApiResponseClass::sendResponse(ProductResource::collection($products), 'Produtos listados com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar produtos');
@@ -158,7 +180,7 @@ class ProductApiController extends Controller
         }
     }
 
-    public function catalogProductsByAuthenticatedUser(): JsonResponse
+    public function catalogProductsByAuthenticatedUser(Request $request): JsonResponse
     {
         try {
             $user = Auth::user();
@@ -169,6 +191,28 @@ class ProductApiController extends Controller
 
             if (!$user->tenant_id) {
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            if ($request->has('page') || $request->has('per_page') || $request->has('search')) {
+                $page    = max((int) $request->get('page', 1), 1);
+                $perPage = min((int) $request->get('per_page', 50), 100);
+                $search  = $request->get('search');
+                $search  = is_string($search) ? trim($search) : null;
+                $search  = $search !== '' ? $search : null;
+
+                $paginated = $this->productService->paginateCatalogProductsByTenant($user->tenant_id, $page, $perPage, $search);
+
+                return response()->json([
+                    'success' => true,
+                    'data'    => ProductResource::collection($paginated->items()),
+                    'meta'    => [
+                        'current_page' => $paginated->currentPage(),
+                        'last_page'    => $paginated->lastPage(),
+                        'per_page'     => $paginated->perPage(),
+                        'total'        => $paginated->total(),
+                    ],
+                    'message' => 'Produtos do catálogo de venda listados com sucesso',
+                ], 200);
             }
 
             $products = $this->productService->getCatalogProductsByTenantId($user->tenant_id);

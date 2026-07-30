@@ -47,7 +47,7 @@ class ServiceTypeRepository extends BaseRepository implements ServiceTypeReposit
     {
         $result = $this->entity->where(function($query) use($filter) {
             if($filter) {
-               $query->where('name' ,'like', "%{$filter}%");
+               $this->applyFullTextSearch($query, ['name'], $filter);
             }
             $query->where('is_active', '!=', '0');
         })

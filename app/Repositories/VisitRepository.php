@@ -4,12 +4,15 @@ namespace App\Repositories;
 
 use App\Models\User;
 use App\Models\Visit;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\VisitRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class VisitRepository implements VisitRepositoryInterface
 {
+    use SearchesFullText;
+
     public function listWithFilters(int $tenantId, array $filters, User $requestingUser, int $perPage = 50): LengthAwarePaginator
     {
         $query = Visit::query()
@@ -62,16 +65,14 @@ class VisitRepository implements VisitRepositoryInterface
         }
 
         if (!empty($filters['search'])) {
-            $term = '%' . $filters['search'] . '%';
-            $query->whereHas('client', function ($clientQuery) use ($term) {
-                $clientQuery->where('name', 'like', $term)
-                    ->orWhere('company_name', 'like', $term)
-                    ->orWhere('trade_name', 'like', $term)
-                    ->orWhere('phone', 'like', $term)
-                    ->orWhere('whatsapp', 'like', $term)
-                    ->orWhere('city', 'like', $term)
-                    ->orWhere('uuid', 'like', $term)
-                    ->orWhere('cnpj', 'like', $term);
+            $search = $filters['search'];
+            $query->whereHas('client', function ($clientQuery) use ($search) {
+                $this->applyFullTextSearch(
+                    $clientQuery,
+                    ['name', 'company_name', 'trade_name'],
+                    $search,
+                    ['phone', 'whatsapp', 'city', 'uuid', 'cnpj']
+                );
             });
         }
 

@@ -4,6 +4,7 @@
 namespace App\Repositories;
 
 use App\Models\Client;
+use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\ClientRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,8 @@ use Illuminate\Support\Str;
 
 class ClientRepository extends BaseRepository implements ClientRepositoryInterface
 {
+    use SearchesFullText;
+
     public function __construct(protected Model $entity =  new Client())
     {
     }
@@ -50,14 +53,12 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ->orderBy('created_at', 'desc');
 
         if ($search !== null && $search !== '') {
-            $term = '%' . $search . '%';
-            $query->where(function ($q) use ($term) {
-                $q->where('name', 'like', $term)
-                    ->orWhere('company_name', 'like', $term)
-                    ->orWhere('trade_name', 'like', $term)
-                    ->orWhere('email', 'like', $term)
-                    ->orWhere('phone', 'like', $term);
-            });
+            $this->applyFullTextSearch(
+                $query,
+                ['name', 'company_name', 'trade_name'],
+                $search,
+                ['email', 'phone']
+            );
         }
 
         return $query->paginate($perPage, ['*'], 'page', $page);

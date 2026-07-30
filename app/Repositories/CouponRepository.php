@@ -115,12 +115,7 @@ class CouponRepository extends BaseRepository implements CouponRepositoryInterfa
         }
 
         if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
+            $this->applyFullTextSearch($query, ['name', 'description'], $filters['search'], ['code']);
         }
 
         if (!empty($filters['type'])) {

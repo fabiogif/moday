@@ -23,9 +23,9 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         
         // Apply filters
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
-        
+
         if (isset($filters['description'])) {
             $query->where('description', 'like', '%' . $filters['description'] . '%');
         }

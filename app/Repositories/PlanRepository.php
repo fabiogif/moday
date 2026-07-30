@@ -43,7 +43,7 @@ class PlanRepository extends BaseRepository implements PlanRepositoryInterface
     {
         $result = $this->entity->with('details')->where(function($query) use($filter) {
             if($filter) {
-                $query->where('name' ,'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
         })->paginate(perPage: $totalPrePage, columns: ['*'], pageName:'page', page: $page, total: null);
         return new PaginatePresenter($result);

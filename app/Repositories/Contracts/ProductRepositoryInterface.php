@@ -16,6 +16,10 @@ interface  ProductRepositoryInterface extends BaseRepositoryInterface
      */
     public function getCatalogProductsByTenant(int $idTenant, array $categories = []);
 
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null);
+
+    public function paginateCatalogForTenant(int $tenantId, int $page, int $perPage, ?string $search = null);
+
     public function attachCategories(int $productId, array $categories);
     public function getStats(int $tenantId): array;
     public function findBySku(string $sku, int $tenantId): ?\App\Models\Product;
