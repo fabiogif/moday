@@ -457,10 +457,11 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
 
 
     // Dashboard
-    Route::get('/dashboard', [DashboardApiController::class, 'index'])->middleware('throttle:read');
+    Route::get('/dashboard', [DashboardApiController::class, 'index'])
+        ->middleware(['acl.permission:dashboard.index', 'throttle:read']);
     
     // Dashboard Metrics (Enhanced)
-    Route::prefix('dashboard')->group(function () {
+    Route::prefix('dashboard')->middleware('acl.permission:dashboard.index')->group(function () {
         Route::get('/metrics', [DashboardMetricsController::class, 'getMetricsOverview'])->middleware('throttle:read');
         Route::get('/sales-performance', [DashboardMetricsController::class, 'getSalesPerformance'])->middleware('throttle:read');
         Route::get('/recent-transactions', [DashboardMetricsController::class, 'getRecentTransactions'])->middleware('throttle:read');
@@ -695,7 +696,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
 
     // Dashboard Executivo (P1)
     Route::get('/dashboard/executive', [ExecutiveDashboardController::class, 'index'])
-        ->middleware(['throttle:read', 'plan.feature:executive_dashboard']);
+        ->middleware(['acl.permission:dashboard.index', 'throttle:read', 'plan.feature:executive_dashboard']);
 
     // Pedidos de Compra
     Route::prefix('purchase-orders')->group(function () {

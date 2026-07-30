@@ -31,6 +31,10 @@ class UserResource extends JsonResource
             'tenant' => new TenantResource($this->whenLoaded('tenant')),
             'profiles' => ProfileResource::collection($this->whenLoaded('profiles')),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
+            'permission_slugs' => $this->when(
+                array_key_exists('permission_slugs', $this->resource->getAttributes()),
+                fn () => $this->resource->getAttribute('permission_slugs')
+            ),
             'job_position' => new JobPositionResource($this->whenLoaded('jobPosition')),
         ];
     }

@@ -15,6 +15,9 @@ class PermissionSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
+            // Módulo de Dashboard
+            ['name' => 'Visualizar Dashboard', 'slug' => 'dashboard.index', 'description' => 'Visualizar informações e indicadores do dashboard', 'module' => 'dashboard', 'action' => 'index', 'resource' => 'dashboard', 'is_active' => true],
+
             // Módulo de Clientes
             ['name' => 'Visualizar Clientes', 'slug' => 'clients.index', 'description' => 'Visualizar lista de clientes', 'module' => 'clients', 'action' => 'index', 'resource' => 'client', 'is_active' => true],
             ['name' => 'Ver Detalhes do Cliente', 'slug' => 'clients.show', 'description' => 'Ver detalhes de um cliente', 'module' => 'clients', 'action' => 'show', 'resource' => 'client', 'is_active' => true],

@@ -105,7 +105,7 @@ class TenantAclProvisioner
             ->orderBy('tenant_id')
             ->value('tenant_id');
 
-        $definitions = $templateTenantId
+        $templateDefinitions = $templateTenantId
             ? Permission::where('tenant_id', $templateTenantId)
                 ->get()
                 ->map(fn (Permission $permission) => $permission->only([
@@ -118,7 +118,12 @@ class TenantAclProvisioner
                     'is_active',
                 ]))
                 ->all()
-            : AclPermissionDefinitions::defaults();
+            : [];
+
+        $definitions = $this->mergePermissionDefinitions(
+            AclPermissionDefinitions::defaults(),
+            $templateDefinitions
+        );
 
         return $this->mergePermissionDefinitions(
             $definitions,

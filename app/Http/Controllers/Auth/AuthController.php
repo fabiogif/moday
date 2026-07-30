@@ -127,7 +127,7 @@ class AuthController extends ApiController
             );
 
             return ApiResponseClass::sendResponse([
-                'user' => new UserResource($result['user']),
+                'user' => $this->authenticatedUserResource($result['user']),
                 'token' => $result['token'],
                 'expires_in' => $ttlMinutes * 60,
                 'trial_status' => $result['trial_status'] ?? null
@@ -197,7 +197,7 @@ class AuthController extends ApiController
             $result = $this->authService->register($data);
             
             return ApiResponseClass::sendResponse([
-                'user' => new UserResource($result['user']),
+                'user' => $this->authenticatedUserResource($result['user']),
                 'token' => $result['token'],
                 'expires_in' => config('jwt.ttl', 120) * 60
             ], 'Usuário registrado com sucesso', 201);
@@ -255,7 +255,7 @@ class AuthController extends ApiController
             $user->profiles;
             
             return ApiResponseClass::sendResponse(
-                new UserResource($user),
+                $this->authenticatedUserResource($user),
                 'Dados do usuário recuperados com sucesso'
             );
 
@@ -297,7 +297,7 @@ class AuthController extends ApiController
             ]);
 
             return ApiResponseClass::sendResponse(
-                new UserResource($result['user']),
+                $this->authenticatedUserResource($result['user']),
                 $result['message']
             );
         } catch (\Exception $e) {
@@ -401,5 +401,12 @@ class AuthController extends ApiController
             Log::error('Erro ao resetar senha: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao resetar senha');
         }
+    }
+
+    private function authenticatedUserResource(User $user): UserResource
+    {
+        $user->setAttribute('permission_slugs', $user->getPermissionsList());
+
+        return new UserResource($user);
     }
 }
