@@ -62,6 +62,32 @@ class SaleOrderApiTest extends TestCase
     }
 
     #[Test]
+    public function it_paginates_sale_orders_without_returning_cached_first_page_again(): void
+    {
+        // Regressão: a chave de cache da listagem não incluía "page", então a
+        // página 2 retornava o mesmo resultado cacheado da página 1 (infinite
+        // scroll travado nos 10 primeiros pedidos).
+        SaleOrder::factory()->count(15)->create(['tenant_id' => $this->tenant->id]);
+
+        $page1 = $this->withHeaders($this->auth())
+            ->getJson('/api/sale-orders?page=1&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(10, 'data')
+            ->json('data');
+
+        $page2 = $this->withHeaders($this->auth())
+            ->getJson('/api/sale-orders?page=2&per_page=10')
+            ->assertStatus(200)
+            ->assertJsonCount(5, 'data')
+            ->json('data');
+
+        $page1Ids = array_column($page1, 'id');
+        $page2Ids = array_column($page2, 'id');
+
+        $this->assertEmpty(array_intersect($page1Ids, $page2Ids));
+    }
+
+    #[Test]
     public function it_does_not_list_archived_orders(): void
     {
         SaleOrder::factory()->count(2)->create(['tenant_id' => $this->tenant->id]);

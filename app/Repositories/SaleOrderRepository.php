@@ -11,7 +11,7 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
 {
     use SearchesFullText;
 
-    public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
+    public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null, int $page = 1): LengthAwarePaginator
     {
         $query = SaleOrder::forTenant($tenantId)
             ->notArchived()
@@ -37,7 +37,7 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
             });
         }
 
-        return $query->paginate($perPage);
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder

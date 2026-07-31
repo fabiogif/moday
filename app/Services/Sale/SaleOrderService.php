@@ -34,14 +34,16 @@ class SaleOrderService
         private readonly OfferEngineService $offerEngineService,
     ) {}
 
-    public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null): LengthAwarePaginator
+    public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null, int $page = 1): LengthAwarePaginator
     {
-        $params = ['status' => $status, 'per_page' => $perPage, 'search' => $search];
+        // Inclui a página na chave de cache; sem isso, a página 2+ retorna
+        // o mesmo resultado cacheado da página 1, travando a paginação.
+        $params = ['status' => $status, 'per_page' => $perPage, 'search' => $search, 'page' => $page];
 
         return $this->cacheService->getSaleOrderList(
             $tenantId,
             $params,
-            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage, $search)
+            fn () => $this->saleOrderRepository->paginateForTenant($tenantId, $status, $perPage, $search, $page)
         );
     }
 

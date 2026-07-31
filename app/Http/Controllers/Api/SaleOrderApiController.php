@@ -32,10 +32,11 @@ class SaleOrderApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $perPage   = min((int) $request->get('per_page', 50), 100);
+            $page      = max((int) $request->get('page', 1), 1);
             $search    = $request->get('search');
             $search    = is_string($search) ? trim($search) : null;
             $search    = $search !== '' ? $search : null;
-            $paginated = $this->saleOrderService->list($tenantId, $request->get('status'), $perPage, $search);
+            $paginated = $this->saleOrderService->list($tenantId, $request->get('status'), $perPage, $search, $page);
 
             return response()->json([
                 'success' => true,
