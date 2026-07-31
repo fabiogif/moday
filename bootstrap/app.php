@@ -62,6 +62,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
             });
 
+            // Listagens de sincronização em lote (app de campo baixando o catálogo
+            // completo de clientes/produtos para uso offline, paginado). O limite
+            // de 'read' (100/min) é adequado para navegação interativa, mas um
+            // tenant com milhares de registros pagina em dezenas de requisições
+            // num único ciclo de sync e estourava esse teto. Ver
+            // distribtec_mobile/src/lib/field-prefetch.ts.
+            RateLimiter::for('sync', function (Request $request) {
+                return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());
+            });
+
             // Rate limiter específico para eventos
             RateLimiter::for('events', function (Request $request) {
                 $key = $request->user()?->id ?? $request->ip();

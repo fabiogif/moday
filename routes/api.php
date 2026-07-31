@@ -224,8 +224,8 @@ Route::get('/service-type/menu', [ServiceTypeApiController::class, 'menu'])->mid
 // Rotas protegidas por JWT e tenant
 Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
     // Produtos
-    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
-    Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:read']);
+    Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);
+    Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);
     Route::get('/product/by-code/{code}', [ProductApiController::class , 'showByCode'])->middleware(['acl.permission:products.show', 'throttle:read'])->where('code', '.+');
     Route::get('/product/barcode-lookup/{code}', [\App\Http\Controllers\Api\ProductBarcodeLookupController::class, '__invoke'])->middleware(['acl.permission:products.show', 'throttle:read'])->where('code', '.+');
     Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware(['acl.permission:products.index', 'throttle:read']);
@@ -312,7 +312,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
     Route::delete('/user/{user}', [UserApiController::class , 'destroy'])->middleware('throttle:critical');
 
     // Clientes (protegidas por autenticação + ACL)
-    Route::get('/client', [ClientApiController::class, 'index'])->middleware(['acl.permission:clients.index', 'throttle:read']);
+    Route::get('/client', [ClientApiController::class, 'index'])->middleware(['acl.permission:clients.index', 'throttle:sync']);
     Route::get('/client/stats', [ClientApiController::class, 'stats'])->middleware(['acl.permission:clients.index', 'throttle:read']);
     Route::get('/client/check-cpf', [ClientApiController::class, 'checkCpf'])->middleware(['acl.permission:clients.index', 'throttle:read']);
     Route::get('/client/{id}', [ClientApiController::class, 'show'])->middleware(['acl.permission:clients.show', 'throttle:read']);
@@ -629,7 +629,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
 
     // Clientes B2B (alias plural para o ClientApiController existente)
     Route::prefix('clients')->group(function () {
-        Route::get('/', [ClientApiController::class, 'index'])->middleware('throttle:read');
+        Route::get('/', [ClientApiController::class, 'index'])->middleware('throttle:sync');
         Route::get('/stats', [ClientApiController::class, 'stats'])->middleware('throttle:read');
         Route::get('/check-cpf', [ClientApiController::class, 'checkCpf'])->middleware('throttle:read');
         Route::get('/{id}', [ClientApiController::class, 'show'])->middleware('throttle:read');

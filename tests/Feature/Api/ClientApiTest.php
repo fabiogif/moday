@@ -296,11 +296,11 @@ class ClientApiTest extends TestCase
     }
 
     #[Test]
-    public function it_caps_per_page_at_100_for_paginated_clients(): void
+    public function it_caps_per_page_at_the_configured_maximum_for_paginated_clients(): void
     {
         $this->withHeaders($this->auth())
-            ->getJson('/api/clients?page=1&per_page=500')
+            ->getJson('/api/clients?page=1&per_page=1000')
             ->assertStatus(200)
-            ->assertJsonPath('meta.per_page', 100);
+            ->assertJsonPath('meta.per_page', config('api.listing.max_per_page'));
     }
 }

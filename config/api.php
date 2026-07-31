@@ -14,7 +14,11 @@ return [
     |
     */
     'listing' => [
-        'max_per_page' => (int) env('API_MAX_PER_PAGE', 100),
+        // 500 (era 100): tenants de teste com milhares de clientes (ver
+        // demo:seed-mass) faziam o app de campo paginar em dezenas de
+        // requisições por ciclo de sync e estourar o rate limit de leitura.
+        // Ver também RateLimiter 'sync' em bootstrap/app.php.
+        'max_per_page' => (int) env('API_MAX_PER_PAGE', 500),
         'unpaginated_cap' => (int) env('API_UNPAGINATED_CAP', 500),
     ],
 ];
