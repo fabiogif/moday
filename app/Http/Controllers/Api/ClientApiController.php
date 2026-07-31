@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Api\Controller;
+use App\Http\Controllers\Concerns\ResolvesListPagination;
 use App\Http\Requests\StoreClient;
 use App\Http\Requests\UpdateClient;
 use App\Http\Requests\Api\CheckCpfRequest;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Auth;
 
 class ClientApiController extends Controller
 {
+    use ResolvesListPagination;
+
     public function __construct(protected ClientService $clientService, protected AuthTenantService $authTenantService)
     {
     }
@@ -42,28 +45,17 @@ class ClientApiController extends Controller
         try {
             [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
-            if (!$request->has('page') && !$request->has('per_page') && !$request->has('search')) {
-                $clients = $this->clientService->getClientsByTenant($tenantId);
-                return ApiResponseClass::sendResponse(ClientResource::collection($clients), 'Clientes listados com sucesso', 200);
-            }
-
-            $page    = max((int) $request->get('page', 1), 1);
-            $perPage = min((int) $request->get('per_page', 50), 100);
-            $search  = $request->get('search');
-            $search  = is_string($search) ? trim($search) : null;
-            $search  = $search !== '' ? $search : null;
-
-            $paginated = $this->clientService->paginateClientsByTenant($tenantId, $page, $perPage, $search);
+            $paginated = $this->clientService->paginateClientsByTenant(
+                $tenantId,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request)
+            );
 
             return response()->json([
                 'success' => true,
                 'data'    => ClientResource::collection($paginated->items()),
-                'meta'    => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page'    => $paginated->lastPage(),
-                    'per_page'     => $paginated->perPage(),
-                    'total'        => $paginated->total(),
-                ],
+                'meta'    => $this->listMeta($paginated),
                 'message' => 'Clientes listados com sucesso',
             ], 200);
         } catch (\Exception $ex) {

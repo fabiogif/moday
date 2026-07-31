@@ -72,6 +72,35 @@ class ClientApiTest extends TestCase
     }
 
     #[Test]
+    public function it_caps_listing_when_no_pagination_is_requested(): void
+    {
+        config()->set('api.listing.unpaginated_cap', 3);
+
+        Client::factory()->count(5)->create(['tenant_id' => $this->tenant->id]);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients')
+            ->assertStatus(200)
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.per_page', 3);
+    }
+
+    #[Test]
+    public function it_caps_per_page_above_the_configured_maximum(): void
+    {
+        config()->set('api.listing.max_per_page', 2);
+
+        Client::factory()->count(5)->create(['tenant_id' => $this->tenant->id]);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?page=1&per_page=100')
+            ->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.per_page', 2);
+    }
+
+    #[Test]
     public function it_creates_b2b_client(): void
     {
         $payload = $this->validB2bPayload();

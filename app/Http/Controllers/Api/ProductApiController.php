@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
 use App\Helpers\ImageHelper;
+use App\Http\Controllers\Concerns\ResolvesListPagination;
 use Illuminate\Routing\Controller;
 use App\Http\Requests\{Api\TenantFormRequest, StoreUpdateProductRequest, UpdateProductRequest};
 use App\Http\Resources\ProductResource;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Log;
  */
 class ProductApiController extends Controller
 {
+    use ResolvesListPagination;
 
     public function __construct(private readonly ProductService $productService)
     {
@@ -120,34 +122,19 @@ class ProductApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
 
-            if ($request->has('page') || $request->has('per_page') || $request->has('search')) {
-                $page    = max((int) $request->get('page', 1), 1);
-                $perPage = min((int) $request->get('per_page', 50), 100);
-                $search  = $request->get('search');
-                $search  = is_string($search) ? trim($search) : null;
-                $search  = $search !== '' ? $search : null;
+            $paginated = $this->productService->paginateProductsByTenant(
+                $user->tenant_id,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request)
+            );
 
-                $paginated = $this->productService->paginateProductsByTenant($user->tenant_id, $page, $perPage, $search);
-
-                return response()->json([
-                    'success' => true,
-                    'data'    => ProductResource::collection($paginated->items()),
-                    'meta'    => [
-                        'current_page' => $paginated->currentPage(),
-                        'last_page'    => $paginated->lastPage(),
-                        'per_page'     => $paginated->perPage(),
-                        'total'        => $paginated->total(),
-                    ],
-                    'message' => 'Produtos listados com sucesso',
-                ], 200);
-            }
-
-            $products = $this->productService->getProductsByTenantId($user->tenant_id);
-            if (!$products) {
-                return ApiResponseClass::sendResponse([], 'Nenhum produto encontrado', 404);
-            }
-
-            return ApiResponseClass::sendResponse(ProductResource::collection($products), 'Produtos listados com sucesso', 200);
+            return response()->json([
+                'success' => true,
+                'data'    => ProductResource::collection($paginated->items()),
+                'meta'    => $this->listMeta($paginated),
+                'message' => 'Produtos listados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar produtos');
         }
@@ -193,35 +180,19 @@ class ProductApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
 
-            if ($request->has('page') || $request->has('per_page') || $request->has('search')) {
-                $page    = max((int) $request->get('page', 1), 1);
-                $perPage = min((int) $request->get('per_page', 50), 100);
-                $search  = $request->get('search');
-                $search  = is_string($search) ? trim($search) : null;
-                $search  = $search !== '' ? $search : null;
-
-                $paginated = $this->productService->paginateCatalogProductsByTenant($user->tenant_id, $page, $perPage, $search);
-
-                return response()->json([
-                    'success' => true,
-                    'data'    => ProductResource::collection($paginated->items()),
-                    'meta'    => [
-                        'current_page' => $paginated->currentPage(),
-                        'last_page'    => $paginated->lastPage(),
-                        'per_page'     => $paginated->perPage(),
-                        'total'        => $paginated->total(),
-                    ],
-                    'message' => 'Produtos do catálogo de venda listados com sucesso',
-                ], 200);
-            }
-
-            $products = $this->productService->getCatalogProductsByTenantId($user->tenant_id);
-
-            return ApiResponseClass::sendResponse(
-                ProductResource::collection($products),
-                'Produtos do catálogo de venda listados com sucesso',
-                200
+            $paginated = $this->productService->paginateCatalogProductsByTenant(
+                $user->tenant_id,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request)
             );
+
+            return response()->json([
+                'success' => true,
+                'data'    => ProductResource::collection($paginated->items()),
+                'meta'    => $this->listMeta($paginated),
+                'message' => 'Produtos do catálogo de venda listados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar produtos do catálogo');
         }

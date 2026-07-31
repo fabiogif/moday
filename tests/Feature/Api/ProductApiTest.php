@@ -146,6 +146,43 @@ class ProductApiTest extends TestCase
     }
 
     #[Test]
+    public function limita_listagem_de_produtos_sem_paginacao(): void
+    {
+        config()->set('api.listing.unpaginated_cap', 2);
+
+        Product::factory()->count(5)->create(['tenant_id' => $this->tenant->id]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product')
+            ->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.per_page', 2);
+    }
+
+    #[Test]
+    public function limita_listagem_do_catalogo_sem_paginacao(): void
+    {
+        config()->set('api.listing.unpaginated_cap', 2);
+
+        Product::factory()->count(5)->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+            'qtd_stock' => 10,
+        ]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/product/catalog')
+            ->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.per_page', 2);
+    }
+
+    #[Test]
     public function pode_criar_produto_com_sucesso()
     {
         $image = UploadedFile::fake()->image('product.jpg', 800, 600);
