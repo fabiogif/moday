@@ -259,10 +259,12 @@ class PlanRestrictionsTest extends TestCase
         $this->tenant->save();
         $this->tenant->refresh();
 
-        // Criar 30 pedidos do mês passado
+        // Criar 30 pedidos do mês passado.
+        // startOfMonth()->subMonth() evita overflow do Carbon em dias 29–31
+        // (ex.: 31/07 - 1 mês vira 01/07 e cairia no mês atual).
         Order::factory()->count(30)->create([
             'tenant_id' => $this->tenant->id,
-            'created_at' => now()->subMonth(),
+            'created_at' => now()->startOfMonth()->subMonth(),
         ]);
 
         // Criar 29 pedidos do mês atual

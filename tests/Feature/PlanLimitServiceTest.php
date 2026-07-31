@@ -214,8 +214,9 @@ class PlanLimitServiceTest extends TestCase
         ]);
 
         Order::factory()->create([
+            // startOfMonth()->subMonth() evita overflow do Carbon em dias 29–31
             'tenant_id' => $this->tenant->id,
-            'created_at' => now()->subMonth(), // Mês passado não conta
+            'created_at' => now()->startOfMonth()->subMonth(),
         ]);
 
         $usage = $this->service->getCurrentUsage($this->tenant->id);

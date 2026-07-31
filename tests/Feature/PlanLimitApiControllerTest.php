@@ -205,10 +205,12 @@ class PlanLimitApiControllerTest extends TestCase
             'created_at' => now(),
         ]);
 
-        // Criar pedidos do mês passado (não devem contar)
+        // Criar pedidos do mês passado (não devem contar).
+        // Usar startOfMonth()->subMonth() para evitar overflow do Carbon em dias 29–31
+        // (ex.: 31/07 - 1 mês vira 01/07 e cairia no mês atual).
         Order::factory()->count(2)->create([
             'tenant_id' => $this->tenant->id,
-            'created_at' => now()->subMonth(),
+            'created_at' => now()->startOfMonth()->subMonth(),
         ]);
 
         $this->actingAs($this->user, 'api');
