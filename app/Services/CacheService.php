@@ -559,6 +559,17 @@ class CacheService
         return $this->remember("supplier_list_{$tenantId}", self::CACHE_TTL['supplier_list'], $callback);
     }
 
+    /**
+     * Lista paginada de fornecedores (evita dump completo no Redis/JSON).
+     */
+    public function getSupplierListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("supplier_list_v_{$tenantId}", 0);
+        $key = "supplier_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+
+        return $this->remember($key, self::CACHE_TTL['supplier_list'], $callback);
+    }
+
     public function getWarehouseList(int $tenantId, callable $callback)
     {
         return $this->remember("warehouse_list_{$tenantId}", self::CACHE_TTL['warehouse_list'], $callback);
@@ -595,6 +606,7 @@ class CacheService
     public function invalidateSupplierCache(int $tenantId): void
     {
         Cache::forget("supplier_list_{$tenantId}");
+        Cache::increment("supplier_list_v_{$tenantId}");
     }
 
     public function invalidateWarehouseCache(int $tenantId): void

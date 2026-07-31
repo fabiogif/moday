@@ -67,9 +67,50 @@ class SupplierApiTest extends TestCase
                         'phone',
                         'is_active',
                     ]
-                ]
+                ],
+                'meta' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                ],
             ])
-            ->assertJsonCount(3, 'data'); // Apenas os 3 do tenant
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('meta.total', 3);
+    }
+
+    #[Test]
+    public function it_paginates_suppliers_list(): void
+    {
+        Supplier::factory()->count(5)->create([
+            'tenant_id' => $this->tenant->id,
+        ]);
+
+        $response = $this->withHeaders($this->getAuthHeaders())
+            ->getJson('/api/suppliers?page=1&per_page=2');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.per_page', 2)
+            ->assertJsonPath('meta.current_page', 1);
+    }
+
+    #[Test]
+    public function it_caps_listing_when_no_pagination_is_requested(): void
+    {
+        config()->set('api.listing.unpaginated_cap', 3);
+
+        Supplier::factory()->count(5)->create([
+            'tenant_id' => $this->tenant->id,
+        ]);
+
+        $response = $this->withHeaders($this->getAuthHeaders())->getJson('/api/suppliers');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.per_page', 3);
     }
 
     #[Test]

@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\Supplier;
 use App\Repositories\Contracts\SupplierRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class SupplierRepository implements SupplierRepositoryInterface
 {
@@ -20,6 +21,29 @@ class SupplierRepository implements SupplierRepositoryInterface
             ->where('tenant_id', $tenantId)
             ->orderBy('name')
             ->get();
+    }
+
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null): LengthAwarePaginator
+    {
+        $query = $this->entity
+            ->where('tenant_id', $tenantId)
+            ->orderBy('name');
+
+        if ($search !== null && $search !== '') {
+            $like = '%' . $search . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('name', 'like', $like)
+                    ->orWhere('company_name', 'like', $like)
+                    ->orWhere('trade_name', 'like', $like)
+                    ->orWhere('fantasy_name', 'like', $like)
+                    ->orWhere('document', 'like', $like)
+                    ->orWhere('cnpj', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('phone', 'like', $like);
+            });
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function getById(int $id)

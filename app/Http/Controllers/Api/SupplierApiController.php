@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\ResolvesListPagination;
 use App\Http\Requests\Api\StoreSupplierRequest;
 use App\Http\Requests\Api\UpdateSupplierRequest;
 use App\Http\Resources\SupplierResource;
@@ -14,23 +15,31 @@ use Illuminate\Http\Request;
 
 class SupplierApiController extends Controller
 {
+    use ResolvesListPagination;
+
     public function __construct(
         private readonly SupplierService $supplierService,
         private readonly AuthTenantService $authTenantService
     ) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
             [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
-            $suppliers = $this->supplierService->getAllSuppliers($tenantId);
-
-            return ApiResponseClass::sendResponse(
-                SupplierResource::collection($suppliers),
-                'Fornecedores recuperados com sucesso',
-                200
+            $paginated = $this->supplierService->paginateSuppliersByTenant(
+                $tenantId,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request)
             );
+
+            return response()->json([
+                'success' => true,
+                'data' => SupplierResource::collection($paginated->items()),
+                'meta' => $this->listMeta($paginated),
+                'message' => 'Fornecedores recuperados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao buscar fornecedores');
         }

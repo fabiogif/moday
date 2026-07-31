@@ -21,6 +21,17 @@ class SupplierService
         );
     }
 
+    public function paginateSuppliersByTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $params = ['page' => $page, 'per_page' => $perPage, 'search' => $search];
+
+        return $this->cacheService->getSupplierListPaginated(
+            $tenantId,
+            $params,
+            fn () => $this->supplierRepository->paginateForTenant($tenantId, $page, $perPage, $search)
+        );
+    }
+
     public function getSupplierByUuid(string $uuid)
     {
         return $this->supplierRepository->getByUuid($uuid);
