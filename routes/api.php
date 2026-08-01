@@ -643,6 +643,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
         Route::get('/', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'index'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
         Route::post('/', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'store'])->middleware(['acl.permission:sale-orders.store', 'throttle:critical']);
         Route::post('/offers/evaluate', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'evaluateOffers'])->middleware(['acl.permission:sale-orders.store', 'throttle:read']);
+        Route::get('/summary', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'summary'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
         Route::get('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'show'])->middleware(['acl.permission:sale-orders.index', 'throttle:read']);
         Route::put('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'update'])->middleware(['acl.permission:sale-orders.update', 'throttle:critical']);
         Route::delete('/{id}', [\App\Http\Controllers\Api\SaleOrderApiController::class, 'destroy'])->middleware(['acl.permission:sale-orders.destroy', 'throttle:critical']);

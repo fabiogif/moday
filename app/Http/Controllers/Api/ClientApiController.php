@@ -45,11 +45,15 @@ class ClientApiController extends Controller
         try {
             [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
+            $sort = $request->get('sort');
+            $sort = $sort === 'recent_orders' ? 'recent_orders' : null;
+
             $paginated = $this->clientService->paginateClientsByTenant(
                 $tenantId,
                 $this->listPage($request),
                 $this->listPerPage($request),
-                $this->listSearch($request)
+                $this->listSearch($request),
+                $sort
             );
 
             return response()->json([

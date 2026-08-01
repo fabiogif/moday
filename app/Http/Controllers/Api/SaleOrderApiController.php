@@ -16,6 +16,7 @@ use App\Services\Sale\OfferEngineService;
 use App\Services\Sale\SaleOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class SaleOrderApiController extends Controller
 {
@@ -54,6 +55,22 @@ class SaleOrderApiController extends Controller
         }
     }
 
+    public function summary(Request $request): JsonResponse
+    {
+        try {
+            [, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $period = $request->get('period', 'hoje');
+            $period = in_array($period, ['hoje', '7d', '30d', 'todos'], true) ? $period : 'hoje';
+
+            $summary = $this->saleOrderService->summary($tenantId, $period);
+
+            return ApiResponseClass::sendResponse($summary, 'Resumo de pedidos recuperado com sucesso');
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar resumo de pedidos');
+        }
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {
@@ -80,6 +97,7 @@ class SaleOrderApiController extends Controller
                 'items.*.item_type'        => 'sometimes|string|in:venda,bonificacao',
                 'items.*.discount_percent' => ['sometimes', 'numeric', 'min:0', 'max:100', $discountRule],
                 'use_client_address'       => 'sometimes|boolean',
+                'delivery_method'          => 'sometimes|string|in:entrega,retirada',
                 'shipping_address'         => 'nullable|array',
                 'shipping_address.street'    => 'nullable|string|max:255',
                 'shipping_address.number'    => 'nullable|string|max:30',
@@ -95,6 +113,8 @@ class SaleOrderApiController extends Controller
             $order->load(['client:id,company_name,trade_name', 'items.product:id,name,sku']);
 
             return ApiResponseClass::sendResponse($order, 'Pedido de venda criado com sucesso', 201);
+        } catch (ValidationException $ex) {
+            throw $ex;
         } catch (StockException|CreditException|RegulatoryException $ex) {
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\DomainException $ex) {
@@ -197,6 +217,7 @@ class SaleOrderApiController extends Controller
                 'items.*.item_type'        => 'sometimes|string|in:venda,bonificacao',
                 'items.*.discount_percent' => ['sometimes', 'numeric', 'min:0', 'max:100', $discountRule],
                 'use_client_address'     => 'sometimes|boolean',
+                'delivery_method'        => 'sometimes|string|in:entrega,retirada',
                 'shipping_address'       => 'nullable|array',
                 'shipping_address.street'    => 'nullable|string|max:255',
                 'shipping_address.number'    => 'nullable|string|max:30',
@@ -213,6 +234,8 @@ class SaleOrderApiController extends Controller
             }
 
             return ApiResponseClass::sendResponse($order, 'Pedido atualizado com sucesso', 200);
+        } catch (ValidationException $ex) {
+            throw $ex;
         } catch (\DomainException $ex) {
             return response()->json(['success' => false, 'message' => $ex->getMessage()], 422);
         } catch (\Exception $ex) {

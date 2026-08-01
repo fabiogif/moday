@@ -42,6 +42,7 @@ class CacheService
         'warehouse_list' => 1800,        // 30 minutes
         'batch_list' => 300,             // 5 minutes
         'sale_order_list' => 300,        // 5 minutes
+        'sale_order_summary' => 60,      // 1 minute (quase realtime, card/gráfico da Home)
         'purchase_order_list' => 300,    // 5 minutes
         'stock_movement_list' => 180,    // 3 minutes
         // Sales Goals & Gamification
@@ -587,6 +588,13 @@ class CacheService
         $v = (int) Cache::get("sale_order_v_{$tenantId}", 0);
         $key = "sale_order_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
         return $this->remember($key, self::CACHE_TTL['sale_order_list'], $callback);
+    }
+
+    public function getSaleOrderSummary(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("sale_order_v_{$tenantId}", 0);
+        $key = "sale_order_summary_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['sale_order_summary'], $callback);
     }
 
     public function getPurchaseOrderList(int $tenantId, array $params, callable $callback)

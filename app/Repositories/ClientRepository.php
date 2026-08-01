@@ -44,13 +44,22 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ->get();
     }
 
-    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null, ?string $sort = null)
     {
         $query = $this->entity->where('tenant_id', $tenantId)
             ->withCount(['orders', 'saleOrders'])
             ->withMax('orders', 'created_at')
-            ->withMax('saleOrders', 'ordered_at')
-            ->orderBy('created_at', 'desc');
+            ->withMax('saleOrders', 'ordered_at');
+
+        // "recent_orders": clientes com pedido mais recente primeiro, usados pelo
+        // combo de cliente do app mobile para sugerir os mais relevantes antes de
+        // o vendedor digitar uma busca. Sem pedido nenhum (coluna NULL) vai pro
+        // final naturalmente no MySQL com DESC.
+        if ($sort === 'recent_orders') {
+            $query->orderByDesc('sale_orders_max_ordered_at');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
 
         if ($search !== null && $search !== '') {
             $this->applyFullTextSearch(

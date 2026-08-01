@@ -57,6 +57,35 @@ class ClientApiTest extends TestCase
     }
 
     #[Test]
+    public function it_sorts_clients_by_most_recent_order_when_requested(): void
+    {
+        $stale = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        $recent = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        $noOrder = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $stale->id,
+            'ordered_at' => Carbon::now()->subDays(10),
+        ]);
+        SaleOrder::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $recent->id,
+            'ordered_at' => Carbon::now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson('/api/clients?sort=recent_orders&per_page=10')
+            ->assertStatus(200);
+
+        $ids = collect($response->json('data'))->pluck('id')->values();
+
+        $this->assertSame($recent->id, $ids[0]);
+        $this->assertSame($stale->id, $ids[1]);
+        $this->assertSame($noOrder->id, $ids[2]);
+    }
+
+    #[Test]
     public function it_lists_only_tenant_clients(): void
     {
         Client::factory()->count(2)->create(['tenant_id' => $this->tenant->id]);

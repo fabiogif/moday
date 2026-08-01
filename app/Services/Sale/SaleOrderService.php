@@ -47,6 +47,28 @@ class SaleOrderService
         );
     }
 
+    /**
+     * Pendentes (orçamentos em aberto) + série diária de pedidos no período,
+     * usado pelo gráfico da Home do app mobile. "todos" não tem um recorte de
+     * dias natural, então vem sem série (só total/pendentes).
+     */
+    public function summary(int $tenantId, string $period): array
+    {
+        $start = match ($period) {
+            'hoje' => now()->startOfDay(),
+            '7d'   => now()->startOfDay()->subDays(6),
+            '30d'  => now()->startOfDay()->subDays(29),
+            default => null,
+        };
+        $end = now();
+
+        return $this->cacheService->getSaleOrderSummary(
+            $tenantId,
+            ['period' => $period],
+            fn () => $this->saleOrderRepository->summaryForTenant($tenantId, $start, $end)
+        );
+    }
+
     public function find(int $tenantId, int $id, array $with = []): ?SaleOrder
     {
         return $this->saleOrderRepository->findForTenant($tenantId, $id, $with);

@@ -3,11 +3,14 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\SaleOrder;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface SaleOrderRepositoryInterface
 {
     public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null, int $page = 1): LengthAwarePaginator;
+
+    public function summaryForTenant(int $tenantId, ?Carbon $start, Carbon $end): array;
 
     public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder;
 

@@ -88,6 +88,40 @@ class SaleOrderApiTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_pending_count_and_daily_series_in_summary(): void
+    {
+        SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'orcamento']);
+        SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'orcamento']);
+        SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'aprovado']);
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson('/api/sale-orders/summary?period=7d')
+            ->assertStatus(200);
+
+        $response->assertJsonPath('data.pending', 2);
+        $response->assertJsonPath('data.total', 3);
+
+        $series = $response->json('data.series');
+        $this->assertCount(7, $series);
+        $this->assertSame(now()->format('Y-m-d'), end($series)['date']);
+        $this->assertSame(3, array_sum(array_column($series, 'count')));
+    }
+
+    #[Test]
+    public function it_omits_series_for_todos_period_in_summary(): void
+    {
+        SaleOrder::factory()->create(['tenant_id' => $this->tenant->id, 'status' => 'orcamento']);
+
+        $response = $this->withHeaders($this->auth())
+            ->getJson('/api/sale-orders/summary?period=todos')
+            ->assertStatus(200);
+
+        $response->assertJsonPath('data.pending', 1);
+        $response->assertJsonPath('data.total', 1);
+        $response->assertJsonPath('data.series', []);
+    }
+
+    #[Test]
     public function it_does_not_list_archived_orders(): void
     {
         SaleOrder::factory()->count(2)->create(['tenant_id' => $this->tenant->id]);
@@ -124,6 +158,33 @@ class SaleOrderApiTest extends TestCase
             'tenant_id' => $this->tenant->id,
             'status'    => 'orcamento',
         ]);
+    }
+
+    #[Test]
+    public function it_defaults_delivery_method_to_entrega(): void
+    {
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', ['status' => 'orcamento']);
+
+        $response->assertStatus(201)->assertJsonPath('data.delivery_method', 'entrega');
+    }
+
+    #[Test]
+    public function it_creates_a_sale_order_with_retirada_delivery_method(): void
+    {
+        $response = $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', ['status' => 'orcamento', 'delivery_method' => 'retirada']);
+
+        $response->assertStatus(201)->assertJsonPath('data.delivery_method', 'retirada');
+        $this->assertDatabaseHas('sale_orders', ['delivery_method' => 'retirada']);
+    }
+
+    #[Test]
+    public function it_rejects_invalid_delivery_method(): void
+    {
+        $this->withHeaders($this->auth())
+            ->postJson('/api/sale-orders', ['status' => 'orcamento', 'delivery_method' => 'invalido'])
+            ->assertStatus(422);
     }
 
     #[Test]
