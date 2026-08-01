@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Product;
+use App\Models\SaleOrder;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -226,6 +227,91 @@ class DashboardMetricsTest extends TestCase
 
         $response = $this->getJson('/api/client');
         $response->assertStatus(401);
+    }
+
+    /**
+     * Regressão: /api/dashboard/metrics lia o model `Order` (quadro Kanban,
+     * só populado por pedidos vindos da loja pública), não `SaleOrder`
+     * (pedido de venda B2B oficial, criado pelo painel/app de campo). Um
+     * pedido criado fora da loja pública nunca aparecia nos indicadores.
+     */
+    #[Test]
+    public function metricas_do_dashboard_refletem_pedidos_de_venda_do_mes()
+    {
+        SaleOrder::factory()->entregue()->create([
+            'tenant_id'  => $this->tenant->id,
+            'ordered_at' => now(),
+            'total'      => 100,
+        ]);
+        SaleOrder::factory()->entregue()->create([
+            'tenant_id'  => $this->tenant->id,
+            'ordered_at' => now(),
+            'total'      => 50,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/dashboard/metrics');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total_orders.value', 2)
+            ->assertJsonPath('data.total_revenue.value', 150);
+    }
+
+    #[Test]
+    public function metricas_do_dashboard_ignoram_orcamento_e_cancelado()
+    {
+        SaleOrder::factory()->create([
+            'tenant_id'  => $this->tenant->id,
+            'status'     => 'orcamento',
+            'ordered_at' => now(),
+        ]);
+        SaleOrder::factory()->cancelado()->create([
+            'tenant_id'  => $this->tenant->id,
+            'ordered_at' => now(),
+        ]);
+        SaleOrder::factory()->entregue()->create([
+            'tenant_id'  => $this->tenant->id,
+            'ordered_at' => now(),
+            'total'      => 200,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/dashboard/metrics');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total_orders.value', 1)
+            ->assertJsonPath('data.total_revenue.value', 200);
+    }
+
+    #[Test]
+    public function metricas_do_dashboard_sao_isoladas_por_tenant()
+    {
+        SaleOrder::factory()->entregue()->create([
+            'tenant_id'  => $this->tenant->id,
+            'ordered_at' => now(),
+            'total'      => 300,
+        ]);
+
+        $plan = Plan::factory()->create();
+        $otherTenant = Tenant::factory()->create(['plan_id' => $plan->id]);
+        SaleOrder::factory()->entregue()->create([
+            'tenant_id'  => $otherTenant->id,
+            'ordered_at' => now(),
+            'total'      => 999,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/dashboard/metrics');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.total_orders.value', 1)
+            ->assertJsonPath('data.total_revenue.value', 300);
     }
 }
 

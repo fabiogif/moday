@@ -34,6 +34,16 @@ class SaleOrderService
         private readonly OfferEngineService $offerEngineService,
     ) {}
 
+    /**
+     * Sale orders alimentam os indicadores/dashboard (DashboardRepository lê
+     * SaleOrder), então toda escrita precisa invalidar os dois caches.
+     */
+    private function invalidateCaches(int $tenantId): void
+    {
+        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->cacheService->invalidateDashboardCache($tenantId);
+    }
+
     public function list(int $tenantId, ?string $status, int $perPage, ?string $search = null, int $page = 1): LengthAwarePaginator
     {
         // Inclui a página na chave de cache; sem isso, a página 2+ retorna
@@ -155,7 +165,7 @@ class SaleOrderService
             throw $e;
         }
 
-        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->invalidateCaches($tenantId);
 
         try {
             SaleOrderCreated::dispatch($order->loadMissing('client'));
@@ -215,7 +225,7 @@ class SaleOrderService
             return $this->saleOrderRepository->update($order, $data);
         });
 
-        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->invalidateCaches($tenantId);
 
         return $updated;
     }
@@ -232,7 +242,7 @@ class SaleOrderService
         }
 
         $this->saleOrderRepository->deleteWithItems($order);
-        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->invalidateCaches($tenantId);
 
         return 'deleted';
     }
@@ -279,7 +289,7 @@ class SaleOrderService
             }
         });
 
-        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->invalidateCaches($tenantId);
 
         $freshOrder = $order->fresh();
 
@@ -312,7 +322,7 @@ class SaleOrderService
             $order->update(['status' => 'cancelado']);
         });
 
-        $this->cacheService->invalidateSaleOrderCache($tenantId);
+        $this->invalidateCaches($tenantId);
 
         return 'cancelled';
     }
@@ -320,7 +330,7 @@ class SaleOrderService
     public function returnItems(SaleOrder $order, array $items, int $userId): SaleOrder
     {
         $result = $this->saleReturnService->processReturn($order, $items, $userId);
-        $this->cacheService->invalidateSaleOrderCache($order->tenant_id);
+        $this->invalidateCaches($order->tenant_id);
 
         return $result;
     }
