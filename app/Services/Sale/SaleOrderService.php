@@ -48,6 +48,20 @@ class SaleOrderService
     }
 
     /**
+     * Contagens por status para chips do app Campo.
+     *
+     * @return array<string, int>
+     */
+    public function countsByStatus(int $tenantId): array
+    {
+        return $this->cacheService->getSaleOrderSummary(
+            $tenantId,
+            ['kind' => 'status_counts'],
+            fn () => $this->saleOrderRepository->countsByStatusForTenant($tenantId)
+        );
+    }
+
+    /**
      * Pendentes (orçamentos em aberto) + série diária de pedidos no período,
      * usado pelo gráfico da Home do app mobile. "todos" não tem um recorte de
      * dias natural, então vem sem série (só total/pendentes).

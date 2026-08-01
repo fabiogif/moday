@@ -44,8 +44,14 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
             ->get();
     }
 
-    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null, ?string $sort = null)
-    {
+    public function paginateForTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $sort = null,
+        ?string $filter = null
+    ) {
         $query = $this->entity->where('tenant_id', $tenantId)
             ->withCount(['orders', 'saleOrders'])
             ->withMax('orders', 'created_at')
@@ -66,11 +72,32 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
                 $query,
                 ['name', 'company_name', 'trade_name'],
                 $search,
-                ['email', 'phone']
+                ['email', 'phone', 'cnpj']
             );
         }
 
+        $this->applyListFilter($query, $filter);
+
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Filtros rápidos do app Campo: active | inactive | blocked.
+     */
+    private function applyListFilter($query, ?string $filter): void
+    {
+        if ($filter === null || $filter === '' || $filter === 'all') {
+            return;
+        }
+
+        match ($filter) {
+            'active' => $query->where('is_active', true)->where(function ($q) {
+                $q->where('is_blocked', false)->orWhereNull('is_blocked');
+            }),
+            'inactive' => $query->where('is_active', false),
+            'blocked' => $query->where('is_blocked', true),
+            default => null,
+        };
     }
 
     public function getClientById($id)

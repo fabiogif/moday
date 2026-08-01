@@ -2,112 +2,111 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\State;
 use App\Models\City;
+use App\Models\State;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
 class StatesAndCitiesSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $this->command->info('Iniciando importação de Estados e Cidades...');
+        $statesPath = database_path('data/states.json');
+        $citiesPath = database_path('data/cities.json');
 
-        // Ler arquivo db.json
-        $jsonPath = base_path('db.json');
-        
-        if (!File::exists($jsonPath)) {
-            $this->command->error('Arquivo db.json não encontrado!');
+        if (!File::exists($statesPath) || !File::exists($citiesPath)) {
+            $this->command?->error('Arquivos database/data/states.json e cities.json são obrigatórios.');
             return;
         }
 
-        $json = File::get($jsonPath);
-        $data = json_decode($json, true);
+        $statesData = json_decode(File::get($statesPath), true, 512, JSON_THROW_ON_ERROR);
+        $citiesData = json_decode(File::get($citiesPath), true, 512, JSON_THROW_ON_ERROR);
 
-        if (!$data || !isset($data['estados']) || !isset($data['cidades'])) {
-            $this->command->error('Formato do arquivo db.json inválido!');
+        if (!is_array($statesData) || !is_array($citiesData)) {
+            $this->command?->error('Formato inválido nos arquivos JSON de localização.');
             return;
         }
 
-        try {
-            // Limpar tabelas antes de popular
-            $this->command->info('Limpando tabelas...');
-            
-            // Desabilitar foreign key checks de forma compatível com o DB
-            $driver = DB::getDriverName();
-            
-            if ($driver === 'mysql') {
-                DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            } elseif ($driver === 'pgsql') {
-                DB::statement('SET CONSTRAINTS ALL DEFERRED;');
-            }
-            
-            City::truncate();
-            State::truncate();
-            
-            if ($driver === 'mysql') {
-                DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            }
-            
-            DB::beginTransaction();
+        $this->command?->info('Importando Estados e Municípios (base IBGE local)...');
 
-            // Inserir Estados
-            $this->command->info('Inserindo estados...');
-            $estados = [];
-            foreach ($data['estados'] as $estado) {
-                $estados[$estado['id']] = State::create([
-                    'uf' => $estado['id'],
-                    'name' => $estado['estado'],
-                ]);
-            }
-            $this->command->info('✓ ' . count($estados) . ' estados inseridos');
+        $driver = DB::getDriverName();
 
-            // Inserir Cidades em lotes para melhor performance
-            $this->command->info('Inserindo cidades...');
-            $cidades = $data['cidades'];
-            $totalCidades = count($cidades);
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        }
+
+        City::query()->delete();
+        State::query()->delete();
+
+        if ($driver === 'mysql') {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
+
+        DB::transaction(function () use ($statesData, $citiesData) {
+            $now = now();
+            $statesByUf = [];
+
+            $stateRows = [];
+            foreach ($statesData as $estado) {
+                $stateRows[] = [
+                    'ibge_code' => (string) $estado['ibge_code'],
+                    'uf' => strtoupper((string) $estado['uf']),
+                    'name' => (string) $estado['name'],
+                    'region' => (string) ($estado['region'] ?? ''),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+            State::insert($stateRows);
+
+            foreach (State::query()->get(['id', 'uf']) as $state) {
+                $statesByUf[$state->uf] = $state->id;
+            }
+
+            $this->command?->info('✓ ' . count($statesByUf) . ' estados inseridos');
+
             $batchSize = 500;
             $inserted = 0;
+            $batch = [];
 
-            for ($i = 0; $i < $totalCidades; $i += $batchSize) {
-                $batch = array_slice($cidades, $i, $batchSize);
-                $cidadesData = [];
-
-                foreach ($batch as $cidade) {
-                    if (!isset($estados[$cidade['estadoId']])) {
-                        continue; // Skip if state not found
-                    }
-
-                    $cidadesData[] = [
-                        'state_id' => $estados[$cidade['estadoId']]->id,
-                        'name' => $cidade['cidade'],
-                        'is_capital' => isset($cidade['capital']) ? $cidade['capital'] : false,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+            foreach ($citiesData as $cidade) {
+                $uf = strtoupper((string) $cidade['state_uf']);
+                if (!isset($statesByUf[$uf])) {
+                    continue;
                 }
 
-                if (!empty($cidadesData)) {
-                    City::insert($cidadesData);
-                    $inserted += count($cidadesData);
-                    $this->command->info("Inseridas $inserted / $totalCidades cidades...");
+                $batch[] = [
+                    'state_id' => $statesByUf[$uf],
+                    'ibge_code' => (string) $cidade['ibge_code'],
+                    'name' => (string) $cidade['name'],
+                    'is_capital' => (bool) ($cidade['is_capital'] ?? false),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+
+                if (count($batch) >= $batchSize) {
+                    City::insert($batch);
+                    $inserted += count($batch);
+                    $batch = [];
+                    $this->command?->info("Inseridas {$inserted} / " . count($citiesData) . ' cidades...');
                 }
             }
 
-            DB::commit();
-            
-            $this->command->info('✓ Importação concluída com sucesso!');
-            $this->command->info("Total: " . count($estados) . " estados e $inserted cidades");
+            if ($batch !== []) {
+                City::insert($batch);
+                $inserted += count($batch);
+            }
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->command->error('Erro na importação: ' . $e->getMessage());
-            throw $e;
+            $this->command?->info("✓ {$inserted} cidades inseridas");
+        });
+
+        Cache::forget('location.states');
+        foreach (State::query()->pluck('id') as $stateId) {
+            Cache::forget("location.cities.{$stateId}");
         }
+
+        $this->command?->info('✓ Importação IBGE concluída (cache invalidado)');
     }
 }
-

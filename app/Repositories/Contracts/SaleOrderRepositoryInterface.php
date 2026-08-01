@@ -10,6 +10,11 @@ interface SaleOrderRepositoryInterface
 {
     public function paginateForTenant(int $tenantId, ?string $status, int $perPage, ?string $search = null, int $page = 1): LengthAwarePaginator;
 
+    /**
+     * @return array<string, int>
+     */
+    public function countsByStatusForTenant(int $tenantId): array;
+
     public function summaryForTenant(int $tenantId, ?Carbon $start, Carbon $end): array;
 
     public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder;

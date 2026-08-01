@@ -41,7 +41,8 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
     {
         $query = SaleOrder::forTenant($tenantId)
             ->notArchived()
-            ->with(['client:id,name,company_name,trade_name,contact_name'])
+            ->with(['client:id,name,company_name,trade_name,contact_name,phone,cnpj,cpf'])
+            ->withCount('items as items_count')
             ->latest('ordered_at');
 
         if ($status) {
@@ -57,13 +58,29 @@ class SaleOrderRepository implements SaleOrderRepositoryInterface
                             $clientQuery,
                             ['name', 'company_name', 'trade_name'],
                             $search,
-                            ['contact_name']
+                            ['contact_name', 'phone', 'cnpj', 'cpf']
                         );
                     });
             });
         }
 
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Contagens por status para chips do app Campo (sem filtro de status).
+     *
+     * @return array<string, int>
+     */
+    public function countsByStatusForTenant(int $tenantId): array
+    {
+        return SaleOrder::forTenant($tenantId)
+            ->notArchived()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->map(fn ($n) => (int) $n)
+            ->all();
     }
 
     public function findForTenant(int $tenantId, int $id, array $with = []): ?SaleOrder

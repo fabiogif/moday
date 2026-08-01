@@ -48,12 +48,19 @@ class ClientApiController extends Controller
             $sort = $request->get('sort');
             $sort = $sort === 'recent_orders' ? 'recent_orders' : null;
 
+            $filter = $request->query('filter');
+            $filter = is_string($filter) ? trim($filter) : null;
+            if ($filter !== null && !in_array($filter, ['active', 'inactive', 'blocked'], true)) {
+                $filter = null;
+            }
+
             $paginated = $this->clientService->paginateClientsByTenant(
                 $tenantId,
                 $this->listPage($request),
                 $this->listPerPage($request),
                 $this->listSearch($request),
-                $sort
+                $sort,
+                $filter
             );
 
             return response()->json([

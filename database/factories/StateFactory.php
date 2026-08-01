@@ -52,8 +52,10 @@ class StateFactory extends Factory
         $state = $this->faker->randomElement($states);
 
         return [
+            'ibge_code' => (string) $this->faker->unique()->numberBetween(11, 99),
             'uf' => $state['uf'],
             'name' => $state['name'],
+            'region' => $this->faker->randomElement(['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']),
         ];
     }
 

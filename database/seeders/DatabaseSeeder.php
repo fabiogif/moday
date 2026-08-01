@@ -56,7 +56,8 @@ class DatabaseSeeder extends Seeder
             // Calendário de datas comemorativas brasileiras
             BrazilianHolidaysSeeder::class,
 
-            // StatesAndCitiesSeeder::class, // tabela cities não existe no DistribTec
+            // Base oficial IBGE (estados + municípios) — offline via database/data/*.json
+            StatesAndCitiesSeeder::class,
         ]);
     }
 }

@@ -12,7 +12,7 @@ class CityResponse
     {
         return [
             'success' => true,
-            'data' => $cities->map(fn($city) => self::single($city))
+            'data' => $cities->map(fn ($city) => self::single($city))->values()->all(),
         ];
     }
 
@@ -20,7 +20,7 @@ class CityResponse
     {
         return [
             'success' => true,
-            'data' => $cities
+            'data' => $cities,
         ];
     }
 
@@ -28,16 +28,13 @@ class CityResponse
     {
         $data = [
             'id' => $city->id,
+            'ibge_code' => $city->ibge_code,
             'name' => $city->name,
-            'is_capital' => $city->is_capital,
+            'is_capital' => (bool) $city->is_capital,
         ];
 
-        if ($city->relationLoaded('state')) {
-            $data['state'] = [
-                'id' => $city->state->id,
-                'uf' => $city->state->uf,
-                'name' => $city->state->name,
-            ];
+        if ($city->relationLoaded('state') && $city->state) {
+            $data['state'] = StateResponse::single($city->state);
         }
 
         return $data;
@@ -49,9 +46,8 @@ class CityResponse
             'success' => true,
             'data' => [
                 'state' => StateResponse::single($data['state']),
-                'cities' => $data['cities']->map(fn($city) => self::single($city))
-            ]
+                'cities' => $data['cities']->map(fn ($city) => self::single($city))->values()->all(),
+            ],
         ];
     }
 }
-

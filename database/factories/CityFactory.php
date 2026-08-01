@@ -22,6 +22,7 @@ class CityFactory extends Factory
     {
         return [
             'state_id' => State::factory(),
+            'ibge_code' => (string) $this->faker->unique()->numberBetween(1100000, 9999999),
             'name' => $this->faker->city(),
             'is_capital' => false,
         ];

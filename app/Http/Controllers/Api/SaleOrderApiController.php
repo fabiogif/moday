@@ -38,16 +38,20 @@ class SaleOrderApiController extends Controller
             $search    = is_string($search) ? trim($search) : null;
             $search    = $search !== '' ? $search : null;
             $paginated = $this->saleOrderService->list($tenantId, $request->get('status'), $perPage, $search, $page);
+            $statusCounts = $page === 1
+                ? $this->saleOrderService->countsByStatus($tenantId)
+                : null;
 
             return response()->json([
                 'success' => true,
                 'data'    => $paginated->items(),
-                'meta'    => [
-                    'current_page' => $paginated->currentPage(),
-                    'last_page'    => $paginated->lastPage(),
-                    'per_page'     => $paginated->perPage(),
-                    'total'        => $paginated->total(),
-                ],
+                'meta'    => array_filter([
+                    'current_page'  => $paginated->currentPage(),
+                    'last_page'     => $paginated->lastPage(),
+                    'per_page'      => $paginated->perPage(),
+                    'total'         => $paginated->total(),
+                    'status_counts' => $statusCounts,
+                ], fn ($v) => $v !== null),
                 'message' => 'Pedidos de venda recuperados com sucesso',
             ], 200);
         } catch (\Exception $ex) {

@@ -8,7 +8,14 @@ interface ClientRepositoryInterface extends BaseRepositoryInterface
     public function getTableByIdentify(string $identify);
     public function getAllClients();
     public function getClientsByTenant($tenantId);
-    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null, ?string $sort = null);
+    public function paginateForTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $sort = null,
+        ?string $filter = null
+    );
     public function getClientById($id);
     public function getClientByUuid($uuid);
     public function updateClient($id, array $data);

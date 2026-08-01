@@ -11,8 +11,10 @@ class State extends Model
     use HasFactory;
 
     protected $fillable = [
+        'ibge_code',
         'uf',
         'name',
+        'region',
     ];
 
     protected $casts = [
@@ -20,20 +22,18 @@ class State extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * Get all cities for this state
-     */
     public function cities(): HasMany
     {
         return $this->hasMany(City::class);
     }
 
-    /**
-     * Scope to find state by UF
-     */
     public function scopeByUf($query, string $uf)
     {
         return $query->where('uf', strtoupper($uf));
     }
-}
 
+    public function scopeByIbgeCode($query, string $ibgeCode)
+    {
+        return $query->where('ibge_code', $ibgeCode);
+    }
+}

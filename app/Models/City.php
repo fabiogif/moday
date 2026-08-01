@@ -12,6 +12,7 @@ class City extends Model
 
     protected $fillable = [
         'state_id',
+        'ibge_code',
         'name',
         'is_capital',
     ];
@@ -22,17 +23,11 @@ class City extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * Get the state that owns the city
-     */
     public function state(): BelongsTo
     {
         return $this->belongsTo(State::class);
     }
 
-    /**
-     * Scope to find cities by state UF
-     */
     public function scopeByStateUf($query, string $uf)
     {
         return $query->whereHas('state', function ($q) use ($uf) {
@@ -40,12 +35,13 @@ class City extends Model
         });
     }
 
-    /**
-     * Scope to find only capital cities
-     */
+    public function scopeByIbgeCode($query, string $ibgeCode)
+    {
+        return $query->where('ibge_code', $ibgeCode);
+    }
+
     public function scopeCapitals($query)
     {
         return $query->where('is_capital', true);
     }
 }
-

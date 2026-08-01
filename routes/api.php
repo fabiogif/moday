@@ -149,8 +149,8 @@ Route::post('/webhooks/fiscal/{tenantId}', [\App\Http\Controllers\Api\FiscalWebh
 Route::get('/states', [LocationController::class, 'getStates'])
     ->middleware('throttle:read');
 
-// Listar cidades por estado (UF)
-Route::get('/states/{uf}/cities', [LocationController::class, 'getCitiesByState'])
+// Listar cidades por estado (id numérico ou UF)
+Route::get('/states/{state}/cities', [LocationController::class, 'getCitiesByState'])
     ->middleware('throttle:read');
 
 // Listar todas as cidades (paginado)
@@ -163,6 +163,10 @@ Route::get('/cities/capitals', [LocationController::class, 'getCapitals'])
 
 // Pesquisar cidades por nome
 Route::get('/cities/search', [LocationController::class, 'searchCities'])
+    ->middleware('throttle:read');
+
+// Resolver município local a partir dos dados do ViaCEP (ibge/uf/city)
+Route::get('/location/resolve-cep', [LocationController::class, 'resolveFromCep'])
     ->middleware('throttle:read');
 
 // Rotas de autenticação públicas com rate limiting específico

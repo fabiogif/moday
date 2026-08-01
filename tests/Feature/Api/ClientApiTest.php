@@ -325,6 +325,52 @@ class ClientApiTest extends TestCase
     }
 
     #[Test]
+    public function it_filters_clients_with_quick_filters(): void
+    {
+        Client::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'company_name' => 'Ativo Livre',
+            'is_active' => true,
+            'is_blocked' => false,
+        ]);
+        Client::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'company_name' => 'Inativo',
+            'is_active' => false,
+            'is_blocked' => false,
+        ]);
+        Client::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'company_name' => 'Bloqueado',
+            'is_active' => true,
+            'is_blocked' => true,
+        ]);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?filter=active')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.company_name', 'Ativo Livre');
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?filter=inactive')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.company_name', 'Inativo');
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?filter=blocked')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.company_name', 'Bloqueado');
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/clients?filter=invalid')
+            ->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+    }
+
+    #[Test]
     public function it_caps_per_page_at_the_configured_maximum_for_paginated_clients(): void
     {
         $this->withHeaders($this->auth())

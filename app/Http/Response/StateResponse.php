@@ -11,7 +11,7 @@ class StateResponse
     {
         return [
             'success' => true,
-            'data' => $states->map(fn($state) => self::single($state))
+            'data' => $states->map(fn ($state) => self::single($state))->values()->all(),
         ];
     }
 
@@ -19,9 +19,10 @@ class StateResponse
     {
         return [
             'id' => $state->id,
+            'ibge_code' => $state->ibge_code,
             'uf' => $state->uf,
             'name' => $state->name,
+            'region' => $state->region,
         ];
     }
 }
-

@@ -6,10 +6,11 @@ use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GetCitiesRequest;
 use App\Http\Requests\SearchCitiesRequest;
-use App\Http\Response\StateResponse;
 use App\Http\Response\CityResponse;
+use App\Http\Response\StateResponse;
 use App\Services\LocationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
@@ -18,16 +19,13 @@ class LocationController extends Controller
     ) {}
 
     /**
-     * Get all states
      * GET /api/states
-     * 
-     * @return JsonResponse
      */
     public function getStates(): JsonResponse
     {
         try {
             $states = $this->locationService->getAllStates();
-            
+
             return ApiResponseClass::sendResponse(
                 StateResponse::collection($states),
                 'Estados carregados com sucesso'
@@ -38,17 +36,13 @@ class LocationController extends Controller
     }
 
     /**
-     * Get cities by state UF
-     * GET /api/states/{uf}/cities
-     * 
-     * @param string $uf
-     * @return JsonResponse
+     * GET /api/states/{state}/cities — aceita id numérico ou UF
      */
-    public function getCitiesByState(string $uf): JsonResponse
+    public function getCitiesByState(string $state): JsonResponse
     {
         try {
-            $data = $this->locationService->getCitiesByStateUf($uf);
-            
+            $data = $this->locationService->getCitiesByStateKey($state);
+
             return ApiResponseClass::sendResponse(
                 CityResponse::stateWithCities($data),
                 'Cidades carregadas com sucesso'
@@ -57,16 +51,13 @@ class LocationController extends Controller
             if ($e->getCode() === 404) {
                 return ApiResponseClass::sendResponse('', 'Estado não encontrado', 404);
             }
+
             return ApiResponseClass::rollback($e, 'Erro ao buscar cidades do estado');
         }
     }
 
     /**
-     * Get all cities (with pagination)
      * GET /api/cities
-     * 
-     * @param GetCitiesRequest $request
-     * @return JsonResponse
      */
     public function getAllCities(GetCitiesRequest $request): JsonResponse
     {
@@ -86,10 +77,7 @@ class LocationController extends Controller
     }
 
     /**
-     * Get capital cities
      * GET /api/cities/capitals
-     * 
-     * @return JsonResponse
      */
     public function getCapitals(): JsonResponse
     {
@@ -106,11 +94,7 @@ class LocationController extends Controller
     }
 
     /**
-     * Search cities by name
      * GET /api/cities/search?q=termo
-     * 
-     * @param SearchCitiesRequest $request
-     * @return JsonResponse
      */
     public function searchCities(SearchCitiesRequest $request): JsonResponse
     {
@@ -126,8 +110,45 @@ class LocationController extends Controller
             if ($e->getCode() === 400) {
                 return ApiResponseClass::validationError([], $e->getMessage());
             }
+
             return ApiResponseClass::rollback($e, 'Erro ao buscar cidades');
         }
     }
-}
 
+    /**
+     * GET /api/location/resolve-cep?ibge=&uf=&city=
+     * Resolve município local a partir dos dados retornados pelo ViaCEP.
+     */
+    public function resolveFromCep(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ibge' => ['nullable', 'string', 'max:10'],
+            'uf' => ['nullable', 'string', 'size:2'],
+            'city' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        try {
+            $city = $this->locationService->resolveCityFromCep(
+                $validated['ibge'] ?? null,
+                isset($validated['uf']) ? strtoupper($validated['uf']) : null,
+                $validated['city'] ?? null
+            );
+
+            if (!$city) {
+                return ApiResponseClass::sendResponse('', 'Cidade não encontrada na base local', 404);
+            }
+
+            $city->loadMissing('state');
+
+            return ApiResponseClass::sendResponse(
+                [
+                    'success' => true,
+                    'data' => CityResponse::single($city),
+                ],
+                'Cidade resolvida com sucesso'
+            );
+        } catch (\Exception $e) {
+            return ApiResponseClass::rollback($e, 'Erro ao resolver cidade');
+        }
+    }
+}
