@@ -78,7 +78,11 @@ class BatchApiController extends Controller
             [$user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
 
             $batch = $this->batchQueryService->find($tenantId, $id, [
-                'product', 'warehouse', 'supplier:id,company_name',
+                // withTrashed: produto/fornecedor podem ter sido excluídos (soft
+                // delete) depois do lote existir — histórico ainda precisa mostrar.
+                'product' => fn ($q) => $q->withTrashed()->select('id', 'name', 'sku', 'unit_of_measure', 'deleted_at'),
+                'warehouse',
+                'supplier' => fn ($q) => $q->withTrashed()->select('id', 'company_name', 'deleted_at'),
             ]);
 
             if (!$batch) {

@@ -46,6 +46,35 @@ class BatchApiTest extends TestCase
         $this->getJson('/api/batches')->assertStatus(401);
     }
 
+    /**
+     * Regressão: /batches quebrava no frontend ("Cannot read properties of
+     * null (reading 'name')") quando o produto de um lote era excluído (soft
+     * delete) depois — a relação `product` vinha `null` sem `withTrashed()`.
+     */
+    #[Test]
+    public function list_and_show_still_return_product_after_product_is_soft_deleted(): void
+    {
+        $batch = Batch::factory()->create([
+            'tenant_id'    => $this->tenant->id,
+            'product_id'   => $this->product->id,
+            'warehouse_id' => $this->warehouse->id,
+        ]);
+
+        $this->product->delete();
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/batches')
+            ->assertStatus(200)
+            ->assertJsonPath('data.0.product.id', $this->product->id)
+            ->assertJsonPath('data.0.product.name', $this->product->name);
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/batches/' . $batch->id)
+            ->assertStatus(200)
+            ->assertJsonPath('data.product.id', $this->product->id)
+            ->assertJsonPath('data.product.name', $this->product->name);
+    }
+
     #[Test]
     public function it_lists_only_tenant_batches(): void
     {
