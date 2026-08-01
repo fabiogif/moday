@@ -122,11 +122,18 @@ class ProductApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
 
+            $filter = $request->query('filter');
+            $filter = is_string($filter) ? trim($filter) : null;
+            if ($filter !== null && !in_array($filter, ['active', 'out_of_stock', 'promo'], true)) {
+                $filter = null;
+            }
+
             $paginated = $this->productService->paginateProductsByTenant(
                 $user->tenant_id,
                 $this->listPage($request),
                 $this->listPerPage($request),
-                $this->listSearch($request)
+                $this->listSearch($request),
+                $filter
             );
 
             return response()->json([

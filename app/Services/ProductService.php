@@ -174,14 +174,30 @@ readonly class ProductService
         });
     }
 
-    public function paginateProductsByTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
-    {
-        $params = ['page' => $page, 'per_page' => $perPage, 'search' => $search];
+    public function paginateProductsByTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $filter = null
+    ) {
+        $params = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $search,
+            'filter' => $filter,
+        ];
 
         return $this->cacheService->getProductListPaginated(
             $tenantId,
             $params,
-            fn () => $this->productRepositoryInterface->paginateForTenant($tenantId, $page, $perPage, $search)
+            fn () => $this->productRepositoryInterface->paginateForTenant(
+                $tenantId,
+                $page,
+                $perPage,
+                $search,
+                $filter
+            )
         );
     }
 

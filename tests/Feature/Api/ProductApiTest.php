@@ -146,6 +146,72 @@ class ProductApiTest extends TestCase
     }
 
     #[Test]
+    public function lista_produtos_com_filtros_rapidos(): void
+    {
+        Product::where('tenant_id', $this->tenant->id)->forceDelete();
+
+        Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Ativo Com Estoque',
+            'is_active' => true,
+            'qtd_stock' => 5,
+            'promotional_price' => null,
+        ]);
+
+        Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Inativo',
+            'is_active' => false,
+            'qtd_stock' => 10,
+            'promotional_price' => null,
+        ]);
+
+        Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Sem Estoque',
+            'is_active' => true,
+            'qtd_stock' => 0,
+            'promotional_price' => null,
+        ]);
+
+        Product::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Em Promo',
+            'is_active' => true,
+            'qtd_stock' => 3,
+            'promotional_price' => 9.90,
+        ]);
+
+        $headers = [
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ];
+
+        $this->withHeaders($headers)
+            ->getJson('/api/product?filter=active')
+            ->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+
+        $this->withHeaders($headers)
+            ->getJson('/api/product?filter=out_of_stock')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Sem Estoque');
+
+        $this->withHeaders($headers)
+            ->getJson('/api/product?filter=promo')
+            ->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Em Promo');
+
+        // filter inválido é ignorado (lista completa do tenant)
+        $this->withHeaders($headers)
+            ->getJson('/api/product?filter=invalid')
+            ->assertStatus(200)
+            ->assertJsonCount(4, 'data');
+    }
+
+    #[Test]
     public function limita_listagem_de_produtos_sem_paginacao(): void
     {
         config()->set('api.listing.unpaginated_cap', 2);

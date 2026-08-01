@@ -104,12 +104,32 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
         );
     }
 
-    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    public function paginateForTenant(int $tenantId, int $page, int $perPage, ?string $search = null, ?string $filter = null)
     {
         $query = $this->applyProductSearch($this->buildTenantProductsQuery($tenantId, []), $search)
             ->orderBy('products.created_at', 'desc');
 
+        $this->applyListFilter($query, $filter);
+
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Filtros rápidos do catálogo mobile: active | out_of_stock | promo.
+     */
+    private function applyListFilter($query, ?string $filter): void
+    {
+        if ($filter === null || $filter === '' || $filter === 'all') {
+            return;
+        }
+
+        match ($filter) {
+            'active' => $query->where('products.is_active', true),
+            'out_of_stock' => $query->where('products.qtd_stock', '<=', 0),
+            'promo' => $query->whereNotNull('products.promotional_price')
+                ->where('products.promotional_price', '>', 0),
+            default => null,
+        };
     }
 
     public function paginateCatalogForTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
