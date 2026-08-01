@@ -29,6 +29,9 @@ RUN apk add --no-cache \
     && docker-php-ext-enable redis \
     && apk del .build-deps
 
+COPY docker/php-fpm/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php-fpm/opcache.ini /usr/local/etc/php/conf.d/opcache-custom.ini
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
