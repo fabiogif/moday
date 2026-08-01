@@ -5,14 +5,14 @@ namespace App\Services;
 use App\Models\City;
 use App\Models\State;
 use App\Repositories\Contracts\LocationRepositoryInterface;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use App\Repositories\Contracts\PaginateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
 readonly class LocationService
 {
     private const STATES_CACHE_KEY = 'location.states';
-    private const STATES_CACHE_TTL = 86400; // 24h
+    private const STATES_CACHE_TTL = 86400;
     private const CITIES_CACHE_TTL = 86400;
 
     public function __construct(
@@ -26,12 +26,12 @@ readonly class LocationService
         });
     }
 
-    public function getCitiesByStateId(int $stateId): array
+    public function getCitiesByStateId(int $stateId): ?array
     {
         $state = $this->locationRepository->findStateById($stateId);
 
         if (!$state) {
-            throw new \Exception('Estado não encontrado', 404);
+            return null;
         }
 
         $cities = Cache::remember(
@@ -46,12 +46,12 @@ readonly class LocationService
         ];
     }
 
-    public function getCitiesByStateUf(string $uf): array
+    public function getCitiesByStateUf(string $uf): ?array
     {
         $state = $this->locationRepository->findStateByUf($uf);
 
         if (!$state) {
-            throw new \Exception('Estado não encontrado', 404);
+            return null;
         }
 
         return $this->getCitiesByStateId($state->id);
@@ -60,7 +60,7 @@ readonly class LocationService
     /**
      * Resolve state key that may be numeric id or UF (2 letters).
      */
-    public function getCitiesByStateKey(string $stateKey): array
+    public function getCitiesByStateKey(string $stateKey): ?array
     {
         if (ctype_digit($stateKey)) {
             return $this->getCitiesByStateId((int) $stateKey);
@@ -69,7 +69,7 @@ readonly class LocationService
         return $this->getCitiesByStateUf($stateKey);
     }
 
-    public function getAllCities(int $perPage = 100, ?string $search = null): LengthAwarePaginator
+    public function getAllCities(int $perPage = 100, ?string $search = null): PaginateRepositoryInterface
     {
         return $this->locationRepository->getAllCities($perPage, $search);
     }
@@ -81,32 +81,27 @@ readonly class LocationService
 
     public function searchCities(string $search): Collection
     {
-        if (strlen($search) < 2) {
-            throw new \Exception('Digite pelo menos 2 caracteres para pesquisar', 400);
-        }
-
         return $this->locationRepository->searchCities($search);
     }
 
     public function resolveCityFromCep(?string $ibgeCode, ?string $uf, ?string $cityName): ?City
     {
+        $city = null;
+
         if ($ibgeCode) {
             $city = $this->locationRepository->findCityByIbgeCode($ibgeCode);
-            if ($city) {
-                return $city;
+        }
+
+        if (!$city && $uf && $cityName) {
+            $state = $this->locationRepository->findStateByUf($uf);
+            if ($state) {
+                $city = $this->locationRepository->findCityByStateAndName($state->id, $cityName);
             }
         }
 
-        if (!$uf || !$cityName) {
-            return null;
-        }
+        $city?->loadMissing('state');
 
-        $state = $this->locationRepository->findStateByUf($uf);
-        if (!$state) {
-            return null;
-        }
-
-        return $this->locationRepository->findCityByStateAndName($state->id, $cityName);
+        return $city;
     }
 
     public function findStateByUf(string $uf): ?State

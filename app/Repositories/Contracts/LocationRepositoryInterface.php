@@ -4,8 +4,8 @@ namespace App\Repositories\Contracts;
 
 use App\Models\State;
 use App\Models\City;
+use App\Repositories\Contracts\PaginateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface LocationRepositoryInterface
 {
@@ -23,7 +23,7 @@ interface LocationRepositoryInterface
 
     public function findCityByStateAndName(int $stateId, string $name): ?City;
 
-    public function getAllCities(int $perPage = 100, ?string $search = null): LengthAwarePaginator;
+    public function getAllCities(int $perPage = 100, ?string $search = null): PaginateRepositoryInterface;
 
     public function getCapitalCities(): Collection;
 

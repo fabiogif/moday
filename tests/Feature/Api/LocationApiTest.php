@@ -58,13 +58,14 @@ class LocationApiTest extends TestCase
         $response = $this->getJson('/api/states');
 
         $response->assertOk();
-        $data = $response->json('data.data');
+        $data = $response->json('data');
         $this->assertIsArray($data);
         $this->assertCount(2, $data);
         $this->assertSame('Rio de Janeiro', $data[0]['name']);
         $this->assertSame('São Paulo', $data[1]['name']);
         $this->assertSame('35', $data[1]['ibge_code']);
         $this->assertSame('SP', $data[1]['uf']);
+        $this->assertArrayNotHasKey('success', $data);
     }
 
     #[Test]
@@ -73,7 +74,7 @@ class LocationApiTest extends TestCase
         $response = $this->getJson("/api/states/{$this->sp->id}/cities");
 
         $response->assertOk();
-        $payload = $response->json('data.data');
+        $payload = $response->json('data');
         $this->assertSame('SP', $payload['state']['uf']);
         $names = collect($payload['cities'])->pluck('name')->all();
         $this->assertSame(['Campinas', 'São Paulo'], $names);
@@ -86,7 +87,7 @@ class LocationApiTest extends TestCase
         $response = $this->getJson('/api/states/SP/cities');
 
         $response->assertOk();
-        $payload = $response->json('data.data');
+        $payload = $response->json('data');
         $this->assertSame($this->sp->id, $payload['state']['id']);
         $this->assertCount(2, $payload['cities']);
     }
@@ -96,6 +97,18 @@ class LocationApiTest extends TestCase
     {
         $this->getJson('/api/states/XX/cities')->assertStatus(404);
         $this->getJson('/api/states/999999/cities')->assertStatus(404);
+    }
+
+    #[Test]
+    public function it_paginates_cities_list(): void
+    {
+        $response = $this->getJson('/api/cities?per_page=10');
+
+        $response->assertOk();
+        $this->assertIsArray($response->json('data'));
+        $this->assertNotEmpty($response->json('data'));
+        $this->assertTrue($response->json('success'));
+        $this->assertArrayHasKey('meta', $response->json());
     }
 
     #[Test]
@@ -115,10 +128,11 @@ class LocationApiTest extends TestCase
         ]));
 
         $response->assertOk();
-        $city = $response->json('data.data');
+        $city = $response->json('data');
         $this->assertSame('São Paulo', $city['name']);
         $this->assertSame('3550308', $city['ibge_code']);
         $this->assertSame('SP', $city['state']['uf']);
+        $this->assertArrayNotHasKey('success', $city);
     }
 
     #[Test]
@@ -130,7 +144,13 @@ class LocationApiTest extends TestCase
         ]));
 
         $response->assertOk();
-        $this->assertSame('Campinas', $response->json('data.data.name'));
+        $this->assertSame('Campinas', $response->json('data.name'));
+    }
+
+    #[Test]
+    public function it_validates_resolve_cep_requires_ibge_or_uf_city(): void
+    {
+        $this->getJson('/api/location/resolve-cep')->assertStatus(422);
     }
 
     #[Test]

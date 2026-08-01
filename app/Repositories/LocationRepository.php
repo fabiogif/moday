@@ -6,8 +6,9 @@ use App\Models\State;
 use App\Models\City;
 use App\Repositories\Concerns\SearchesFullText;
 use App\Repositories\Contracts\LocationRepositoryInterface;
+use App\Repositories\Contracts\PaginateRepositoryInterface;
+use App\Repositories\Contracts\Presenter\PaginatePresenter;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 
 class LocationRepository implements LocationRepositoryInterface
@@ -54,23 +55,36 @@ class LocationRepository implements LocationRepositoryInterface
 
     public function findCityByStateAndName(int $stateId, string $name): ?City
     {
-        $normalized = $this->normalizeName($name);
-
-        $cities = City::query()
+        $exact = City::query()
             ->where('state_id', $stateId)
-            ->get(['id', 'state_id', 'ibge_code', 'name', 'is_capital']);
+            ->where('name', $name)
+            ->first(['id', 'state_id', 'ibge_code', 'name', 'is_capital']);
 
-        $exact = $cities->first(fn (City $city) => mb_strtolower($city->name) === mb_strtolower($name));
         if ($exact) {
             return $exact;
         }
 
-        return $cities->first(
+        $lower = mb_strtolower($name);
+        $caseInsensitive = City::query()
+            ->where('state_id', $stateId)
+            ->whereRaw('LOWER(name) = ?', [$lower])
+            ->first(['id', 'state_id', 'ibge_code', 'name', 'is_capital']);
+
+        if ($caseInsensitive) {
+            return $caseInsensitive;
+        }
+
+        $normalized = $this->normalizeName($name);
+        $candidates = City::query()
+            ->where('state_id', $stateId)
+            ->get(['id', 'state_id', 'ibge_code', 'name', 'is_capital']);
+
+        return $candidates->first(
             fn (City $city) => $this->normalizeName($city->name) === $normalized
         );
     }
 
-    public function getAllCities(int $perPage = 100, ?string $search = null): LengthAwarePaginator
+    public function getAllCities(int $perPage = 100, ?string $search = null): PaginateRepositoryInterface
     {
         $query = City::with('state:id,ibge_code,uf,name,region')
             ->orderBy('name');
@@ -79,7 +93,7 @@ class LocationRepository implements LocationRepositoryInterface
             $this->applyFullTextSearch($query, ['name'], $search);
         }
 
-        return $query->paginate($perPage);
+        return new PaginatePresenter($query->paginate($perPage));
     }
 
     public function getCapitalCities(): Collection
