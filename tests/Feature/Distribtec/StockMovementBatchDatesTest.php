@@ -111,6 +111,35 @@ class StockMovementBatchDatesTest extends TestCase
         $this->assertStringStartsWith('2026-12-01', $expiry);
     }
 
+    /**
+     * Regressão: listagem quebrava no frontend (`Cannot read properties of
+     * null (reading 'name')`) quando o produto de uma movimentação era
+     * excluído (soft delete) depois — a relação `product` vinha `null` sem
+     * `withTrashed()`. Ver `/stock-movements`.
+     */
+    #[Test]
+    public function list_still_shows_product_after_product_is_soft_deleted(): void
+    {
+        $product = Product::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        StockMovement::create([
+            'tenant_id'    => $this->tenant->id,
+            'product_id'   => $product->id,
+            'warehouse_id' => $this->warehouse->id,
+            'performed_by' => $this->user->id,
+            'type'         => 'entrada',
+            'quantity'     => 10,
+        ]);
+
+        $product->delete();
+
+        $this->withHeaders($this->auth())
+            ->getJson('/api/stock-movements')
+            ->assertStatus(200)
+            ->assertJsonPath('data.0.product.id', $product->id)
+            ->assertJsonPath('data.0.product.name', $product->name);
+    }
+
     #[Test]
     public function controlled_product_requires_manufacture_date_on_entrada(): void
     {

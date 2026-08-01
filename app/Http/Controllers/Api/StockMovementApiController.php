@@ -83,7 +83,9 @@ class StockMovementApiController extends Controller
 
             $movement = StockMovement::forTenant($tenantId)
                 ->with([
-                    'product:id,name,sku,unit_of_measure',
+                    // withTrashed: produto pode ter sido excluído (soft delete) depois
+                    // da movimentação — histórico ainda precisa mostrar o que era.
+                    'product' => fn ($q) => $q->withTrashed()->select('id', 'name', 'sku', 'unit_of_measure', 'deleted_at'),
                     'batch:id,batch_number,manufacture_date,expiry_date,status',
                     'warehouse:id,name',
                     'performedBy:id,name',
