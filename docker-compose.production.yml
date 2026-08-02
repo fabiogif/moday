@@ -24,7 +24,11 @@ services:
       - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
       - ./bootstrap/providers.php:/var/www/html/bootstrap/providers.php
       - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+      # bootstrap/cache NÃO é bind-mounted de propósito: fica só dentro do
+      # container (gerado no build via composer post-autoload-dump). Montar
+      # do host já causou queda em produção (bootstrap/cache/packages.php
+      # gerado localmente com dependências dev referencia uma classe que não
+      # existe na imagem --no-dev, ex.: Laravel\Sail\SailServiceProvider).
       - ./public:/var/www/html/public
     networks:
       - distribtec-backend
@@ -113,7 +117,11 @@ services:
       - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
       - ./bootstrap/providers.php:/var/www/html/bootstrap/providers.php
       - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+      # bootstrap/cache NÃO é bind-mounted de propósito: fica só dentro do
+      # container (gerado no build via composer post-autoload-dump). Montar
+      # do host já causou queda em produção (bootstrap/cache/packages.php
+      # gerado localmente com dependências dev referencia uma classe que não
+      # existe na imagem --no-dev, ex.: Laravel\Sail\SailServiceProvider).
     networks:
       - distribtec-backend
     depends_on:
