@@ -449,5 +449,97 @@ class PlanRestrictionsTest extends TestCase
             $response->status() === 403 && $response->json('error_code') === 'USER_LIMIT_REACHED'
         );
     }
+
+    /**
+     * Testa limite de 50 produtos para plano Grátis
+     */
+    public function test_gratis_plan_limits_to_50_products()
+    {
+        $this->tenant->plan_id = $this->planGratis->id;
+        $this->tenant->save();
+        $this->tenant->refresh();
+        $this->grantFullAccess($this->user, $this->tenant);
+
+        \App\Models\Product::factory()->count(50)->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user, 'api')->postJson('/api/product', [
+            'name' => 'Produto além do limite',
+            'price' => 10,
+            'description' => 'teste',
+            'is_active' => true,
+            'qtd_stock' => 10,
+        ]);
+
+        $response->assertStatus(403)
+                ->assertJson([
+                    'success' => false,
+                    'error_code' => 'PRODUCT_LIMIT_REACHED',
+                ])
+                ->assertJsonPath('max_products', 50)
+                ->assertJsonPath('current_products', 50);
+    }
+
+    /**
+     * Testa que plano Premium não tem limite de produtos
+     */
+    public function test_premium_plan_has_unlimited_products()
+    {
+        $this->tenant->plan_id = $this->planPremium->id;
+        $this->tenant->save();
+        $this->tenant->refresh();
+        $this->grantFullAccess($this->user, $this->tenant);
+
+        \App\Models\Product::factory()->count(200)->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($this->user, 'api')->postJson('/api/product', [
+            'name' => 'Produto sem limite',
+            'price' => 10,
+            'description' => 'teste',
+            'is_active' => true,
+            'qtd_stock' => 10,
+        ]);
+
+        $this->assertNotEquals(
+            'PRODUCT_LIMIT_REACHED',
+            $response->json('error_code'),
+            'Premium (max_products=999999) não deve retornar PRODUCT_LIMIT_REACHED'
+        );
+    }
+
+    /**
+     * Testa que produtos inativos não contam para o limite
+     */
+    public function test_inactive_products_do_not_count_towards_limit()
+    {
+        $this->tenant->plan_id = $this->planGratis->id;
+        $this->tenant->save();
+        $this->tenant->refresh();
+        $this->grantFullAccess($this->user, $this->tenant);
+
+        \App\Models\Product::factory()->count(50)->create([
+            'tenant_id' => $this->tenant->id,
+            'is_active' => false,
+        ]);
+
+        $response = $this->actingAs($this->user, 'api')->postJson('/api/product', [
+            'name' => 'Produto novo',
+            'price' => 10,
+            'description' => 'teste',
+            'is_active' => true,
+            'qtd_stock' => 10,
+        ]);
+
+        $this->assertNotEquals(
+            'PRODUCT_LIMIT_REACHED',
+            $response->json('error_code'),
+            'Produtos inativos não devem contar para o limite do plano'
+        );
+    }
 }
 

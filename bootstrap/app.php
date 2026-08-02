@@ -115,6 +115,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'plan.feature' => \App\Http\Middleware\CheckPlanFeatures::class,
             'plan.order_limit' => \App\Http\Middleware\CheckOrderLimit::class,
             'plan.user_limit' => \App\Http\Middleware\CheckUserLimit::class,
+            'plan.product_limit' => \App\Http\Middleware\CheckProductLimit::class,
             'inject.token.cookie' => \App\Http\Middleware\InjectBearerTokenFromCookie::class,
         ]);
 

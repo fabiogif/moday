@@ -235,7 +235,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
     Route::get('/product/stats', [ProductApiController::class , 'stats'])->middleware(['acl.permission:products.index', 'throttle:read']);
     Route::get('/product/{identify}/similar', [ProductApiController::class , 'similarProducts'])->middleware(['acl.permission:products.show', 'throttle:read']);
     Route::get('/product/{identify}', [ProductApiController::class , 'show'])->middleware(['acl.permission:products.show', 'throttle:read']);
-    Route::post('/product', [ProductApiController::class , 'store'])->middleware(['acl.permission:products.store', 'throttle:critical']);
+    Route::post('/product', [ProductApiController::class , 'store'])->middleware(['acl.permission:products.store', 'throttle:critical', 'plan.product_limit']);
     Route::put('/product/{id}', [ProductApiController::class , 'update'])->middleware(['acl.permission:products.update', 'throttle:critical']);
     Route::post('/product/{id}', [ProductApiController::class , 'update'])->middleware(['acl.permission:products.update', 'throttle:critical']); // Para upload de imagem com _method=PUT
     Route::delete('/product/{identify}', [ProductApiController::class , 'delete'])->middleware(['acl.permission:products.destroy', 'throttle:critical']);
