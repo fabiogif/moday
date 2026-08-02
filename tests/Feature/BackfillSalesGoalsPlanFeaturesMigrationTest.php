@@ -7,7 +7,9 @@ use App\Models\PlanFeature;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\PlanFeatureService;
+use Database\Seeders\FeatureDefinitionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 /**
@@ -83,5 +85,31 @@ class BackfillSalesGoalsPlanFeaturesMigrationTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson(['error_code' => 'PLAN_FEATURE_NOT_AVAILABLE']);
+    }
+
+    /**
+     * Regressão: `migrate:fresh --seed` roda TODAS as migrations antes de
+     * QUALQUER seeder, então a tabela `plans` está vazia quando a migration
+     * de backfill executa — ela sozinha não cobre instalação nova. Quem
+     * cobre esse caso é a FeatureDefinitionsSeeder (chamada pela
+     * DatabaseSeeder depois que os planos já existem).
+     */
+    public function test_feature_definitions_seeder_enables_sales_goals_on_fresh_install(): void
+    {
+        $basic = Plan::create(['name' => 'Plano Básico', 'url' => 'plano-basico', 'price' => 199, 'is_active' => true]);
+        $professional = Plan::create(['name' => 'Plano Profissional', 'url' => 'plano-profissional', 'price' => 399, 'is_active' => true]);
+        $enterprise = Plan::create(['name' => 'Plano Enterprise', 'url' => 'plano-enterprise', 'price' => 799, 'is_active' => true]);
+
+        Artisan::call('db:seed', ['--class' => FeatureDefinitionsSeeder::class, '--force' => true]);
+
+        $this->assertDatabaseHas('plan_features', [
+            'plan_id' => $basic->id, 'feature_key' => 'sales_goals', 'is_enabled' => false,
+        ]);
+        $this->assertDatabaseHas('plan_features', [
+            'plan_id' => $professional->id, 'feature_key' => 'sales_goals', 'is_enabled' => true,
+        ]);
+        $this->assertDatabaseHas('plan_features', [
+            'plan_id' => $enterprise->id, 'feature_key' => 'sales_goals', 'is_enabled' => true,
+        ]);
     }
 }

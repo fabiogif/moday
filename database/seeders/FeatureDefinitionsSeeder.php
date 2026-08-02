@@ -50,6 +50,9 @@ class FeatureDefinitionsSeeder extends Seeder
         ['key' => 'price_history',      'name' => 'Histórico de alterações de preço',           'category' => 'Antifraude', 'plan_tier' => 'basic',        'display_order' => 10],
         ['key' => 'discount_approvals', 'name' => 'Aprovação de descontos por nível',           'category' => 'Antifraude', 'plan_tier' => 'professional', 'display_order' => 20],
         ['key' => 'audit_logs',         'name' => 'Registro de todas as alterações (auditoria)','category' => 'Antifraude', 'plan_tier' => 'basic',        'display_order' => 30],
+
+        // Comercial (gamificação)
+        ['key' => 'sales_goals',        'name' => 'Metas de Venda e Gamificação',               'category' => 'Comercial',  'plan_tier' => 'professional', 'display_order' => 70],
     ];
 
     private const PLAN_TIER_FEATURES = [
@@ -62,6 +65,7 @@ class FeatureDefinitionsSeeder extends Seeder
             'abc_clients', 'abc_suppliers', 'executive_dashboard',
             'delivery_routing',
             'seasonal_alerts', 'seasonal_trends', 'discount_approvals',
+            'sales_goals',
         ],
         'enterprise'   => null, // null means ALL features
     ];
