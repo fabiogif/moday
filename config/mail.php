@@ -105,7 +105,39 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'name' => env('MAIL_FROM_NAME', 'DistribTec'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Brand (templates de e-mail)
+    |--------------------------------------------------------------------------
+    |
+    | Paleta alinhada ao Design System do frontend (globals.css → :root).
+    | Hex estáveis para clientes de e-mail (sem oklch/CSS variables).
+    |
+    */
+    'brand' => [
+        'name' => env('MAIL_BRAND_NAME', 'DistribTec'),
+        'tagline' => env('MAIL_BRAND_TAGLINE', 'Sistema de Gestão para Distribuidoras'),
+        'logo_path' => '/brand/iconfundotranparente.png',
+        // oklch(0.489 0.108 230.6) → primary
+        'primary' => '#006A91',
+        'primary_dark' => '#005577',
+        // oklch(0.957 0.006 230.0)
+        'secondary' => '#EDF2F4',
+        // oklch(0.975 0.005 248.0)
+        'muted' => '#F4F7FA',
+        // oklch(0.420 0.020 230.0)
+        'muted_foreground' => '#424F56',
+        // oklch(0.150 0 0)
+        'foreground' => '#0B0B0B',
+        // oklch(0.895 0.012 248.0)
+        'border' => '#D6DDE4',
+        // oklch(0.793 0.094 83.2)
+        'gold' => '#D9B674',
+        'surface' => '#FFFFFF',
+        'radius' => '8px',
     ],
 
     /*

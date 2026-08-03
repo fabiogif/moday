@@ -3,82 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contato - Alba Tec</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            background-color: #4F46E5;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            border-radius: 5px 5px 0 0;
-        }
-        .content {
-            background-color: #f9f9f9;
-            padding: 30px;
-            border: 1px solid #ddd;
-            border-radius: 0 0 5px 5px;
-        }
-        .field {
-            margin-bottom: 20px;
-        }
-        .field-label {
-            font-weight: bold;
-            color: #4F46E5;
-            margin-bottom: 5px;
-        }
-        .field-value {
-            background-color: white;
-            padding: 10px;
-            border-left: 3px solid #4F46E5;
-            margin-top: 5px;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
+    <title>Contato — DistribTec</title>
 </head>
-<body>
-    <div class="header">
-        <h1>Alba Tec - Sistema de Gestão</h1>
-        <p>Nova mensagem de contato recebida</p>
-    </div>
-    
-    <div class="content">
-        <div class="field">
-            <div class="field-label">Nome:</div>
-            <div class="field-value">{{ $name }}</div>
-        </div>
-        
-        <div class="field">
-            <div class="field-label">Email:</div>
-            <div class="field-value">{{ $email }}</div>
-        </div>
-        
-        <div class="field">
-            <div class="field-label">Assunto:</div>
-            <div class="field-value">{{ $subject }}</div>
-        </div>
-        
-        <div class="field">
-            <div class="field-label">Mensagem:</div>
-            <div class="field-value">{{ $body }}</div>
-        </div>
-    </div>
-    
-    <div class="footer">
-        <p>Este email foi enviado automaticamente através do formulário de contato do site Alba Tec.</p>
-        <p>Para responder, utilize o email: {{ $email }}</p>
-    </div>
+<body style="margin:0;padding:0;background:#F4F7FA;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0B0B0B;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F4F7FA;padding:24px 12px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#FFFFFF;border:1px solid #D6DDE4;border-radius:8px;overflow:hidden;">
+                <tr>
+                    <td style="background:#006A91;padding:24px 28px;text-align:center;">
+                        <h1 style="margin:0;color:#FFFFFF;font-size:20px;">DistribTec — Contato do site</h1>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:28px;">
+                        <p style="margin:0 0 12px;color:#424F56;font-size:15px;"><strong style="color:#006A91;">Assunto:</strong> {{ $subject }}</p>
+                        <p style="margin:0 0 12px;color:#424F56;font-size:15px;"><strong style="color:#006A91;">Nome:</strong> {{ $name }}</p>
+                        <p style="margin:0 0 12px;color:#424F56;font-size:15px;"><strong style="color:#006A91;">E-mail:</strong> {{ $email }}</p>
+                        <div style="margin-top:20px;padding:16px;background:#EDF2F4;border-left:4px solid #006A91;border-radius:8px;color:#0B0B0B;font-size:15px;white-space:pre-wrap;">{{ $body }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="background:#F4F7FA;border-top:1px solid #D6DDE4;padding:18px 28px;text-align:center;font-size:12px;color:#7A8790;">
+                        Enviado automaticamente pelo formulário de contato do DistribTec.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>

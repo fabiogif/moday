@@ -45,8 +45,27 @@ readonly class PlanMigrationService
             $oldPlan = $tenant->plan;
             $oldPlanId = $oldPlan ? $oldPlan->id : null;
 
-            // Verificar se não é o mesmo plano
+            // Mesmo plano: só reativa se for gratuito e a conta não estiver ativa (ex.: trial expirado)
             if ($oldPlanId === $newPlanId) {
+                if ($newPlan->isFree() && !$tenant->hasActiveSubscription()) {
+                    $tenant->activateFreePlan($newPlan->name);
+                    $tenant->update(['mrr' => 0]);
+
+                    DB::commit();
+
+                    Log::info('Plano gratuito reativado', [
+                        'tenant_id' => $tenantId,
+                        'plan_id' => $newPlanId,
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'message' => 'Plano gratuito reativado com sucesso.',
+                        'migration' => null,
+                        'tenant' => $tenant->fresh(['plan']),
+                    ];
+                }
+
                 throw new \Exception('O tenant já está neste plano.');
             }
 
@@ -63,13 +82,15 @@ readonly class PlanMigrationService
             // Atualizar tenant
             $tenant->update([
                 'plan_id' => $newPlanId,
-                'subscription_plan' => $newPlan->name,
             ]);
 
-            // Atualizar MRR se necessário (futuro: calcular baseado no preço do plano)
-            // Por enquanto, manter o MRR atual ou calcular baseado no preço do plano
-            if ($newPlan->price > 0) {
+            if ($newPlan->isFree()) {
+                // Plano gratuito permanente: libera acesso sem cobrança / Mercado Pago
+                $tenant->activateFreePlan($newPlan->name);
+                $tenant->update(['mrr' => 0]);
+            } else {
                 $tenant->update([
+                    'subscription_plan' => $newPlan->name,
                     'mrr' => $newPlan->price,
                 ]);
             }

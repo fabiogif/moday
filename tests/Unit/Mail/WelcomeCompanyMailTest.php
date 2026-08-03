@@ -55,7 +55,7 @@ class WelcomeCompanyMailTest extends TestCase
         $mail = new WelcomeCompanyMail($tenant, $user, $plan);
         $envelope = $mail->envelope();
 
-        $this->assertEquals('Bem-vindo ao Alba Tec! 🎉', $envelope->subject);
+        $this->assertEquals('Bem-vindo ao DistribTec', $envelope->subject);
         $this->assertCount(1, $envelope->replyTo);
         $this->assertEquals(config('mail.support_to'), $envelope->replyTo[0]->address);
     }

@@ -53,9 +53,16 @@ readonly class SubscriptionService
             'payment_data' => $paymentData,
         ]);
 
-        $tenant->activateSubscription($plan->name);
         $tenant->plan_id = $plan->id;
-        $tenant->save();
+
+        if ($plan->isFree()) {
+            $tenant->activateFreePlan($plan->name);
+            $tenant->mrr = 0;
+            $tenant->save();
+        } else {
+            $tenant->activateSubscription($plan->name);
+            $tenant->save();
+        }
 
         Log::info('Assinatura ativada com sucesso', [
             'tenant_id' => $tenant->id,
@@ -66,7 +73,48 @@ readonly class SubscriptionService
             'success' => true,
             'tenant' => $tenant,
             'plan' => $plan,
-            'message' => 'Assinatura ativada com sucesso! Bem-vindo ao Alba Tec.',
+            'message' => 'Assinatura ativada com sucesso! Bem-vindo ao DistribTec.',
+        ];
+    }
+
+    /**
+     * Ativa plano gratuito sem cobrança (trial expirado / migração para Grátis).
+     * Recusa planos pagos — esses exigem /subscription/payment.
+     */
+    public function activateFreePlan(User $user, int $tenantId, int $planId): array
+    {
+        $tenant = $this->tenantRepository->findById($tenantId);
+        $plan = $this->planRepository->getById($planId);
+
+        if (!$tenant || !$plan) {
+            return ['success' => false, 'reason' => 'not_found'];
+        }
+
+        if (!$plan->isFree()) {
+            return ['success' => false, 'reason' => 'payment_required'];
+        }
+
+        if (!$plan->is_active) {
+            return ['success' => false, 'reason' => 'plan_inactive'];
+        }
+
+        Log::info('Ativando plano gratuito', [
+            'user_id' => $user->id,
+            'tenant_id' => $tenant->id,
+            'plan_id' => $plan->id,
+            'plan_name' => $plan->name,
+        ]);
+
+        $tenant->activateFreePlan($plan->name);
+        $tenant->plan_id = $plan->id;
+        $tenant->mrr = 0;
+        $tenant->save();
+
+        return [
+            'success' => true,
+            'tenant' => $tenant->fresh(),
+            'plan' => $plan,
+            'message' => 'Plano gratuito ativado com sucesso!',
         ];
     }
 
@@ -84,6 +132,11 @@ readonly class SubscriptionService
 
         if (!$plan) {
             return ['success' => false, 'reason' => 'plan_not_found'];
+        }
+
+        // Plano gratuito não passa pelo Mercado Pago (amount=0 é inválido no Brick/API).
+        if ($plan->isFree()) {
+            return $this->activateFreePlan($user, $tenantId, $planId);
         }
 
         Log::info('Processando pagamento MP', [

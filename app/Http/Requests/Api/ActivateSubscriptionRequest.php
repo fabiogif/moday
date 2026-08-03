@@ -23,7 +23,8 @@ class ActivateSubscriptionRequest extends FormRequest
     {
         return [
             'plan_id' => 'required|integer|exists:plans,id',
-            'payment_method' => 'required|string',
+            // Opcional: planos gratuitos não cobram; mantido para compatibilidade com clientes legados.
+            'payment_method' => 'nullable|string',
             'payment_data' => 'nullable|array',
         ];
     }
@@ -37,7 +38,6 @@ class ActivateSubscriptionRequest extends FormRequest
             'plan_id.required' => 'O ID do plano é obrigatório.',
             'plan_id.integer' => 'O ID do plano deve ser um número inteiro.',
             'plan_id.exists' => 'O plano selecionado não existe.',
-            'payment_method.required' => 'O método de pagamento é obrigatório.',
             'payment_method.string' => 'O método de pagamento deve ser um texto válido.',
         ];
     }

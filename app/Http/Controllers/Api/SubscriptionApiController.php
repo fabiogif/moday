@@ -75,15 +75,26 @@ class SubscriptionApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Usuário não autenticado', 401);
             }
 
-            $result = $this->subscriptionService->activateSubscription(
+            // Somente plano gratuito — planos pagos exigem /subscription/payment.
+            $result = $this->subscriptionService->activateFreePlan(
                 $user,
                 $user->tenant_id,
-                $data['plan_id'],
-                $data['payment_method'] ?? '',
-                $data['payment_data'] ?? null
+                (int) $data['plan_id'],
             );
 
-            if (!$result['success']) {
+            if (($result['reason'] ?? '') === 'payment_required') {
+                return ApiResponseClass::sendResponse(
+                    null,
+                    'Planos pagos exigem pagamento. Use o fluxo de assinatura.',
+                    422
+                );
+            }
+
+            if (($result['reason'] ?? '') === 'plan_inactive') {
+                return ApiResponseClass::sendResponse(null, 'O plano selecionado não está ativo.', 422);
+            }
+
+            if (!($result['success'] ?? false)) {
                 return ApiResponseClass::sendResponse(null, 'Plano ou tenant não encontrado', 404);
             }
 
@@ -155,6 +166,19 @@ class SubscriptionApiController extends Controller
 
         if (!$tenant || !$plan) {
             return ApiResponseClass::sendResponse(null, 'Tenant ou plano não encontrado', 404);
+        }
+
+        if ($plan->isFree()) {
+            $result = $this->subscriptionService->activateFreePlan($user, (int) $user->tenant_id, (int) $plan->id);
+            if (!($result['success'] ?? false)) {
+                return ApiResponseClass::sendResponse(null, $result['message'] ?? 'Falha ao ativar plano gratuito', 422);
+            }
+
+            return ApiResponseClass::sendResponse([
+                'tenant'  => $result['tenant'],
+                'plan'    => $result['plan'],
+                'message' => $result['message'],
+            ], 'Assinatura ativada com sucesso');
         }
 
         $result = $this->mercadoPagoService->createSubscription(

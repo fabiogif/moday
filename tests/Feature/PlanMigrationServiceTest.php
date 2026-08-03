@@ -159,6 +159,48 @@ class PlanMigrationServiceTest extends TestCase
         $this->assertNull($migration->from_plan_id);
     }
 
+    public function test_migrate_to_free_plan_activates_expired_tenant(): void
+    {
+        $this->tenant->update([
+            'plan_id' => $this->planBasico->id,
+            'account_status' => 'expired',
+            'trial_started_at' => now()->subDays(10),
+            'trial_expires_at' => now()->subDay(),
+        ]);
+
+        $result = $this->service->migratePlan(
+            $this->tenant->id,
+            $this->planGratis->id,
+            'Downgrade para gratuito após expiração'
+        );
+
+        $this->assertTrue($result['success']);
+
+        $this->tenant->refresh();
+        $this->assertEquals($this->planGratis->id, $this->tenant->plan_id);
+        $this->assertEquals('Grátis', $this->tenant->subscription_plan);
+        $this->assertEquals('active', $this->tenant->account_status);
+        $this->assertEquals(0, (float) $this->tenant->mrr);
+        $this->assertNull($this->tenant->trial_expires_at);
+    }
+
+    public function test_reactivate_same_free_plan_when_account_not_active(): void
+    {
+        $this->tenant->update([
+            'plan_id' => $this->planGratis->id,
+            'account_status' => 'expired',
+        ]);
+
+        $result = $this->service->migratePlan(
+            $this->tenant->id,
+            $this->planGratis->id
+        );
+
+        $this->assertTrue($result['success']);
+        $this->tenant->refresh();
+        $this->assertEquals('active', $this->tenant->account_status);
+    }
+
     public function test_get_migration_history_returns_correct_data(): void
     {
         // Criar algumas migrações

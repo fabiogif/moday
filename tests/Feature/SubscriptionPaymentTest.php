@@ -207,4 +207,48 @@ class SubscriptionPaymentTest extends TestCase
             'status'    => 'paid',
         ]);
     }
+
+    // ── POST /api/subscription/activate (plano gratuito) ──────────────────────
+
+    #[Test]
+    public function expired_tenant_can_activate_free_plan_without_payment(): void
+    {
+        $freePlan = Plan::factory()->create([
+            'name'      => 'Grátis',
+            'price'     => 0,
+            'is_active' => true,
+        ]);
+
+        $this->tenant->update([
+            'account_status' => 'expired',
+            'plan_id'        => null,
+        ]);
+
+        $response = $this->postJson('/api/subscription/activate', [
+            'plan_id'         => $freePlan->id,
+            'payment_method'  => 'free',
+        ], $this->authHeaders());
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+
+        $this->tenant->refresh();
+        $this->assertEquals('active', $this->tenant->account_status);
+        $this->assertEquals($freePlan->id, $this->tenant->plan_id);
+        $this->assertEquals('Grátis', $this->tenant->subscription_plan);
+    }
+
+    #[Test]
+    public function activate_rejects_paid_plan_without_payment(): void
+    {
+        $response = $this->postJson('/api/subscription/activate', [
+            'plan_id'        => $this->plan->id,
+            'payment_method' => 'free',
+        ], $this->authHeaders());
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString(
+            'pagamento',
+            mb_strtolower($response->json('message') ?? '')
+        );
+    }
 }

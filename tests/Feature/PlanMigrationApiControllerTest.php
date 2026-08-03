@@ -109,13 +109,15 @@ class PlanMigrationApiControllerTest extends TestCase
                 ->assertJsonValidationErrors(['plan_id']);
     }
 
-    public function test_migrate_endpoint_successfully_migrates_plan(): void
+    public function test_migrate_endpoint_successfully_migrates_to_free_plan(): void
     {
+        $this->tenant->update(['plan_id' => $this->planBasico->id]);
+
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
         ])->postJson('/api/plan/migrate', [
-            'plan_id' => $this->planBasico->id,
-            'notes' => 'Migração de teste',
+            'plan_id' => $this->planGratis->id,
+            'notes' => 'Migração para plano gratuito',
         ]);
 
         $response->assertStatus(200)
@@ -129,35 +131,44 @@ class PlanMigrationApiControllerTest extends TestCase
                     ],
                 ]);
 
-        // Verificar se tenant foi atualizado
         $this->tenant->refresh();
-        $this->assertEquals($this->planBasico->id, $this->tenant->plan_id);
-        $this->assertEquals('Básico', $this->tenant->subscription_plan);
+        $this->assertEquals($this->planGratis->id, $this->tenant->plan_id);
+        $this->assertEquals('Grátis', $this->tenant->subscription_plan);
+        $this->assertEquals('active', $this->tenant->account_status);
 
-        // Verificar se migração foi registrada
         $migration = PlanMigration::where('tenant_id', $this->tenant->id)
-            ->where('to_plan_id', $this->planBasico->id)
+            ->where('to_plan_id', $this->planGratis->id)
             ->first();
 
         $this->assertNotNull($migration);
-        $this->assertEquals('Migração de teste', $migration->notes);
+        $this->assertEquals('Migração para plano gratuito', $migration->notes);
     }
 
-    public function test_migrate_endpoint_returns_error_if_plan_inactive(): void
+    public function test_migrate_endpoint_rejects_paid_plan_without_payment(): void
     {
-        // Desativar plano
-        $this->planBasico->update(['is_active' => false]);
-
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
         ])->postJson('/api/plan/migrate', [
             'plan_id' => $this->planBasico->id,
         ]);
 
-        $response->assertStatus(500)
-                ->assertJson([
-                    'success' => false,
-                ]);
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['plan_id']);
+    }
+
+    public function test_migrate_endpoint_returns_error_if_plan_inactive(): void
+    {
+        $this->planGratis->update(['is_active' => false]);
+        $this->tenant->update(['plan_id' => $this->planBasico->id]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+        ])->postJson('/api/plan/migrate', [
+            'plan_id' => $this->planGratis->id,
+        ]);
+
+        $response->assertStatus(422)
+                ->assertJsonValidationErrors(['plan_id']);
     }
 
     public function test_migrate_endpoint_returns_error_if_same_plan(): void
@@ -244,7 +255,7 @@ class PlanMigrationApiControllerTest extends TestCase
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
         ])->postJson('/api/plan/migrate', [
-            'plan_id' => $this->planBasico->id,
+            'plan_id' => $this->planGratis->id,
             'notes' => str_repeat('a', 501), // Mais de 500 caracteres
         ]);
 

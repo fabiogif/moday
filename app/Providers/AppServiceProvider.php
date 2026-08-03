@@ -91,5 +91,22 @@ class AppServiceProvider extends ServiceProvider
 
             return "{$frontend}/auth/reset-password?token={$token}&email={$email}";
         });
+
+        ResetPassword::toMailUsing(function (object $notifiable, string $token) {
+            $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+            $url = "{$frontend}/auth/reset-password?token={$token}&email={$email}";
+            $brand = config('mail.brand.name', 'DistribTec');
+            $expire = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject("Redefinição de senha — {$brand}")
+                ->greeting('Olá!')
+                ->line("Você solicitou a redefinição de senha da sua conta {$brand}.")
+                ->action('Redefinir senha', $url)
+                ->line("Este link expira em {$expire} minutos.")
+                ->line('Se você não solicitou esta alteração, ignore este e-mail.')
+                ->salutation('Equipe '.$brand);
+        });
     }
 }

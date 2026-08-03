@@ -39,7 +39,7 @@ class WelcomeCompanyMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Bem-vindo ao Alba Tec! 🎉',
+            subject: 'Bem-vindo ao DistribTec',
             replyTo: [
                 new Address(config('mail.support_to'), config('mail.from.name')),
             ],
@@ -57,7 +57,7 @@ class WelcomeCompanyMail extends Mailable
                 'tenant' => $this->tenant,
                 'user' => $this->user,
                 'plan' => $this->plan,
-                'loginUrl' => config('app.frontend_url', 'http://localhost:3000') . '/login',
+                'loginUrl' => config('app.frontend_url', 'http://localhost:3000') . '/auth/login',
             ],
         );
     }

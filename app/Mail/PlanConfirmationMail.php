@@ -48,8 +48,8 @@ class PlanConfirmationMail extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->isMigration
-            ? "Plano Atualizado: {$this->plan->name} 🚀"
-            : "Confirmação de Plano: {$this->plan->name} ✅";
+            ? "Plano atualizado: {$this->plan->name}"
+            : "Confirmação de plano: {$this->plan->name}";
 
         return new Envelope(
             subject: $subject,

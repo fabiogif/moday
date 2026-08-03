@@ -12,49 +12,31 @@ class TrialExpiringIn3Days extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new notification instance.
-     */
     public function __construct(
         public Tenant $tenant
     ) {}
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail', 'database'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
     public function toMail(object $notifiable): MailMessage
     {
+        $brand = config('mail.brand.name', 'DistribTec');
+        $plansUrl = rtrim(config('app.frontend_url', config('app.url')), '/') . '/subscribe';
+
         return (new MailMessage)
-            ->subject('⚠️ Seu período de teste expira em 3 dias')
+            ->subject('Seu período de teste expira em 3 dias')
             ->greeting('Olá, ' . $notifiable->name . '!')
             ->line('Seu período de teste gratuito de 7 dias está chegando ao fim.')
-            ->line('**Você ainda tem 3 dias** para aproveitar todos os recursos do Alba Tec.')
-            ->line('Para continuar utilizando o sistema sem interrupções, escolha um de nossos planos.')
-            ->action('Ver Planos e Fazer Upgrade', url('/plans'))
-            ->line('Benefícios de assinar agora:')
-            ->line('✓ Acesso ilimitado a todos os recursos')
-            ->line('✓ Suporte prioritário')
-            ->line('✓ Atualizações automáticas')
-            ->line('✓ Backup diário dos seus dados')
-            ->line('Se tiver alguma dúvida, estamos aqui para ajudar!')
-            ->salutation('Equipe Alba Tec');
+            ->line("**Você ainda tem 3 dias** para aproveitar os recursos do {$brand}.")
+            ->line('Para continuar sem interrupções, escolha um plano.')
+            ->action('Ver planos', $plansUrl)
+            ->line('Ao assinar, você mantém acesso contínuo, suporte e atualizações.')
+            ->salutation('Equipe ' . $brand);
     }
 
-    /**
-     * Get the array representation of the notification.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(object $notifiable): array
     {
         return [
@@ -64,8 +46,7 @@ class TrialExpiringIn3Days extends Notification implements ShouldQueue
             'days_remaining' => 3,
             'expires_at' => $this->tenant->trial_expires_at?->format('Y-m-d H:i:s'),
             'message' => 'Seu período de teste expira em 3 dias',
-            'action_url' => url('/plans'),
+            'action_url' => rtrim(config('app.frontend_url', config('app.url')), '/') . '/subscribe',
         ];
     }
 }
-

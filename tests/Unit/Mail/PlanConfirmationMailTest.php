@@ -77,7 +77,7 @@ class PlanConfirmationMailTest extends TestCase
         $mail = new PlanConfirmationMail($tenant, $plan);
         $envelope = $mail->envelope();
 
-        $this->assertStringContainsString('Confirmação de Plano', $envelope->subject);
+        $this->assertStringContainsString('Confirmação de plano', $envelope->subject);
         $this->assertStringContainsString('Plano Básico', $envelope->subject);
         $this->assertCount(1, $envelope->replyTo);
         $this->assertEquals(config('mail.support_to'), $envelope->replyTo[0]->address);
@@ -95,7 +95,7 @@ class PlanConfirmationMailTest extends TestCase
         $mail = new PlanConfirmationMail($tenant, $newPlan, $oldPlan);
         $envelope = $mail->envelope();
 
-        $this->assertStringContainsString('Plano Atualizado', $envelope->subject);
+        $this->assertStringContainsString('Plano atualizado', $envelope->subject);
         $this->assertStringContainsString('Plano Premium', $envelope->subject);
     }
 
