@@ -201,6 +201,9 @@ backend:diagnose:
       done
       echo "=== docker inspect redis container (status/health/IP) ==="
       docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}} IP={{.NetworkSettings.Networks.albatecrest_backend.IPAddress}}' 2>&1 || docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}}' 2>&1
+      echo "=== teste HTTP real agora (containers já estáveis) ==="
+      code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8002/ || echo "000")
+      echo "API local :8002 -> HTTP ${code}"
 
 # Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
 # Uso único: quando o volume foi inicializado com uma senha errada/placeholder
