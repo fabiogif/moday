@@ -138,6 +138,16 @@ backend:deploy:
         grep -q "^${k}=" .env && sed -i "s|^${k}=.*|${kv}|" .env || echo "$kv" >> .env
       done
 
+      # APP_KEY vem vazio de .env.production.example. Precisa ser gerada no
+      # .env do HOST (não dentro do container): o compose injeta o .env via
+      # env_file, então uma APP_KEY= vazia no host sempre teria precedência
+      # sobre qualquer valor escrito depois dentro do container. Só gera uma
+      # vez (idempotente) — regenerar a cada deploy invalidaria sessões/dados
+      # criptografados já existentes.
+      if ! grep -qE '^APP_KEY=base64:.+' .env; then
+        sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env
+      fi
+
       mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
       chmod -R 775 storage bootstrap/cache 2>/dev/null || true
 
