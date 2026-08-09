@@ -196,6 +196,19 @@ backend:diagnose:
   script:
     - |
       cd ~/apps/albatecrest-backend
+      echo "=== simula request HTTP real via tinker, captura excecao direto (sem depender de log) ==="
+      docker exec albatecrest-backend php artisan tinker --execute='
+        try {
+            $request = \Illuminate\Http\Request::create("/", "GET");
+            $response = app()->handle($request);
+            echo "STATUS=".$response->getStatusCode()."\n";
+            echo substr($response->getContent(), 0, 500)."\n";
+        } catch (\Throwable $e) {
+            echo "EXCEPTION: ".get_class($e).": ".$e->getMessage()."\n";
+            echo "FILE: ".$e->getFile().":".$e->getLine()."\n";
+            echo $e->getTraceAsString()."\n";
+        }
+      ' 2>&1
       echo "=== docker network inspect albatecrest-backend ==="
       docker network inspect albatecrest-backend --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}' 2>&1
       echo "=== /etc/resolv.conf dentro do container app ==="
