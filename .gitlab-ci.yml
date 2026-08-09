@@ -169,6 +169,22 @@ backend:deploy:
         docker compose -f docker-compose.production.yml up -d queue-worker
       fi
 
+# Job manual de diagnóstico (só leitura): mostra o final do laravel.log e os
+# logs do container para investigar erros 500 sem precisar de SSH.
+backend:diagnose:
+  stage: deploy
+  when: manual
+  allow_failure: true
+  script:
+    - |
+      cd ~/apps/albatecrest-backend
+      echo "=== storage/logs/laravel.log (tail) ==="
+      docker exec albatecrest-backend tail -n 100 storage/logs/laravel.log 2>&1 || echo "(sem laravel.log)"
+      echo "=== docker logs albatecrest-backend (tail) ==="
+      docker logs --tail 100 albatecrest-backend 2>&1
+      echo "=== curl verbose ==="
+      curl -sv http://127.0.0.1:8002/ 2>&1 | tail -40
+
 # Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
 # Uso único: quando o volume foi inicializado com uma senha errada/placeholder
 # (MySQL só aplica MYSQL_ROOT_PASSWORD/DB_PASSWORD no primeiro init de um
