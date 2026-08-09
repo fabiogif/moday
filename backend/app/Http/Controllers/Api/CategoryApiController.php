@@ -73,20 +73,20 @@ class CategoryApiController extends Controller
         }
     }
 
-    public function update(StoreCategoryRequest $request, $id): JsonResponse
+    public function update(StoreCategoryRequest $request, string $identify): JsonResponse
     {
         try {
             $user = auth()->user();
-            
+
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }
-            
+
             if (!$user->tenant_id) {
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
-            
-            $category = $this->categoryService->update($request->all(), $id, $user->tenant_id);
+
+            $category = $this->categoryService->update($request->all(), $identify, $user->tenant_id);
             if (!$category) {
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }

@@ -234,6 +234,7 @@ export const endpoints = {
   // Pedidos
   orders: {
     list: '/api/order',
+    board: '/api/order/board',
     stats: '/api/order/stats',
     create: '/api/order',
     show: (id: string) => `/api/order/${id}`,

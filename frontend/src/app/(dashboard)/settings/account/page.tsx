@@ -229,7 +229,7 @@ export default function AccountSettings() {
                 </div>
                 {userData.tenant && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Empresa</label>
+                    <label className="text-sm font-medium text-muted-foreground">1Empresa</label>
                     <p className="text-sm">{userData.tenant.name}</p>
                   </div>
                 )}

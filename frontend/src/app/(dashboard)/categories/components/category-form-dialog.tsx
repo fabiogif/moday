@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -37,24 +37,34 @@ const categoryFormSchema = z.object({
   name: z.string().min(2, {
     message: "Nome deve ter pelo menos 2 caracteres.",
   }),
-  description: z.string().min(5, {
-    message: "Descrição deve ter pelo menos 5 caracteres.",
-  }),
-  color: z.string().min(1, {
-    message: "Por favor, selecione uma cor.",
-  }),
+  description: z.string().max(500).optional().or(z.literal("")),
+  color: z.string().optional().or(z.literal("")),
   isActive: z.boolean(),
 })
 
-interface CategoryFormValues {
+export interface CategoryFormValues {
   name: string
-  description: string
-  color: string
+  description?: string
+  color?: string
   isActive: boolean
 }
 
+export interface EditableCategory {
+  identify: string
+  name: string
+  description?: string
+  color?: string
+  isActive?: boolean
+  status?: string
+}
+
 interface CategoryFormDialogProps {
-  onAddCategory: (categoryData: CategoryFormValues) => void
+  onAddCategory: (categoryData: CategoryFormValues) => void | Promise<void>
+  onEditCategory?: (identify: string, categoryData: CategoryFormValues) => void | Promise<void>
+  categoryToEdit?: EditableCategory | null
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  hideTrigger?: boolean
 }
 
 const colors = [
@@ -68,8 +78,18 @@ const colors = [
   { name: "Cinza", value: "#D3D3D3" },
 ]
 
-export function CategoryFormDialog({ onAddCategory }: CategoryFormDialogProps) {
-  const [open, setOpen] = useState(false)
+export function CategoryFormDialog({
+  onAddCategory,
+  onEditCategory,
+  categoryToEdit = null,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
+}: CategoryFormDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const isEdit = !!categoryToEdit
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = onOpenChange ?? setUncontrolledOpen
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
@@ -81,25 +101,55 @@ export function CategoryFormDialog({ onAddCategory }: CategoryFormDialogProps) {
     },
   })
 
-  const onSubmit = (data: CategoryFormValues) => {
-    onAddCategory(data)
+  useEffect(() => {
+    if (!open) return
+
+    if (categoryToEdit) {
+      form.reset({
+        name: categoryToEdit.name || "",
+        description: categoryToEdit.description || "",
+        color: categoryToEdit.color || "",
+        isActive:
+          categoryToEdit.isActive ??
+          (categoryToEdit.status ? categoryToEdit.status === "A" : true),
+      })
+    } else {
+      form.reset({
+        name: "",
+        description: "",
+        color: "",
+        isActive: true,
+      })
+    }
+  }, [open, categoryToEdit, form])
+
+  const onSubmit = async (data: CategoryFormValues) => {
+    if (isEdit && categoryToEdit && onEditCategory) {
+      await onEditCategory(categoryToEdit.identify, data)
+    } else {
+      await onAddCategory(data)
+    }
     form.reset()
     setOpen(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Categoria
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && !isEdit && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Categoria
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Nova Categoria</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
           <DialogDescription>
-            Adicione uma nova categoria ao sistema. Preencha os dados abaixo.
+            {isEdit
+              ? "Atualize os dados da categoria abaixo."
+              : "Adicione uma nova categoria ao sistema. Preencha os dados abaixo."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -136,7 +186,7 @@ export function CategoryFormDialog({ onAddCategory }: CategoryFormDialogProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cor</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma cor" />
@@ -146,8 +196,8 @@ export function CategoryFormDialog({ onAddCategory }: CategoryFormDialogProps) {
                       {colors.map((color) => (
                         <SelectItem key={color.value} value={color.value}>
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-4 h-4 rounded-full" 
+                            <div
+                              className="w-4 h-4 rounded-full"
                               style={{ backgroundColor: color.value }}
                             />
                             {color.name}
@@ -184,7 +234,7 @@ export function CategoryFormDialog({ onAddCategory }: CategoryFormDialogProps) {
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit">Criar Categoria</Button>
+              <Button type="submit">{isEdit ? "Salvar alterações" : "Criar Categoria"}</Button>
             </DialogFooter>
           </form>
         </Form>

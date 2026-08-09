@@ -84,6 +84,33 @@ class OrderApiController extends Controller
     }
 
     /**
+     * Lista pedidos para o quadro Kanban (sem paginação estreita).
+     * Inclui Em Preparo/Pronto e Entregue/Cancelado dos últimos N dias.
+     */
+    public function board(Request $request): JsonResponse
+    {
+        try {
+            $tenantId = auth()->user()?->tenant_id;
+            if (!$tenantId) {
+                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $terminalDays = (int) $request->get('terminal_days', 7);
+            $terminalDays = max(1, min($terminalDays, 30));
+
+            $orders = $this->orderService->getBoardByTenant($tenantId, $terminalDays);
+
+            return ApiResponseClass::sendResponse(
+                OrderResource::collection($orders),
+                '',
+                200
+            );
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao carregar quadro de pedidos');
+        }
+    }
+
+    /**
      * Fatura um pedido
      */
     public function invoice($identify): JsonResponse

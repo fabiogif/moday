@@ -191,6 +191,11 @@ readonly class OrderService
         });
     }
 
+    public function getBoardByTenant(int $tenantId, int $terminalDays = 7)
+    {
+        return $this->orderRepositoryInterface->getBoardByTenant($tenantId, $terminalDays);
+    }
+
     /**
      * Get order statistics with cache
      */

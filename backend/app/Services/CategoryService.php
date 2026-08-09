@@ -30,12 +30,12 @@ readonly class CategoryService
         return $this->categoryRepositoryInterface->getByUuid($identify);
     }
 
-    public function update(array $data, int $id, int $tenantId = null)
+    public function update(array $data, string $identify, int $tenantId = null)
     {
         if($tenantId) {
-            return $this->categoryRepositoryInterface->updateByTenant($data, $id, $tenantId);
+            return $this->categoryRepositoryInterface->updateByTenant($data, $identify, $tenantId);
         }
-        return $this->categoryRepositoryInterface->update($data, $id);
+        return $this->categoryRepositoryInterface->update($data, $identify);
     }
 
     public function delete(string $identify, int $tenantId = null)

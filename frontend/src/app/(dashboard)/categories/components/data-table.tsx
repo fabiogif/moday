@@ -53,7 +53,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { CategoryFormDialog } from "./category-form-dialog"
+import { CategoryFormDialog, type CategoryFormValues } from "./category-form-dialog"
 
 interface Category {
   id?: number
@@ -67,13 +67,6 @@ interface Category {
   status: string
   created_at: string
   createdAt?: string
-}
-
-interface CategoryFormValues {
-  name: string
-  description: string
-  color: string
-  isActive: boolean
 }
 
 interface DataTableProps {

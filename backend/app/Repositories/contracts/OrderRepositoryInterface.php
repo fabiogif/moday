@@ -25,6 +25,13 @@ interface OrderRepositoryInterface
 
     public function paginateByTenant(int $tenantId, int $page, int $perPage, ?string $status = null): PaginateRepositoryInterface;
 
+    /**
+     * Pedidos para o quadro Kanban: ativos (Em Preparo/Pronto) + terminais recentes.
+     *
+     * @return \Illuminate\Support\Collection<int, Order>
+     */
+    public function getBoardByTenant(int $tenantId, int $terminalDays = 7);
+
     public function updateOrder(string $identify, array $data): Order;
 
 }

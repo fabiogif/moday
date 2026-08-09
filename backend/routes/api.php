@@ -108,6 +108,7 @@ Route::middleware(['auth:api'])->group(function () {
     // Pedidos
     Route::get('/order', [OrderApiController::class , 'index'])->middleware('throttle:read');
     Route::get('/order/stats', [OrderStatsApiController::class, 'stats'])->middleware('throttle:read');
+    Route::get('/order/board', [OrderApiController::class , 'board'])->middleware('throttle:read');
     Route::get('/order/client/', [OrderApiController::class , 'orderByClient'])->middleware('throttle:read');
     Route::get('/order/{identify}', [OrderApiController::class , 'show'])->middleware('throttle:read');
     Route::get('/order/{identify}/receipt', [OrderApiController::class , 'receipt'])->middleware('throttle:read');
@@ -130,7 +131,7 @@ Route::middleware(['auth:api'])->group(function () {
     Route::get('/category/stats', [CategoryApiController::class , 'stats'])->middleware('throttle:read');
     Route::get('/category/{identify}', [CategoryApiController::class , 'show'])->middleware('throttle:read');
     Route::post('/category', [CategoryApiController::class , 'store'])->middleware('throttle:critical');
-    Route::put('/category/{id}', [CategoryApiController::class , 'update'])->middleware('throttle:critical');
+    Route::put('/category/{identify}', [CategoryApiController::class , 'update'])->middleware('throttle:critical');
     Route::delete('/category/{identify}', [CategoryApiController::class , 'delete'])->middleware('throttle:critical');
     
 

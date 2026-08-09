@@ -44,11 +44,19 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         return new \App\Repositories\contracts\Presenter\PaginatePresenter($result);
     }
     
-    public function updateByTenant(array $data, int $id, int $tenantId)
+    public function updateByTenant(array $data, string $identify, int $tenantId)
     {
-        return $this->entity->where('id', $id)
+        $category = $this->entity->where('uuid', $identify)
                            ->where('tenant_id', $tenantId)
-                           ->update($data);
+                           ->first();
+
+        if (!$category) {
+            return null;
+        }
+
+        $category->update($data);
+
+        return $category->fresh();
     }
     
     public function deleteByTenant(string $identify, int $tenantId)

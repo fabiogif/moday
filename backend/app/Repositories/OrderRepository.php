@@ -105,6 +105,25 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         return new PaginatePresenter($result, $relationships);
     }
 
+    public function getBoardByTenant(int $tenantId, int $terminalDays = 7)
+    {
+        $terminalSince = now()->subDays($terminalDays);
+
+        return $this->entity
+            ->with(['client', 'table', 'products', 'tenant'])
+            ->where('tenant_id', $tenantId)
+            ->where(function ($query) use ($terminalSince) {
+                $query->whereIn('status', ['Em Preparo', 'Pronto'])
+                    ->orWhere(function ($q) use ($terminalSince) {
+                        $q->whereIn('status', ['Entregue', 'Cancelado'])
+                            ->where('updated_at', '>=', $terminalSince);
+                    });
+            })
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+    }
+
     public function updateOrder(string $identify, array $data): Order
     {
         $order = $this->getOrderByIdentify($identify);
