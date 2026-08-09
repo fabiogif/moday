@@ -1,0 +1,156 @@
+# AlbatecRest — GitLab CI/CD
+# Extraído de distribtec/backend_distribtec (histórico preservado via git filter-repo).
+# Runner: tag oracle-prod (mesmo servidor do distribtec-backend; nomes/porta
+# isolados para não colidir: containers albatecrest-*, porta host 8002).
+# Fluxo: test -> deploy (deploy só em main)
+
+stages:
+  - test
+  - deploy
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  tags: [oracle-prod]
+  interruptible: true
+
+variables:
+  COMPOSER_ALLOW_SUPERUSER: "1"
+
+backend:test:
+  stage: test
+  retry: 1
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - vendor/
+    policy: pull-push
+  script:
+    - |
+      set -e
+      if ! php -m | grep -qi '^pdo_sqlite$'; then
+        if command -v apt-get >/dev/null 2>&1; then
+          sudo apt-get update -y && sudo apt-get install -y php-sqlite3
+          sudo phpenmod sqlite3 2>/dev/null || true
+        elif command -v dnf >/dev/null 2>&1; then
+          sudo dnf install -y php-pdo
+        elif command -v yum >/dev/null 2>&1; then
+          sudo yum install -y php-pdo
+        else
+          echo "Gerenciador de pacotes nao suportado para instalar pdo_sqlite automaticamente" >&2
+          exit 1
+        fi
+      fi
+      php -m | grep -qi '^pdo_sqlite$' || { echo "Extensao pdo_sqlite ainda ausente apos tentativa de instalacao" >&2; exit 1; }
+    - composer install --no-interaction --prefer-dist
+    - cp .env.production.example .env
+    - php artisan key:generate --ansi --force
+    - XDEBUG_MODE=off php -d memory_limit=2048M vendor/bin/phpunit
+
+backend:deploy:
+  stage: deploy
+  needs: ["backend:test"]
+  interruptible: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+      allow_failure: false
+  resource_group: deploy-backend
+  timeout: 45m
+  script:
+    - |
+      set -e
+      sudo timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
+      if ! command -v rsync >/dev/null 2>&1; then
+        if command -v apt-get >/dev/null 2>&1; then
+          sudo apt-get update -y && sudo apt-get install -y rsync
+        elif command -v dnf >/dev/null 2>&1; then
+          sudo dnf install -y rsync
+        elif command -v yum >/dev/null 2>&1; then
+          sudo yum install -y rsync
+        else
+          echo "Gerenciador de pacotes nao suportado para instalar rsync automaticamente" >&2
+          exit 1
+        fi
+      fi
+      mkdir -p ~/apps/albatecrest-backend
+      rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times \
+        --exclude='.git' \
+        --exclude='node_modules' \
+        --exclude='vendor' \
+        --exclude='.env' \
+        --exclude='storage/logs/*' \
+        --exclude='storage/framework/cache/*' \
+        "$CI_PROJECT_DIR/" ~/apps/albatecrest-backend/
+    - |
+      set -e
+      cd ~/apps/albatecrest-backend
+
+      docker_build_with_retry() {
+        local compose_file="$1"
+        local max_attempts=3
+        local attempt=1
+        while [ "$attempt" -le "$max_attempts" ]; do
+          echo "Docker build (tentativa ${attempt}/${max_attempts})..."
+          if docker compose -f "$compose_file" build app; then
+            return 0
+          fi
+          if [ "$attempt" -lt "$max_attempts" ]; then
+            echo "Build falhou - aguardando 30s antes de tentar novamente..."
+            sleep 30
+          fi
+          attempt=$((attempt + 1))
+        done
+        if docker image inspect albatecrest-backend-app:latest >/dev/null 2>&1; then
+          echo "Build indisponível - usando imagem albatecrest-backend-app:latest já existente"
+          return 0
+        fi
+        echo "Build falhou e não há imagem local de fallback"
+        return 1
+      }
+
+      sudo chown -R ubuntu:ubuntu storage bootstrap/cache 2>/dev/null || true
+      chmod -R u+rwX storage bootstrap/cache 2>/dev/null || true
+
+      [ -f .env ] || cp .env.production.example .env
+
+      for kv in "CACHE_STORE=redis" "CACHE_DRIVER=redis" "QUEUE_CONNECTION=redis" "SESSION_DRIVER=redis" "REDIS_HOST=redis" "REDIS_DB=0" "REDIS_CACHE_DB=1"; do
+        k="${kv%%=*}"
+        grep -q "^${k}=" .env && sed -i "s|^${k}=.*|${kv}|" .env || echo "$kv" >> .env
+      done
+
+      mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+      chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+
+      docker_build_with_retry docker-compose.production.yml
+
+      docker compose -f docker-compose.production.yml up -d --force-recreate
+
+      echo "Aguardando MySQL/Redis..."
+      sleep 25
+
+      rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php 2>/dev/null || true
+      docker exec albatecrest-backend php artisan cache:clear
+      docker exec albatecrest-backend php artisan package:discover --ansi
+      docker exec albatecrest-backend php artisan migrate --force
+      docker exec albatecrest-backend php artisan config:clear
+      docker exec albatecrest-backend php artisan config:cache
+      docker exec albatecrest-backend php artisan route:clear
+      docker compose -f docker-compose.production.yml up -d app queue-worker
+      sleep 5
+    - |
+      set -e
+      cd ~/apps/albatecrest-backend
+      code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8002/ || echo "000")
+      echo "API local :8002 -> HTTP ${code}"
+      if docker ps --format '{{.Names}}' | grep -q albatecrest-queue-worker; then
+        echo "queue-worker rodando"
+      else
+        echo "queue-worker ausente - subindo..."
+        docker compose -f docker-compose.production.yml up -d queue-worker
+      fi

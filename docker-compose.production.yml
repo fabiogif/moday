@@ -2,15 +2,15 @@
 # MySQL e Redis em volumes nomeados (dados persistem entre restarts)
 # Não exponha MySQL/Redis na internet; apenas Nginx na porta 8001 (proxy do host)
 
-name: distribtec-backend
+name: albatecrest-backend
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile.production
-    image: distribtec-backend-app:latest
-    container_name: distribtec-backend
+    image: albatecrest-backend-app:latest
+    container_name: albatecrest-backend
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
@@ -31,7 +31,7 @@ services:
       # existe na imagem --no-dev, ex.: Laravel\Sail\SailServiceProvider).
       - ./public:/var/www/html/public
     networks:
-      - distribtec-backend
+      - albatecrest-backend
     depends_on:
       mysql:
         condition: service_healthy
@@ -46,23 +46,23 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    container_name: distribtec-nginx-internal
+    container_name: albatecrest-nginx-internal
     restart: unless-stopped
     ports:
-      - '8001:80'
+      - '8002:80'
     volumes:
       - ./public:/var/www/html/public:ro
       - ./storage/app/public:/var/www/html/storage/app/public:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
-      - distribtec-backend
+      - albatecrest-backend
     depends_on:
       app:
         condition: service_started
 
   mysql:
     image: mysql:8.0
-    container_name: distribtec-mysql
+    container_name: albatecrest-mysql
     restart: unless-stopped
     expose:
       - '3306'
@@ -72,10 +72,10 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-${DB_PASSWORD}}
     volumes:
-      - distribtec_mysql_data:/var/lib/mysql
+      - albatecrest_mysql_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/distribtec.cnf:ro
     networks:
-      - distribtec-backend
+      - albatecrest-backend
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1']
@@ -86,14 +86,14 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: distribtec-redis
+    container_name: albatecrest-redis
     restart: unless-stopped
     expose:
       - '6379'
     volumes:
-      - distribtec_redis_data:/data
+      - albatecrest_redis_data:/data
     networks:
-      - distribtec-backend
+      - albatecrest-backend
     command: redis-server --appendonly yes
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
@@ -102,8 +102,8 @@ services:
       retries: 5
 
   queue-worker:
-    image: distribtec-backend-app:latest
-    container_name: distribtec-queue-worker
+    image: albatecrest-backend-app:latest
+    container_name: albatecrest-queue-worker
     restart: unless-stopped
     working_dir: /var/www/html
     env_file:
@@ -123,7 +123,7 @@ services:
       # gerado localmente com dependências dev referencia uma classe que não
       # existe na imagem --no-dev, ex.: Laravel\Sail\SailServiceProvider).
     networks:
-      - distribtec-backend
+      - albatecrest-backend
     depends_on:
       mysql:
         condition: service_healthy
@@ -140,12 +140,12 @@ services:
       --timeout=120
 
 networks:
-  distribtec-backend:
+  albatecrest-backend:
     driver: bridge
-    name: distribtec-backend
+    name: albatecrest-backend
 
 volumes:
-  distribtec_mysql_data:
-    name: distribtec_mysql_data
-  distribtec_redis_data:
-    name: distribtec_redis_data
+  albatecrest_mysql_data:
+    name: albatecrest_mysql_data
+  albatecrest_redis_data:
+    name: albatecrest_redis_data
