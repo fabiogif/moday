@@ -165,8 +165,16 @@ backend:deploy:
       docker exec albatecrest-backend php artisan config:clear
       docker exec albatecrest-backend php artisan config:cache
       docker exec albatecrest-backend php artisan route:clear
-      docker compose -f docker-compose.production.yml up -d app queue-worker
-      sleep 5
+
+      # PHP-FPM (app) e o queue-worker são processos de longa duração criados
+      # no boot do container, quando redis pode ainda não estar 100% resolvível
+      # via DNS interno do Docker (mesmo já "healthy") — a conexão fica presa
+      # quebrada pro resto da vida do worker, mesmo com a rede depois estável
+      # (confirmado: fsockopen fresco sempre conecta, mas o request web não).
+      # Reinicia os dois AGORA que MySQL/Redis já tiveram tempo de estabilizar,
+      # pra respawnar os workers com conexões limpas.
+      docker compose -f docker-compose.production.yml restart app queue-worker
+      sleep 8
     - |
       set -e
       cd ~/apps/albatecrest-backend
