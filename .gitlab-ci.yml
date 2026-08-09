@@ -119,7 +119,9 @@ backend:deploy:
 
       [ -f .env ] || cp .env.production.example .env
 
-      for kv in "CACHE_STORE=redis" "CACHE_DRIVER=redis" "QUEUE_CONNECTION=redis" "SESSION_DRIVER=redis" "REDIS_HOST=redis" "REDIS_DB=0" "REDIS_CACHE_DB=1"; do
+      # DB_PASSWORD/MYSQL_ROOT_PASSWORD vêm das CI/CD Variables (protected+masked)
+      # do projeto, nunca dos placeholders do .env.production.example.
+      for kv in "CACHE_STORE=redis" "CACHE_DRIVER=redis" "QUEUE_CONNECTION=redis" "SESSION_DRIVER=redis" "REDIS_HOST=redis" "REDIS_DB=0" "REDIS_CACHE_DB=1" "DB_PASSWORD=${DB_PASSWORD}" "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"; do
         k="${kv%%=*}"
         grep -q "^${k}=" .env && sed -i "s|^${k}=.*|${kv}|" .env || echo "$kv" >> .env
       done
@@ -154,3 +156,20 @@ backend:deploy:
         echo "queue-worker ausente - subindo..."
         docker compose -f docker-compose.production.yml up -d queue-worker
       fi
+
+# Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
+# Uso único: quando o volume foi inicializado com uma senha errada/placeholder
+# (MySQL só aplica MYSQL_ROOT_PASSWORD/DB_PASSWORD no primeiro init de um
+# volume vazio — trocar a env var depois não atualiza a senha já gravada).
+# Dispare manualmente pela UI do pipeline; NÃO usar em produção com dados reais.
+backend:reset-db-volume:
+  stage: deploy
+  when: manual
+  allow_failure: true
+  script:
+    - |
+      set -e
+      cd ~/apps/albatecrest-backend
+      docker compose -f docker-compose.production.yml down
+      docker volume rm albatecrest_mysql_data
+      echo "Volume albatecrest_mysql_data removido. Rode o job backend:deploy novamente."
