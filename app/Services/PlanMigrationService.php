@@ -45,22 +45,30 @@ readonly class PlanMigrationService
             $oldPlan = $tenant->plan;
             $oldPlanId = $oldPlan ? $oldPlan->id : null;
 
-            // Mesmo plano: só reativa se for gratuito e a conta não estiver ativa (ex.: trial expirado)
+            // Mesmo plano: reativa se a conta não estiver ativa (ex.: trial expirado)
             if ($oldPlanId === $newPlanId) {
-                if ($newPlan->isFree() && !$tenant->hasActiveSubscription()) {
-                    $tenant->activateFreePlan($newPlan->name);
-                    $tenant->update(['mrr' => 0]);
+                if (!$tenant->hasActiveSubscription()) {
+                    if ($newPlan->isFree()) {
+                        $tenant->activateFreePlan($newPlan->name);
+                        $tenant->update(['mrr' => 0]);
+                    } else {
+                        $tenant->activateSubscription($newPlan->name);
+                        $tenant->update(['mrr' => $newPlan->price]);
+                    }
 
                     DB::commit();
 
-                    Log::info('Plano gratuito reativado', [
+                    Log::info('Plano reativado', [
                         'tenant_id' => $tenantId,
                         'plan_id' => $newPlanId,
+                        'plan_free' => $newPlan->isFree(),
                     ]);
 
                     return [
                         'success' => true,
-                        'message' => 'Plano gratuito reativado com sucesso.',
+                        'message' => $newPlan->isFree()
+                            ? 'Plano gratuito reativado com sucesso.'
+                            : 'Assinatura reativada com sucesso.',
                         'migration' => null,
                         'tenant' => $tenant->fresh(['plan']),
                     ];
@@ -89,10 +97,9 @@ readonly class PlanMigrationService
                 $tenant->activateFreePlan($newPlan->name);
                 $tenant->update(['mrr' => 0]);
             } else {
-                $tenant->update([
-                    'subscription_plan' => $newPlan->name,
-                    'mrr' => $newPlan->price,
-                ]);
+                // Admin atribuiu plano pago: libera acesso (mesmo padrão do fluxo de pagamento)
+                $tenant->activateSubscription($newPlan->name);
+                $tenant->update(['mrr' => $newPlan->price]);
             }
 
             DB::commit();

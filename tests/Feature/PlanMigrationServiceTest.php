@@ -184,6 +184,38 @@ class PlanMigrationServiceTest extends TestCase
         $this->assertNull($this->tenant->trial_expires_at);
     }
 
+    public function test_migrate_to_paid_plan_activates_expired_tenant(): void
+    {
+        $this->tenant->update([
+            'plan_id' => $this->planGratis->id,
+            'account_status' => 'expired',
+            'trial_started_at' => now()->subDays(10),
+            'trial_expires_at' => now()->subDay(),
+        ]);
+
+        $result = $this->service->migratePlan(
+            $this->tenant->id,
+            $this->planBasico->id,
+            'Admin atribuiu plano pago após trial expirado'
+        );
+
+        $this->assertTrue($result['success']);
+
+        $this->tenant->refresh();
+        $this->assertEquals($this->planBasico->id, $this->tenant->plan_id);
+        $this->assertEquals('Básico', $this->tenant->subscription_plan);
+        $this->assertEquals('active', $this->tenant->account_status);
+        $this->assertEquals(49.90, (float) $this->tenant->mrr);
+        $this->assertNull($this->tenant->trial_expires_at);
+        $this->assertNull($this->tenant->trial_started_at);
+        $this->assertTrue($this->tenant->canAccess());
+
+        $status = $this->tenant->toTrialStatusArray();
+        $this->assertFalse($status['is_expired']);
+        $this->assertFalse($status['needs_payment']);
+        $this->assertTrue($status['is_active']);
+    }
+
     public function test_reactivate_same_free_plan_when_account_not_active(): void
     {
         $this->tenant->update([
@@ -199,6 +231,26 @@ class PlanMigrationServiceTest extends TestCase
         $this->assertTrue($result['success']);
         $this->tenant->refresh();
         $this->assertEquals('active', $this->tenant->account_status);
+    }
+
+    public function test_reactivate_same_paid_plan_when_account_not_active(): void
+    {
+        $this->tenant->update([
+            'plan_id' => $this->planBasico->id,
+            'account_status' => 'expired',
+            'trial_expires_at' => now()->subDay(),
+        ]);
+
+        $result = $this->service->migratePlan(
+            $this->tenant->id,
+            $this->planBasico->id
+        );
+
+        $this->assertTrue($result['success']);
+        $this->tenant->refresh();
+        $this->assertEquals('active', $this->tenant->account_status);
+        $this->assertNull($this->tenant->trial_expires_at);
+        $this->assertTrue($this->tenant->canAccess());
     }
 
     public function test_get_migration_history_returns_correct_data(): void

@@ -223,6 +223,8 @@ class Tenant extends Model
         $this->subscription_plan  = $plan;
         $this->activated_at       = now();
         $this->last_payment_at    = now();
+        $this->trial_started_at   = null;
+        $this->trial_expires_at   = null;
         $this->dunning_started_at = null;
         $this->dunning_day        = 0;
         $this->save();
