@@ -188,14 +188,18 @@ backend:diagnose:
   script:
     - |
       cd ~/apps/albatecrest-backend
-      echo "=== todas as mensagens de erro (sem stack trace) ==="
-      docker exec albatecrest-backend grep -n "\.ERROR:" storage/logs/laravel.log 2>&1 | tail -30 || echo "(sem laravel.log)"
+      echo "=== php artisan about (bootstrap completo via CLI, mostra fatal error se houver) ==="
+      docker exec albatecrest-backend php artisan about 2>&1 | tail -60
+      echo "=== docker logs albatecrest-nginx-internal (tail, erro de upstream FastCGI) ==="
+      docker logs --tail 60 albatecrest-nginx-internal 2>&1
       echo "=== request web (dispara agora e pega o erro fresco) ==="
       curl -s -o /dev/null http://127.0.0.1:8002/ 2>&1
       sleep 1
-      docker exec albatecrest-backend tail -n 80 storage/logs/laravel.log 2>&1
+      docker exec albatecrest-backend tail -n 40 storage/logs/laravel.log 2>&1
       echo "=== docker logs albatecrest-backend (tail) ==="
-      docker logs --tail 50 albatecrest-backend 2>&1
+      docker logs --tail 30 albatecrest-backend 2>&1
+      echo "=== docker logs albatecrest-nginx-internal (tail pos-request) ==="
+      docker logs --tail 20 albatecrest-nginx-internal 2>&1
 
 # Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
 # Uso único: quando o volume foi inicializado com uma senha errada/placeholder
