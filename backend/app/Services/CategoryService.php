@@ -17,9 +17,13 @@ readonly class CategoryService
         return $this->categoryRepositoryInterface->index();
     }
 
-    public function store(array $data)
+    public function store(array $data, int $tenantId = null)
     {
-        return $this->categoryRepositoryInterface->store($data);
+        $category = $this->categoryRepositoryInterface->store($data);
+        if($tenantId) {
+            $this->cacheService->invalidateCategoryCache($tenantId);
+        }
+        return $category;
     }
 
     public function getByUuid(string $identify, int $tenantId = null)
@@ -33,7 +37,9 @@ readonly class CategoryService
     public function update(array $data, string $identify, int $tenantId = null)
     {
         if($tenantId) {
-            return $this->categoryRepositoryInterface->updateByTenant($data, $identify, $tenantId);
+            $category = $this->categoryRepositoryInterface->updateByTenant($data, $identify, $tenantId);
+            $this->cacheService->invalidateCategoryCache($tenantId);
+            return $category;
         }
         return $this->categoryRepositoryInterface->update($data, $identify);
     }
@@ -41,7 +47,9 @@ readonly class CategoryService
     public function delete(string $identify, int $tenantId = null)
     {
         if($tenantId) {
-            return $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
+            $result = $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
+            $this->cacheService->invalidateCategoryCache($tenantId);
+            return $result;
         }
         return $this->categoryRepositoryInterface->delete($identify);
     }

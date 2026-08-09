@@ -62,7 +62,7 @@ class CategoryApiController extends Controller
                 'user_tenant_id' => $user->tenant_id
             ]);
             
-            $category = $this->categoryService->store($data);
+            $category = $this->categoryService->store($data, $user->tenant_id);
             return ApiResponseClass::sendResponse(new CategoryResource($category), 'Categoria cadastrada com sucesso', 201);
         } catch (\Exception $ex) {
             \Log::error('CategoryApiController::store - Erro:', [
