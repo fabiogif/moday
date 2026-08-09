@@ -79,13 +79,25 @@ backend:deploy:
         fi
       fi
       mkdir -p ~/apps/albatecrest-backend
-      rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times \
+      # --delete precisa proteger tudo que só existe em produção (gitignored no
+      # repo): uploads reais em storage/app/public, sessions/views/cache/testing
+      # gerados em runtime, o symlink public/storage e o bootstrap/cache
+      # compilado. Sem essas exclusões, o primeiro deploy real apagaria uploads
+      # de usuário (products/logos/reports) por não existirem no checkout do CI.
+      rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times --delete \
         --exclude='.git' \
         --exclude='node_modules' \
         --exclude='vendor' \
         --exclude='.env' \
+        --exclude='public/storage' \
+        --exclude='storage/app/public/*' \
         --exclude='storage/logs/*' \
         --exclude='storage/framework/cache/*' \
+        --exclude='storage/framework/sessions/*' \
+        --exclude='storage/framework/views/*' \
+        --exclude='storage/framework/testing/*' \
+        --exclude='storage/debugbar/*' \
+        --exclude='bootstrap/cache/*' \
         "$CI_PROJECT_DIR/" ~/apps/albatecrest-backend/
     - |
       set -e
