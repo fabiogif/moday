@@ -188,18 +188,19 @@ backend:diagnose:
   script:
     - |
       cd ~/apps/albatecrest-backend
-      echo "=== php artisan about (bootstrap completo via CLI, mostra fatal error se houver) ==="
-      docker exec albatecrest-backend php artisan about 2>&1 | tail -60
-      echo "=== docker logs albatecrest-nginx-internal (tail, erro de upstream FastCGI) ==="
-      docker logs --tail 60 albatecrest-nginx-internal 2>&1
-      echo "=== request web (dispara agora e pega o erro fresco) ==="
-      curl -s -o /dev/null http://127.0.0.1:8002/ 2>&1
-      sleep 1
-      docker exec albatecrest-backend tail -n 40 storage/logs/laravel.log 2>&1
-      echo "=== docker logs albatecrest-backend (tail) ==="
-      docker logs --tail 30 albatecrest-backend 2>&1
-      echo "=== docker logs albatecrest-nginx-internal (tail pos-request) ==="
-      docker logs --tail 20 albatecrest-nginx-internal 2>&1
+      echo "=== docker network inspect albatecrest-backend ==="
+      docker network inspect albatecrest-backend --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}' 2>&1
+      echo "=== /etc/resolv.conf dentro do container app ==="
+      docker exec albatecrest-backend cat /etc/resolv.conf 2>&1
+      echo "=== getent hosts redis (dentro do app) ==="
+      docker exec albatecrest-backend getent hosts redis 2>&1
+      echo "=== 5x tentativas de resolver+conectar redis em sequencia ==="
+      for i in 1 2 3 4 5; do
+        docker exec albatecrest-backend php -r '$s=@fsockopen("redis",6379,$e,$m,2); echo $s ? "OK\n" : "FAIL errno=$e msg=$m\n"; if($s) fclose($s);' 2>&1
+        sleep 1
+      done
+      echo "=== docker inspect redis container (status/health/IP) ==="
+      docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}} IP={{.NetworkSettings.Networks.albatecrest_backend.IPAddress}}' 2>&1 || docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}}' 2>&1
 
 # Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
 # Uso único: quando o volume foi inicializado com uma senha errada/placeholder
