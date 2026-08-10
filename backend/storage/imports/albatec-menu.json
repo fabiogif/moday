@@ -1,0 +1,488 @@
+[
+  {
+    "id_produto": 2551742,
+    "id_categoria": 446475,
+    "categoria": "Entrada",
+    "item": "Rolinho de Queijo",
+    "descricao": "",
+    "codigo": "001",
+    "preco": 12
+  },
+  {
+    "id_produto": 2551746,
+    "id_categoria": 446475,
+    "categoria": "Entrada",
+    "item": "Rolinho Primavera",
+    "descricao": "",
+    "codigo": "002",
+    "preco": 10
+  },
+  {
+    "id_produto": 2551753,
+    "id_categoria": 446475,
+    "categoria": "Entrada",
+    "item": "Rolinho Romeu e Julieta",
+    "descricao": "",
+    "codigo": "003",
+    "preco": 12
+  },
+  {
+    "id_produto": 2552705,
+    "id_categoria": 446562,
+    "categoria": "Combos Individuais",
+    "item": "Promoção Yakisoba Frango e Carne + 1 Rolinho + Refrigerante",
+    "descricao": "Yakisoba Frango e  Carne: porção 500g  | 1 Rolinho  | Refrigerante 350ml",
+    "codigo": "050",
+    "preco": 50
+  },
+  {
+    "id_produto": 2552672,
+    "id_categoria": 446608,
+    "categoria": "Combos para 2",
+    "item": "Promoção Yakisoba Frango e Carne + 2 Rolinho + Refrigerante",
+    "descricao": "Yakisoba Frango e Carne:  porção média 1k | 2 Rolinhos | Refrigerante 350ml",
+    "codigo": "050",
+    "preco": 75
+  },
+  {
+    "id_produto": 2596930,
+    "id_categoria": 454362,
+    "categoria": "Combos família",
+    "item": "Combo Yakisoba",
+    "descricao": "Yakisoba de frango, carne e legumes (aprx. 2 kg) + 4 rolinhos + refrigerante (1L)",
+    "codigo": "0",
+    "preco": 125
+  },
+  {
+    "id_produto": 2596944,
+    "id_categoria": 454362,
+    "categoria": "Combos família",
+    "item": "Combo Frango Xadrez",
+    "descricao": "Frango Xadrez (aprx. 1 kg) + Risoto Chop Suey (Grande)- SEM CASTANHA",
+    "codigo": "0",
+    "preco": 75
+  },
+  {
+    "id_produto": 2551787,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Frango com legumes",
+    "descricao": "Porção pequena com 500g",
+    "codigo": "004",
+    "preco": 35
+  },
+  {
+    "id_produto": 2551809,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Frango com legumes",
+    "descricao": "Porção média com 1k",
+    "codigo": "005",
+    "preco": 62
+  },
+  {
+    "id_produto": 2551810,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Frango com legumes",
+    "descricao": "Porção grande com 2k",
+    "codigo": "006",
+    "preco": 105
+  },
+  {
+    "id_produto": 2551832,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne com legumes",
+    "descricao": "Porção pequena com 500g",
+    "codigo": "007",
+    "preco": 40
+  },
+  {
+    "id_produto": 2551833,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne com legumes",
+    "descricao": "Porção grande com 2k",
+    "codigo": "009",
+    "preco": 110
+  },
+  {
+    "id_produto": 2551842,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne com legumes",
+    "descricao": "Porção média com 1kg",
+    "codigo": "008",
+    "preco": 68
+  },
+  {
+    "id_produto": 2551876,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne e Frango com legumes",
+    "descricao": "Porção grande com 2k",
+    "codigo": "011",
+    "preco": 110
+  },
+  {
+    "id_produto": 2551872,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne e Frango com legumes",
+    "descricao": "Porção pequena com 500g",
+    "codigo": "009",
+    "preco": 40
+  },
+  {
+    "id_produto": 2551895,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Carne e Frango com legumes",
+    "descricao": "Porção média com 1k",
+    "codigo": "010",
+    "preco": 68
+  },
+  {
+    "id_produto": 2551905,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Legumes",
+    "descricao": "Porção pequena com 500g",
+    "codigo": "012",
+    "preco": 30
+  },
+  {
+    "id_produto": 2551930,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Legumes",
+    "descricao": "Porção grande com 1k",
+    "codigo": "019",
+    "preco": 55
+  },
+  {
+    "id_produto": 2551958,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Camarão, Carne, Frango e Legumes",
+    "descricao": "Porção pequena com 500g",
+    "codigo": "016",
+    "preco": 51
+  },
+  {
+    "id_produto": 2551964,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Camarão, Carne, Frango e Legumes",
+    "descricao": "Porção grande, aprx. 2 kg",
+    "codigo": "020",
+    "preco": 135
+  },
+  {
+    "id_produto": 2552060,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Camarão, Carne, Frango e Legumes",
+    "descricao": "Porção média, aprx. 1 kg",
+    "codigo": "021",
+    "preco": 78
+  },
+  {
+    "id_produto": 2676578,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba - Legumes",
+    "descricao": "Porção grande com 2k",
+    "codigo": "025",
+    "preco": 97
+  },
+  {
+    "id_produto": 2709298,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Camarão e Legumes",
+    "descricao": "Porção pequena (individual)",
+    "codigo": "0",
+    "preco": 57
+  },
+  {
+    "id_produto": 2709305,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Camarão e Legumes",
+    "descricao": "Porção média ( serve 2 pessoas)",
+    "codigo": "0",
+    "preco": 87
+  },
+  {
+    "id_produto": 2709323,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Camarão e Legumes",
+    "descricao": "Porção Grande (serve 4 pessoas)",
+    "codigo": "0",
+    "preco": 145
+  },
+  {
+    "id_produto": 2875755,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Frutos do mar (Camarão, lula, polvo e legumes)",
+    "descricao": "(porção pequena, aprx. 500 g)",
+    "codigo": "0",
+    "preco": 70
+  },
+  {
+    "id_produto": 2875937,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Frutos do mar (Camarão, lula, polvo e legumes)",
+    "descricao": "(porção média, aprx. 1 kg)",
+    "codigo": "0",
+    "preco": 105
+  },
+  {
+    "id_produto": 2875933,
+    "id_categoria": 446481,
+    "categoria": "Yakisoba",
+    "item": "Yakisoba Frutos do mar (Camarão, lula, polvo e legumes)",
+    "descricao": "(porção grande, aprx. 2 kg)",
+    "codigo": "0",
+    "preco": 165
+  },
+  {
+    "id_produto": 2552081,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez (Cebola  - Pimentão - Sem Castanha)",
+    "descricao": "Porção pequena 500g",
+    "codigo": "0",
+    "preco": 45
+  },
+  {
+    "id_produto": 2561090,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez Ao Molho Especial (Sem legumes - Sem Castanha)",
+    "descricao": "Porção média 1kg",
+    "codigo": "023",
+    "preco": 72
+  },
+  {
+    "id_produto": 9030571,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez Ao Molho Especial(Sem legumes - Sem Castanha)",
+    "descricao": "Porção pequena 500g",
+    "codigo": "0",
+    "preco": 51
+  },
+  {
+    "id_produto": 9030576,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez (Cebola  - Pimentão - Com Castanha)",
+    "descricao": "Porção média 1kg",
+    "codigo": "023",
+    "preco": 70
+  },
+  {
+    "id_produto": 9030582,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez (Cebola  - Pimentão - Com Castanha)",
+    "descricao": "Porção pequena 500g",
+    "codigo": "0",
+    "preco": 51
+  },
+  {
+    "id_produto": 9030638,
+    "id_categoria": 446531,
+    "categoria": "Frango Xadrez",
+    "item": "Frango Xadrez (Cebola  - Pimentão - Sem Castanha)",
+    "descricao": "Porção Grande 1 kg",
+    "codigo": "0",
+    "preco": 64
+  },
+  {
+    "id_produto": 2552121,
+    "id_categoria": 446538,
+    "categoria": "Frango Apimentado",
+    "item": "Frango Apimentado",
+    "descricao": "Porção pequena 500g",
+    "codigo": "0",
+    "preco": 49
+  },
+  {
+    "id_produto": 2552123,
+    "id_categoria": 446538,
+    "categoria": "Frango Apimentado",
+    "item": "Frango Apimentado",
+    "descricao": "Porção grande 1k",
+    "codigo": "0",
+    "preco": 72
+  },
+  {
+    "id_produto": 2560034,
+    "id_categoria": 447972,
+    "categoria": "Carne Desfiada",
+    "item": "Carne Desfiada",
+    "descricao": "Porção pequena 500g",
+    "codigo": "050",
+    "preco": 53
+  },
+  {
+    "id_produto": 2560040,
+    "id_categoria": 447972,
+    "categoria": "Carne Desfiada",
+    "item": "Carne Desfiada",
+    "descricao": "Porção média 1k",
+    "codigo": "051",
+    "preco": 75
+  },
+  {
+    "id_produto": 2709425,
+    "id_categoria": 473266,
+    "categoria": "Camarão Apimentado",
+    "item": "Camarão apimentado",
+    "descricao": "Camarão apimentado ao molho de tomate (porção média - serve 2 pessoas)",
+    "codigo": "0",
+    "preco": 65
+  },
+  {
+    "id_produto": 2709428,
+    "id_categoria": 473266,
+    "categoria": "Camarão Apimentado",
+    "item": "Camarão apimentado",
+    "descricao": "Camarão apimentado ao molho de tomate (porção grande - serve 4 pessoas)",
+    "codigo": "0",
+    "preco": 115
+  },
+  {
+    "id_produto": 2709442,
+    "id_categoria": 473276,
+    "categoria": "Camarão com legumes",
+    "item": "Camarão com Legumes",
+    "descricao": "Porção Grande (serve 4 pessoas)",
+    "codigo": "0",
+    "preco": 110
+  },
+  {
+    "id_produto": 2709445,
+    "id_categoria": 473276,
+    "categoria": "Camarão com legumes",
+    "item": "Camarão com Legumes",
+    "descricao": "Porção média (serve 2 pessoas)",
+    "codigo": "0",
+    "preco": 63
+  },
+  {
+    "id_produto": 2552185,
+    "id_categoria": 446546,
+    "categoria": "Risoto Chop Suey (Cenoura - Presunto - Cebolinha - Ovos)",
+    "item": "Risoto Chop Suey (Cenoura - Presunto - Cebolinha - Ovos)",
+    "descricao": "Porção pequena",
+    "codigo": "0",
+    "preco": 17.5
+  },
+  {
+    "id_produto": 2552186,
+    "id_categoria": 446546,
+    "categoria": "Risoto Chop Suey (Cenoura - Presunto - Cebolinha - Ovos)",
+    "item": "Risoto Chop Suey (Cenoura - Presunto - Cebolinha - Ovos)",
+    "descricao": "Porção grande",
+    "codigo": "0",
+    "preco": 29
+  },
+  {
+    "id_produto": 2709352,
+    "id_categoria": 473257,
+    "categoria": "Risoto Chop Suey Camarão",
+    "item": "Risoto Chop Suey Camarão (Cenoura, Cebolinha e ovos)",
+    "descricao": "Porção pequena",
+    "codigo": "0",
+    "preco": 35
+  },
+  {
+    "id_produto": 2709353,
+    "id_categoria": 473257,
+    "categoria": "Risoto Chop Suey Camarão",
+    "item": "Risoto Chop Suey Camarão (Cenoura, Cebolinha e ovos)",
+    "descricao": "Porção grande",
+    "codigo": "0",
+    "preco": 55
+  },
+  {
+    "id_produto": 2552474,
+    "id_categoria": 446573,
+    "categoria": "Arroz",
+    "item": "Arroz Branco",
+    "descricao": "Porção pequena 500g",
+    "codigo": "040",
+    "preco": 14.5
+  },
+  {
+    "id_produto": 2552483,
+    "id_categoria": 446573,
+    "categoria": "Arroz",
+    "item": "Arroz Branco",
+    "descricao": "Porção grande 1k",
+    "codigo": "041",
+    "preco": 23
+  },
+  {
+    "id_produto": 2552247,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Refrigerante Laranja",
+    "descricao": "1L",
+    "codigo": "031",
+    "preco": 12
+  },
+  {
+    "id_produto": 2552232,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Pepsi Cola",
+    "descricao": "1L",
+    "codigo": "030",
+    "preco": 12
+  },
+  {
+    "id_produto": 11498692,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Guaraná Antarctica",
+    "descricao": "1L",
+    "codigo": "030",
+    "preco": 12
+  },
+  {
+    "id_produto": 2552303,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Coca-Cola - Lata",
+    "descricao": "350ml",
+    "codigo": "033",
+    "preco": 9.5
+  },
+  {
+    "id_produto": 2552314,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Refrigerante Guarana",
+    "descricao": "350ml",
+    "codigo": "040",
+    "preco": 9.5
+  },
+  {
+    "id_produto": 2552326,
+    "id_categoria": 446471,
+    "categoria": "Refrigerantes",
+    "item": "Refrigerante Laranja - Lata",
+    "descricao": "350ml",
+    "codigo": "0",
+    "preco": 9.5
+  }
+]
