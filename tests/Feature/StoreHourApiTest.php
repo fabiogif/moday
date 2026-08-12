@@ -174,7 +174,10 @@ class StoreHourApiTest extends TestCase
         $response = $this->withHeader('Authorization', "Bearer {$this->token}")
             ->postJson('/api/store-hours', $data);
 
-        $response->assertStatus(500); // Service lança exceção
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 
     #[Test]

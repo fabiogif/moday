@@ -135,19 +135,22 @@ class FileUploadServiceTest extends TestCase
     }
 
     #[Test]
-    public function valida_dimensoes_maximas_da_imagem()
+    public function redimensiona_imagem_acima_do_limite_de_dimensoes()
     {
-        // Criar imagem maior que 2048x2048
+        // Imagens maiores que 2048x2048 devem ser redimensionadas, nao rejeitadas
         $largeImage = UploadedFile::fake()->image('large.jpg', 3000, 3000);
 
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Dimensões da imagem muito grandes. Máximo: 2048x2048px');
-
-        $this->fileUploadService->uploadFile(
-            $largeImage, 
-            'product', 
+        $result = $this->fileUploadService->uploadFile(
+            $largeImage,
+            'product',
             $this->tenant->uuid
         );
+
+        Storage::disk($result['disk'])->assertExists($result['path']);
+
+        $imageInfo = getimagesize(Storage::disk($result['disk'])->path($result['path']));
+        $this->assertLessThanOrEqual(2048, $imageInfo[0]);
+        $this->assertLessThanOrEqual(2048, $imageInfo[1]);
     }
 
     #[Test]
