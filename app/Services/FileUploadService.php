@@ -312,15 +312,7 @@ class FileUploadService
             if ($imageInfo === false) {
                 throw new Exception("Arquivo de imagem inválido");
             }
-            
-            // Validar dimensões se especificadas
-            if (isset($config['max_width']) && $imageInfo[0] > $config['max_width']) {
-                throw new Exception("Dimensões da imagem muito grandes. Máximo: {$config['max_width']}x{$config['max_height']}px");
-            }
-            
-            if (isset($config['max_height']) && $imageInfo[1] > $config['max_height']) {
-                throw new Exception("Dimensões da imagem muito grandes. Máximo: {$config['max_width']}x{$config['max_height']}px");
-            }
+            // Dimensões grandes são redimensionadas em processFile
         }
     }
 
@@ -437,7 +429,11 @@ class FileUploadService
             );
             
             // Salvar arquivo processado
-            $tempPath = storage_path('app/temp/' . Str::uuid() . '.' . $extension);
+            $tempDir = storage_path('app/temp');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+            $tempPath = $tempDir . '/' . Str::uuid() . '.' . $extension;
             $this->saveImageToFile($newImage, $tempPath, $mimeType, $config['quality'] ?? 85);
             
             // Limpar memória

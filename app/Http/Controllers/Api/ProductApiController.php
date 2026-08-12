@@ -268,8 +268,14 @@ class ProductApiController extends Controller
             }
 
             return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto criado com sucesso', 201);
+        } catch (\Illuminate\Database\QueryException $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao criar produto');
         } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex);
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage() ?: 'Erro ao criar produto',
+                'error' => $ex->getMessage() ?: 'Erro ao criar produto',
+            ], 422);
         }
     }
 
@@ -395,8 +401,14 @@ class ProductApiController extends Controller
             }
             
             return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto atualizado com sucesso', 200);
-        } catch (\Exception $ex) {
+        } catch (\Illuminate\Database\QueryException $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar produto');
+        } catch (\Exception $ex) {
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage() ?: 'Erro ao atualizar produto',
+                'error' => $ex->getMessage() ?: 'Erro ao atualizar produto',
+            ], 422);
         }
     }
 

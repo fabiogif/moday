@@ -54,8 +54,14 @@ class StoreHourApiController extends Controller
                 'Horário de funcionamento criado com sucesso',
                 201
             );
+        } catch (\Illuminate\Database\QueryException $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao criar horario de funcionamento');
         } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao criar horário de funcionamento');
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage(),
+                'error' => $ex->getMessage(),
+            ], 422);
         }
     }
 
@@ -98,8 +104,14 @@ class StoreHourApiController extends Controller
                 'Horário de funcionamento atualizado com sucesso',
                 200
             );
+        } catch (\Illuminate\Database\QueryException $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao atualizar horario de funcionamento');
         } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao atualizar horário de funcionamento');
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage(),
+                'error' => $ex->getMessage(),
+            ], 422);
         }
     }
 
