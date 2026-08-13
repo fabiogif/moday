@@ -1,0 +1,70 @@
+---
+description: Onde criar arquivos .md e .sh — nunca na raiz do repositório
+alwaysApply: true
+---
+
+# Organização de `.md` e `.sh`
+
+Nunca crie `.md` ou `.sh` soltos na raiz do projeto nem em `frontend/` (exceto `README.md` e `AGENTS.md` na raiz; READMEs colocalizados como `frontend/src/__tests__/README.md` ok).
+
+## Markdown (`.md`)
+
+Coloque em `docs/<tema>/` e atualize `docs/README.md` se for doc relevante.
+
+| Tema | Pasta |
+|------|--------|
+| Guias / quick start | `docs/guias/` |
+| Pedidos / kanban / recibo | `docs/pedidos/` |
+| Produtos | `docs/produtos/` |
+| Dashboard | `docs/dashboard/` |
+| Loja pública / auth cliente | `docs/loja-publica/` |
+| Usuários / perfis / permissões | `docs/usuarios-permissoes/` |
+| WebSocket / Reverb | `docs/websocket/` |
+| Cache Redis | `docs/cache-redis/` |
+| Correções pontuais | `docs/correcoes/` |
+| Features gerais | `docs/features/` |
+| Resumos de sessão | `docs/resumos/` |
+| Índices | `docs/indices/` |
+
+Nome preferido: `NOME_DESCRITIVO.md` (MAIÚSCULAS + underscore).
+
+## Shell (`.sh`)
+
+| Tipo | Pasta |
+|------|--------|
+| Testes / diagnóstico / smoke | `scripts/test/` |
+| Setup Docker, Composer, Reverb, utilitários Laravel | `backend/scripts/` |
+
+Não coloque `.sh` em `frontend/` nem na raiz.
+
+### Bootstrap obrigatório
+
+**Testes** (`scripts/test/*.sh`):
+
+```bash
+#!/bin/bash
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT" || exit 1
+```
+
+**Backend** (`backend/scripts/*.sh`):
+
+```bash
+#!/bin/bash
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)" || exit 1
+```
+
+Após criar um script novo de uso recorrente, mencione em `scripts/README.md`.
+
+## Exemplos
+
+```text
+❌ ADICAO_FOO.md
+✅ docs/produtos/ADICAO_FOO.md
+
+❌ test-foo.sh
+✅ scripts/test/test-foo.sh
+
+❌ backend/setup-bar.sh
+✅ backend/scripts/setup-bar.sh
+```

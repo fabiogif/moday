@@ -6,7 +6,6 @@
 
 - **Backend** (`/backend/`): Laravel 11 API with JWT auth, Docker Sail environment, and repository pattern
 - **Frontend** (`/frontend/`): Next.js 15 ShadCN dashboard with shadcn/ui components and TypeScript
-- **Base Frontend** (`/base_frontend/`): ShadCN template foundation (reference only)
 
 ## Development Environment
 

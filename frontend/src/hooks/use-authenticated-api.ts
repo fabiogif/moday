@@ -1,9 +1,9 @@
 /**
- * Hook para fazer requisições autenticadas
+ * Hook para fazer requisiçÃµes autenticadas
  * Verifica se o usuário está autenticado antes de fazer a requisição
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, endpoints } from '@/lib/api-client'
 
@@ -21,13 +21,48 @@ interface UseAuthenticatedApiState<T> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Module-level TTL cache — keyed by "endpoint::queryParamsJSON"
+// Survives re-renders and component remounts within the same browser session.
+// ---------------------------------------------------------------------------
+const REQUEST_CACHE = new Map<string, { data: unknown; timestamp: number; ttl: number }>()
+
+function getCachedData(key: string): unknown | null {
+  const entry = REQUEST_CACHE.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.timestamp > entry.ttl) {
+    REQUEST_CACHE.delete(key)
+    return null
+  }
+  return entry.data
+}
+
+function setCachedData(key: string, data: unknown, ttl: number): void {
+  REQUEST_CACHE.set(key, { data, timestamp: Date.now(), ttl })
+}
+
+/**
+ * Invalidate cache entries whose key contains `pattern`.
+ * Call with no argument to clear the entire cache.
+ */
+export function invalidateCache(pattern?: string): void {
+  if (!pattern) {
+    REQUEST_CACHE.clear()
+    return
+  }
+  for (const key of REQUEST_CACHE.keys()) {
+    if (key.includes(pattern)) REQUEST_CACHE.delete(key)
+  }
+}
+// ---------------------------------------------------------------------------
+
 export function useAuthenticatedApi<T>(
   endpoint: string,
-  options: { immediate?: boolean; queryParams?: Record<string, any> } = {}
+  options: { immediate?: boolean; queryParams?: Record<string, any>; ttl?: number } = {}
 ): UseAuthenticatedApiState<T> {
-  const { immediate = true, queryParams = {} } = options
-  const { token, isAuthenticated } = useAuth()
-  
+  const { immediate = true, queryParams = {}, ttl = 30_000 } = options
+  const { token, isAuthenticated, isLoading: authLoading } = useAuth()
+
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,57 +73,76 @@ export function useAuthenticatedApi<T>(
     total: number
   } | null>(null)
 
+  // Serializar queryParams para evitar loop infinito no useCallback
+  const queryParamsKey = useMemo(() => JSON.stringify(queryParams), [queryParams])
+
   const fetchData = useCallback(async () => {
+    // Aguardar o AuthContext terminar de carregar antes de verificar autenticação
+    if (authLoading) {
+      return
+    }
+
     if (!isAuthenticated || !token) {
       setError('Usuário não autenticado')
       return
     }
 
+    // Serve from cache if the data is still fresh — no network request needed
+    const cacheKey = `${endpoint}::${queryParamsKey}`
+    const cached = getCachedData(cacheKey)
+    if (cached !== null) {
+      setData(cached as T)
+      return
+    }
+
     // Garantir que o token está no ApiClient
-    apiClient.setToken(token)
+    if (typeof window !== 'undefined') {
+      const tokenFromStorage = localStorage.getItem('auth-token')
+      apiClient.setToken(tokenFromStorage || token)
+    } else {
+      apiClient.setToken(token)
+    }
 
     setLoading(true)
     setError(null)
 
     try {
-      // Construir URL com query parameters
-      const url = new URL(endpoint, window.location.origin)
-      Object.entries(queryParams).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, value.toString())
-        }
-      })
-      
-      const response = await apiClient.get<T>(url.pathname + url.search)
-      
+      const currentQueryParams = queryParamsKey ? JSON.parse(queryParamsKey) : {}
+
+      let finalEndpoint = endpoint
+
+      if (Object.keys(currentQueryParams).length > 0) {
+        const url = new URL(endpoint, window.location.origin)
+        Object.entries(currentQueryParams).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            url.searchParams.append(key, value.toString())
+          }
+        })
+        finalEndpoint = url.pathname + url.search
+      }
+
+      const response = await apiClient.get<T>(finalEndpoint)
+
       if (response.success) {
-        // Verificar diferentes estruturas de resposta
         let extractedData = response.data
         let paginationData = null
-        
-        // 1. Se response.data é um array, usar diretamente
+
         if (Array.isArray(response.data)) {
           extractedData = response.data
-        }
-        // 2. Se response.data é um objeto e tem pagination no mesmo nível
-        else if (response.data && typeof response.data === 'object' && 'pagination' in response.data) {
-          // Verificar se há paginação
+        } else if (response.data && typeof response.data === 'object' && 'pagination' in response.data) {
           paginationData = (response.data as any).pagination
           extractedData = response.data
-        }
-        // 3. Se response.data tem uma propriedade data (Laravel Resource Collection)
-        else if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+        } else if (response.data && typeof response.data === 'object' && 'data' in response.data) {
           extractedData = (response.data as any).data
-          // Verificar se há paginação
           if ('pagination' in response.data) {
             paginationData = (response.data as any).pagination
           }
-        }
-        // 4. Se response.data é um objeto simples 
-        else if (response.data && typeof response.data === 'object') {
+        } else if (response.data && typeof response.data === 'object') {
           extractedData = response.data
         }
-        
+
+        // Cache the result and update state
+        setCachedData(cacheKey, extractedData, ttl)
         setData(extractedData as T)
         if (paginationData) {
           setPagination(paginationData)
@@ -97,8 +151,6 @@ export function useAuthenticatedApi<T>(
         setError(response.message || 'Erro ao carregar dados')
       }
     } catch (err: any) {
-      
-      // Tentar extrair mais informações do erro
       let errorMessage = 'Erro na requisição'
       if (err.message) {
         errorMessage = err.message
@@ -107,32 +159,50 @@ export function useAuthenticatedApi<T>(
       } else if (typeof err === 'string') {
         errorMessage = err
       }
-      
+
       setError(errorMessage)
     } finally {
       setLoading(false)
     }
-  }, [endpoint, isAuthenticated, token])
+  }, [endpoint, isAuthenticated, token, authLoading, queryParamsKey, ttl])
+
+  // refetch always bypasses cache so the caller gets fresh data on demand
+  const refetch = useCallback(async () => {
+    invalidateCache(`${endpoint}::${queryParamsKey}`)
+    await fetchData()
+  }, [endpoint, queryParamsKey, fetchData])
 
   useEffect(() => {
-    if (immediate && isAuthenticated && token) {
+    if (immediate && !authLoading && isAuthenticated && token) {
       fetchData()
     }
-  }, [immediate, isAuthenticated, token, fetchData])
+  }, [immediate, authLoading, isAuthenticated, token, fetchData])
 
-  return { 
-    data, 
-    loading, 
-    error, 
-    refetch: fetchData,
-    isAuthenticated,
+  const effectiveIsAuthenticated = authLoading ? true : isAuthenticated
+
+  return {
+    data,
+    loading,
+    error,
+    refetch,
+    isAuthenticated: effectiveIsAuthenticated,
     pagination: pagination || undefined
   }
 }
 
-// Hooks específicos para endpoints autenticados
+// ---------------------------------------------------------------------------
+// Hooks específicos — TTL configurado por frequência de mudança dos dados:
+//   60 s — dados estáticos (produtos, categorias, métodos de pagamento)
+//   30 s — dados semi-estáticos (mesas, clientes, tipos de atendimento)
+//   15 s — dados dinÃ¢micos (pedidos do dia, pedidos por mesa)
+// ---------------------------------------------------------------------------
 export function useAuthenticatedProducts() {
-  return useAuthenticatedApi(endpoints.products.list, { immediate: true })
+  return useAuthenticatedApi(endpoints.products.list, { ttl: 60_000 })
+}
+
+/** Produtos para PDV e vendas — apenas ativos e com estoque (backend: ProductCatalogVisibilityRule). */
+export function useAuthenticatedCatalogProducts() {
+  return useAuthenticatedApi(endpoints.products.catalog, { ttl: 60_000 })
 }
 
 export function useAuthenticatedPermissions() {
@@ -156,11 +226,15 @@ export function useAuthenticatedProductStats() {
 }
 
 export function useAuthenticatedCategories() {
-  return useAuthenticatedApi(endpoints.categories.list, { immediate: true })
+  // A tela usa paginação client-side; buscar um lote maior evita ?sumir? categorias novas.
+  return useAuthenticatedApi(endpoints.categories.list, {
+    ttl: 60_000,
+    queryParams: { per_page: 200 },
+  })
 }
 
 export function useAuthenticatedCategoryStats() {
-  return useAuthenticatedApi(endpoints.categories.stats, { immediate: true })
+  return useAuthenticatedApi(endpoints.categories.stats, { ttl: 60_000 })
 }
 
 export function useAuthenticatedOrders(params?: { page?: number; per_page?: number; status?: string }) {
@@ -176,7 +250,23 @@ export function useAuthenticatedOrderStats() {
 }
 
 export function useAuthenticatedTables() {
-  return useAuthenticatedApi(endpoints.tables.list, { immediate: true })
+  return useAuthenticatedApi(endpoints.tables.list, { ttl: 30_000 })
+}
+
+export function useAuthenticatedPlans() {
+  return useAuthenticatedApi(endpoints.plans.list, { immediate: true })
+}
+
+export function useAuthenticatedServiceTypes() {
+  return useAuthenticatedApi(endpoints.serviceTypes.list, { immediate: true })
+}
+
+export function useAuthenticatedActiveServiceTypes() {
+  return useAuthenticatedApi(endpoints.serviceTypes.active, { ttl: 60_000 })
+}
+
+export function useAuthenticatedMenuServiceTypes() {
+  return useAuthenticatedApi(endpoints.serviceTypes.menu, { ttl: 60_000 })
 }
 
 export function useAuthenticatedTableStats() {
@@ -222,14 +312,38 @@ export function useAuthenticatedRoles() {
 }
 
 export function useAuthenticatedClients() {
-  return useAuthenticatedApi(endpoints.clients.list, { immediate: true })
+  return useAuthenticatedApi(endpoints.clients.list, { ttl: 30_000 })
+}
+
+export function useAuthenticatedOrdersByTable(tableUuid: string | null) {
+  return useAuthenticatedApi(
+    tableUuid ? endpoints.orders.getByTable(tableUuid) : '',
+    { immediate: !!tableUuid, ttl: 15_000 }
+  )
+}
+
+export function useAuthenticatedTodayOrders() {
+  return useAuthenticatedApi(endpoints.orders.getToday, { ttl: 15_000 })
 }
 
 export function useAuthenticatedClientStats() {
   return useAuthenticatedApi(endpoints.clients.stats, { immediate: true })
 }
 
-// Hook para operações de mutação (POST, PUT, DELETE)
+// Reviews
+export function useAuthenticatedReviews(status?: string) {
+  return useAuthenticatedApi(endpoints.reviews.list(status), { immediate: true })
+}
+
+export function useAuthenticatedReviewStats() {
+  return useAuthenticatedApi(endpoints.reviews.stats, { immediate: true })
+}
+
+export function useAuthenticatedRecentReviews(limit: number = 5) {
+  return useAuthenticatedApi(endpoints.reviews.recent(limit), { immediate: true })
+}
+
+// Hook para operaçÃµes de mutação (POST, PUT, DELETE)
 export function useMutation<T, P = any>() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -237,7 +351,7 @@ export function useMutation<T, P = any>() {
 
   const mutate = useCallback(async (
     endpoint: string,
-    method: 'POST' | 'PUT' | 'DELETE',
+    method: 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     data?: P
   ): Promise<T | null> => {
     if (!isAuthenticated || !token) {
@@ -245,14 +359,14 @@ export function useMutation<T, P = any>() {
       throw new Error('Usuário não autenticado')
     }
 
-    // Garantir que o token está no ApiClient
+    // Garantir que o token está no ApiClient e recarregar do localStorage se necessário
     apiClient.setToken(token)
+    apiClient.reloadToken() // Forçar recarga do token para garantir sincronização
 
     setLoading(true)
     setError(null)
 
     try {
-      console.log('AuthenticatedMutation: Fazendo requisição para:', endpoint)
       let response
       switch (method) {
         case 'POST':
@@ -263,6 +377,9 @@ export function useMutation<T, P = any>() {
           break
         case 'DELETE':
           response = await apiClient.delete<T>(endpoint)
+          break
+        case 'PATCH':
+          response = await apiClient.patch<T>(endpoint, data)
           break
       }
 
@@ -281,14 +398,15 @@ export function useMutation<T, P = any>() {
         throw new Error(errorMsg)
       }
     } catch (err: any) {
-      console.error('AuthenticatedMutation: Erro na requisição:', err)
+      // Log detalhado apenas em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+
+      }
       
       let errorMessage = 'Erro na requisição'
       
       // Tratar erros de validação (HTTP 422)
       if (err.errors || err.data) {
-        console.error('AuthenticatedMutation: Erros de validação:', err.errors || err.data)
-        
         // Laravel retorna erros em diferentes formatos
         const validationErrors = err.errors || err.data || {}
         const errorMessages: string[] = []
@@ -311,7 +429,7 @@ export function useMutation<T, P = any>() {
       }
       
       setError(errorMessage)
-      throw new Error(errorMessage)
+      throw err  // Lançar erro original ao invés de new Error()
     } finally {
       setLoading(false)
     }
@@ -320,7 +438,7 @@ export function useMutation<T, P = any>() {
   return { mutate, loading, error }
 }
 
-// Hook para operações de mutação com tratamento de erros de validação
+// Hook para operaçÃµes de mutação com tratamento de erros de validação
 export function useMutationWithValidation<T, P = any>(
   setFormError: any,
   fieldMapping?: Record<string, string>
@@ -331,7 +449,7 @@ export function useMutationWithValidation<T, P = any>(
 
   const mutate = useCallback(async (
     endpoint: string,
-    method: 'POST' | 'PUT' | 'DELETE',
+    method: 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     data?: P
   ): Promise<T | null> => {
     if (!isAuthenticated || !token) {
@@ -339,14 +457,14 @@ export function useMutationWithValidation<T, P = any>(
       return null
     }
 
-    // Garantir que o token está no ApiClient
+    // Garantir que o token está no ApiClient e recarregar do localStorage se necessário
     apiClient.setToken(token)
+    apiClient.reloadToken() // Forçar recarga do token para garantir sincronização
 
     setLoading(true)
     setError(null)
 
     try {
-      console.log('AuthenticatedMutation: Fazendo requisição para:', endpoint)
       let response
       switch (method) {
         case 'POST':
@@ -358,6 +476,9 @@ export function useMutationWithValidation<T, P = any>(
         case 'DELETE':
           response = await apiClient.delete<T>(endpoint)
           break
+        case 'PATCH':
+          response = await apiClient.patch<T>(endpoint, data)
+          break
       }
 
       if (response.success) {
@@ -367,12 +488,10 @@ export function useMutationWithValidation<T, P = any>(
         return null
       }
     } catch (err: any) {
-      console.error('AuthenticatedMutation: Erro na requisição:', err)
-      
+
       // Tratar erros de validação do backend
       if (err.data && err.data.data) {
-        console.error('AuthenticatedMutation: Erros de validação:', err.data.data)
-        
+
         // Mapear erros para campos do formulário
         Object.entries(err.data.data).forEach(([field, messages]) => {
           const fieldName = fieldMapping?.[field] || field
@@ -397,12 +516,10 @@ export function useMutationWithValidation<T, P = any>(
   return { mutate, loading, error }
 }
 
-// Hook específico para formas de pagamento
 export function useAuthenticatedPaymentMethods() {
-  return useAuthenticatedApi(endpoints.paymentMethods.list)
+  return useAuthenticatedApi(endpoints.paymentMethods.list, { ttl: 60_000 })
 }
 
-// Hook específico para formas de pagamento ativas
 export function useAuthenticatedActivePaymentMethods() {
-  return useAuthenticatedApi(endpoints.paymentMethods.active)
+  return useAuthenticatedApi(endpoints.paymentMethods.active, { ttl: 60_000 })
 }

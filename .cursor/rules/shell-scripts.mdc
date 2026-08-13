@@ -1,0 +1,14 @@
+---
+description: Convenções ao editar ou criar scripts shell
+globs: scripts/**/*.sh,backend/scripts/**/*.sh
+alwaysApply: false
+---
+
+# Scripts Shell
+
+- Testes → `scripts/test/` com bootstrap `ROOT` + `cd "$ROOT"`.
+- Utilitários Laravel/Docker → `backend/scripts/` com `cd` para `backend/`.
+- Use `#!/bin/bash`; `set -e` quando o script não for menu interativo.
+- Não hardcode `/Users/.../moday`; use `$ROOT` ou caminhos relativos após o `cd`.
+- Nome: `test-*.sh` / `setup-*.sh` / `fix-*.sh`, alinhado aos vizinhos da pasta.
+- Atualize `scripts/README.md` se for de uso recorrente.

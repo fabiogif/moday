@@ -1,0 +1,13 @@
+---
+description: Convenções ao editar ou criar documentação Markdown
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Docs Markdown
+
+- Novos docs entram em `docs/<tema>/`, nunca na raiz.
+- Temas: `guias`, `pedidos`, `produtos`, `dashboard`, `loja-publica`, `usuarios-permissoes`, `websocket`, `cache-redis`, `correcoes`, `features`, `resumos`, `indices`.
+- Ao adicionar um doc importante, inclua um link em `docs/README.md`.
+- Prefira títulos claros em PT-BR; evite duplicar `RESUMO_FINAL_*` do mesmo tema — atualize o existente.
+- Índice canônico: `docs/README.md`.

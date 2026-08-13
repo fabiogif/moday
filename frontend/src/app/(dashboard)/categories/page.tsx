@@ -8,11 +8,27 @@ import {
   type CategoryFormValues,
   type EditableCategory,
 } from "./components/category-form-dialog"
-import { useAuthenticatedCategories, useMutation } from "@/hooks/use-authenticated-api"
+import { invalidateCache, useAuthenticatedCategories, useMutation } from "@/hooks/use-authenticated-api"
 import { endpoints } from "@/lib/api-client"
 import { PageLoading } from "@/components/ui/loading-progress"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
+
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const err = error as {
+    message?: string
+    errors?: Record<string, string[] | string>
+  }
+  if (err?.errors && typeof err.errors === "object") {
+    const messages = Object.values(err.errors)
+      .flatMap((value) => (Array.isArray(value) ? value : [value]))
+      .filter(Boolean)
+    if (messages.length > 0) {
+      return messages.join("\n")
+    }
+  }
+  return err?.message || fallback
+}
 
 interface Category {
   id?: number
@@ -38,6 +54,12 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<EditableCategory | null>(null)
   const [editOpen, setEditOpen] = useState(false)
 
+  const refreshCategories = async () => {
+    invalidateCache(endpoints.categories.list)
+    invalidateCache(endpoints.categories.stats)
+    await refetch()
+  }
+
   const handleAddCategory = async (categoryData: CategoryFormValues) => {
     try {
       const result = await createCategory(endpoints.categories.create, "POST", {
@@ -48,10 +70,11 @@ export default function CategoriesPage() {
 
       if (result) {
         toast.success("Categoria criada com sucesso")
-        await refetch()
+        await refreshCategories()
       }
-    } catch (error: any) {
-      toast.error(error?.message || "Erro ao criar categoria")
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Erro ao criar categoria"))
+      throw error
     }
   }
 
@@ -66,10 +89,10 @@ export default function CategoriesPage() {
 
       if (result) {
         toast.success("Categoria atualizada com sucesso")
-        await refetch()
+        await refreshCategories()
       }
-    } catch (error: any) {
-      toast.error(error?.message || "Erro ao atualizar categoria")
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Erro ao atualizar categoria"))
       throw error
     }
   }
@@ -80,10 +103,10 @@ export default function CategoriesPage() {
 
       if (result) {
         toast.success("Categoria excluída com sucesso")
-        await refetch()
+        await refreshCategories()
       }
-    } catch (error: any) {
-      toast.error(error?.message || "Erro ao excluir categoria")
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Erro ao excluir categoria"))
     }
   }
 

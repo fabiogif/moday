@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Plus } from "lucide-react"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 
@@ -37,15 +37,15 @@ const categoryFormSchema = z.object({
   name: z.string().min(2, {
     message: "Nome deve ter pelo menos 2 caracteres.",
   }),
-  description: z.string().max(500).optional().or(z.literal("")),
-  color: z.string().optional().or(z.literal("")),
+  description: z.string().max(500).default(""),
+  color: z.string().default(""),
   isActive: z.boolean(),
 })
 
-export interface CategoryFormValues {
+export type CategoryFormValues = {
   name: string
-  description?: string
-  color?: string
+  description: string
+  color: string
   isActive: boolean
 }
 
@@ -92,7 +92,7 @@ export function CategoryFormDialog({
   const setOpen = onOpenChange ?? setUncontrolledOpen
 
   const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categoryFormSchema),
+    resolver: zodResolver(categoryFormSchema) as Resolver<CategoryFormValues>,
     defaultValues: {
       name: "",
       description: "",
@@ -124,13 +124,32 @@ export function CategoryFormDialog({
   }, [open, categoryToEdit, form])
 
   const onSubmit = async (data: CategoryFormValues) => {
-    if (isEdit && categoryToEdit && onEditCategory) {
-      await onEditCategory(categoryToEdit.identify, data)
-    } else {
-      await onAddCategory(data)
+    try {
+      if (isEdit && categoryToEdit && onEditCategory) {
+        await onEditCategory(categoryToEdit.identify, data)
+      } else {
+        await onAddCategory(data)
+      }
+      form.reset()
+      setOpen(false)
+    } catch (error: unknown) {
+      const err = error as {
+        errors?: Record<string, string[] | string>
+        message?: string
+      }
+      const fieldErrors = err?.errors
+      if (fieldErrors && typeof fieldErrors === "object") {
+        Object.entries(fieldErrors).forEach(([field, messages]) => {
+          const message = Array.isArray(messages) ? messages[0] : String(messages)
+          if (field in form.getValues()) {
+            form.setError(field as keyof CategoryFormValues, {
+              type: "server",
+              message,
+            })
+          }
+        })
+      }
     }
-    form.reset()
-    setOpen(false)
   }
 
   return (
