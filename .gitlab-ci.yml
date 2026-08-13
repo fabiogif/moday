@@ -63,6 +63,10 @@ backend:test:
       php artisan key:generate --ansi --force
       # Log completo em arquivo (limite do GitLab job log = 4MB); console só com resumo
       mkdir -p storage/logs
+      # Placeholders: GitLab falha o job (exit 2) se reports:junit não existir
+      printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?><testsuites></testsuites>' > storage/logs/phpunit-junit.xml
+      : > storage/logs/phpunit-testdox.txt
+      : > storage/logs/phpunit.out
       set +e
       XDEBUG_MODE=off \
         LOG_CHANNEL=null \
@@ -77,8 +81,12 @@ backend:test:
           > storage/logs/phpunit.out 2>&1
       status=$?
       set -e
+      if [ ! -s storage/logs/phpunit-junit.xml ]; then
+        printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?><testsuites></testsuites>' > storage/logs/phpunit-junit.xml
+      fi
+      touch storage/logs/phpunit-testdox.txt
       echo "=== PHPUnit resumo (exit=${status}) ==="
-      grep -E '^(OK |FAILURES!|ERRORS!|Tests:|There were|Time:)' storage/logs/phpunit.out || true
+      grep -E '^(OK |FAILURES!|ERRORS!|Tests:|There were|Time:|PHPUnit|Fatal|Error)' storage/logs/phpunit.out || true
       echo "=== últimas 80 linhas ==="
       tail -n 80 storage/logs/phpunit.out
       exit "$status"
