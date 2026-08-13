@@ -273,9 +273,9 @@ frontend:deploy:
       set -e
       FRONTEND_APP_DIR="${HOME}/apps/albatecrest-frontend"
       export FRONTEND_APP_DIR
-      sudo timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
+      sudo -n timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
       if ! command -v rsync >/dev/null 2>&1; then
-        sudo apt-get update -y && sudo apt-get install -y rsync
+        sudo -n apt-get update -y && sudo -n apt-get install -y rsync
       fi
       if ! command -v node >/dev/null 2>&1; then
         echo "Node.js nao encontrado no runner" >&2
@@ -317,13 +317,7 @@ frontend:deploy:
       fi
       npm run build:deploy
 
-      # Unit systemd a partir do arquivo versionado (sem heredoc no YAML)
-      UNIT=/etc/systemd/system/albatecrest-frontend.service
-      sudo cp "$CI_PROJECT_DIR/deploy/albatecrest-frontend.service" "$UNIT"
-      sudo systemctl daemon-reload
-      sudo systemctl enable albatecrest-frontend.service
-      sudo systemctl restart albatecrest-frontend.service
-      sleep 5
+      chmod +x "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
+      "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
       code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
       echo "Frontend local :${FRONTEND_PORT} -> HTTP ${code}"
-      sudo systemctl is-active albatecrest-frontend.service
