@@ -2,38 +2,39 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use App\Http\Requests\BaseRequest as BaseRequest;
 use Illuminate\Validation\Rule;
+use App\Models\Category;
 
 class StoreCategoryRequest extends BaseRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         $tenantId = auth()->user()?->tenant_id;
         $categoryId = $this->route('id') ?? null;
 
-        $nameRule = Rule::unique('categories', 'name');
+        // Soft-delete uses status = I. Inactive names can be reused.
+        $nameRule = Rule::unique('categories', 'name')
+            ->where(fn ($query) => $query->where('status', 'A'));
 
         if ($tenantId) {
             $nameRule = $nameRule->where(fn ($query) => $query->where('tenant_id', $tenantId));
         }
 
         if ($categoryId) {
-            $nameRule = $nameRule->ignore($categoryId);
+            if (is_numeric($categoryId)) {
+                $nameRule = $nameRule->ignore((int) $categoryId);
+            } else {
+                $existingId = Category::query()->where('uuid', $categoryId)->value('id');
+                if ($existingId) {
+                    $nameRule = $nameRule->ignore((int) $existingId);
+                }
+            }
         }
 
         return [
@@ -46,6 +47,15 @@ class StoreCategoryRequest extends BaseRequest
             ],
             'description' => 'nullable|string|max:500',
             'url' => 'nullable|string|max:255',
+            'status' => 'nullable|in:A,I',
+            'isActive' => 'nullable|boolean',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'name.unique' => 'Já existe uma categoria ativa com este nome.',
         ];
     }
 }
