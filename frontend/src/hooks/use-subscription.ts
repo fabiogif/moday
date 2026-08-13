@@ -9,6 +9,8 @@ import type {
   DowngradeRequest,
   ReactivateRequest,
   UpdateCardRequest,
+  CancelSubscriptionRequest,
+  CancelSubscriptionResult,
 } from "@/types/subscription"
 
 export function useSubscription() {
@@ -59,19 +61,28 @@ export function useSubscription() {
     }
   }, [])
 
-  const cancelSubscription = useCallback(async (): Promise<boolean> => {
-    setLoading(true)
-    setError(null)
-    try {
-      await apiClient.post("/api/subscription/cancel", {})
-      return true
-    } catch (err: any) {
-      setError(err?.message ?? "Falha ao cancelar assinatura.")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const cancelSubscription = useCallback(
+    async (payload: CancelSubscriptionRequest = {}): Promise<CancelSubscriptionResult | null> => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await apiClient.post<CancelSubscriptionResult>(
+          endpoints.subscription.cancel,
+          payload,
+        )
+        return {
+          access_until: res?.data?.access_until ?? null,
+          message: res?.message ?? res?.data?.message,
+        }
+      } catch (err: any) {
+        setError(err?.message ?? "Falha ao cancelar assinatura.")
+        return null
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
 
   const reactivate = useCallback(async (data: ReactivateRequest): Promise<boolean> => {
     setLoading(true)

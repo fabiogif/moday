@@ -98,10 +98,17 @@ class SubscriptionAuditService
             metadata: ['cancelled_plan_id' => $planId]);
     }
 
-    public function cancellationRequested(Tenant $tenant, ?string $periodEnd = null): void
+    public function cancellationRequested(Tenant $tenant, ?string $periodEnd = null, ?string $reason = null, ?string $reasonDetail = null): void
     {
-        $this->log($tenant, SubscriptionEvent::CANCELLATION_REQUESTED,
-            metadata: ['access_until' => $periodEnd]);
+        $metadata = ['access_until' => $periodEnd];
+        if ($reason) {
+            $metadata['reason'] = $reason;
+        }
+        if ($reasonDetail) {
+            $metadata['reason_detail'] = $reasonDetail;
+        }
+
+        $this->log($tenant, SubscriptionEvent::CANCELLATION_REQUESTED, metadata: $metadata);
     }
 
     public function cancelled(Tenant $tenant): void

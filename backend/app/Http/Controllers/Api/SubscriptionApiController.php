@@ -9,10 +9,12 @@ use App\Events\SubscriptionReactivated;
 use App\Events\SubscriptionUpgraded;
 use App\Events\SubscriptionDowngradeScheduled;
 use App\Http\Requests\Api\ActivateSubscriptionRequest;
+use App\Http\Requests\Api\CancelSubscriptionRequest;
 use App\Http\Requests\Api\ProcessSubscriptionPaymentRequest;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Services\MercadoPagoService;
+use App\Services\SubscriptionAuditService;
 use App\Services\SubscriptionDomainService;
 use App\Services\SubscriptionService;
 use Carbon\Carbon;
@@ -27,6 +29,7 @@ class SubscriptionApiController extends Controller
         private readonly SubscriptionService       $subscriptionService,
         private readonly MercadoPagoService        $mercadoPagoService,
         private readonly SubscriptionDomainService $domain,
+        private readonly SubscriptionAuditService  $audit,
     ) {}
 
     // ── Existing endpoints (legacy / hybrid mode) ─────────────────────────────
@@ -261,7 +264,7 @@ class SubscriptionApiController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function cancel(Request $request): JsonResponse
+    public function cancel(CancelSubscriptionRequest $request): JsonResponse
     {
         try {
             $user = Auth::user();
@@ -276,16 +279,21 @@ class SubscriptionApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Tenant não encontrado', 404);
             }
 
+            $data = $request->validated();
+            $reason = $data['reason'] ?? null;
+            $reasonDetail = $data['reason_detail'] ?? null;
+
             $billingMode = config('services.mercadopago.billing_mode', 'legacy');
 
             if ($billingMode === 'preapproval') {
-                $this->domain->requestCancellation($tenant);
+                $this->domain->requestCancellation($tenant, $reason, $reasonDetail);
+                $fresh = $tenant->fresh();
                 event(new SubscriptionCancellationRequested(
-                    $tenant->fresh(),
-                    $tenant->current_period_end?->toDateString()
+                    $fresh,
+                    $fresh?->current_period_end?->toDateString()
                 ));
                 return ApiResponseClass::sendResponse([
-                    'access_until' => $tenant->current_period_end?->format('d/m/Y'),
+                    'access_until' => $fresh?->current_period_end?->format('d/m/Y'),
                     'message'      => 'Cancelamento solicitado. Acesso mantido até o fim do ciclo.',
                 ], 'Cancelamento solicitado com sucesso');
             }
@@ -296,9 +304,17 @@ class SubscriptionApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Tenant não encontrado', 404);
             }
 
+            $this->audit->cancellationRequested(
+                $cancelledTenant,
+                null,
+                $reason,
+                $reasonDetail,
+            );
+
             return ApiResponseClass::sendResponse([
-                'tenant'  => $cancelledTenant,
-                'message' => 'Assinatura cancelada. Seus dados foram preservados.',
+                'tenant'       => $cancelledTenant,
+                'access_until' => null,
+                'message'      => 'Assinatura cancelada. Seus dados foram preservados.',
             ], 'Assinatura cancelada com sucesso');
         } catch (\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);

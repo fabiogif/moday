@@ -30,8 +30,9 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "sonner"
-import { Loader2, Building2 } from "lucide-react"
+import { Loader2, Building2, CreditCard } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 const accountFormSchema = z.object({
@@ -348,6 +349,21 @@ export default function AccountSettings() {
 
             <Card>
               <CardContent className="space-y-4">
+                <Separator />
+                <div className="flex flex-wrap gap-2 items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Assinatura</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Gerencie seu plano, cobrança ou cancele a renovação.
+                    </p>
+                  </div>
+                  <Button variant="outline" type="button" asChild className="cursor-pointer">
+                    <Link href="/billing">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Gerenciar assinatura
+                    </Link>
+                  </Button>
+                </div>
                 <Separator />
                 <div className="flex flex-wrap gap-2 items-center justify-between">
                   <div>

@@ -312,7 +312,7 @@ class SubscriptionDomainService
      *
      * @throws \DomainException if already cancelled
      */
-    public function requestCancellation(Tenant $tenant): void
+    public function requestCancellation(Tenant $tenant, ?string $reason = null, ?string $reasonDetail = null): void
     {
         if ($tenant->isCancelled()) {
             throw new \DomainException('Assinatura já está cancelada.');
@@ -334,17 +334,20 @@ class SubscriptionDomainService
             }
         }
 
-        DB::transaction(function () use ($tenant) {
+        DB::transaction(function () use ($tenant, $reason, $reasonDetail) {
             $tenant->requestCancellation();
             $this->audit->cancellationRequested(
                 $tenant,
-                $tenant->current_period_end?->toDateString()
+                $tenant->current_period_end?->toDateString(),
+                $reason,
+                $reasonDetail,
             );
         });
 
         Log::info('SubscriptionDomain: cancelamento solicitado', [
-            'tenant_id'  => $tenant->id,
+            'tenant_id'    => $tenant->id,
             'access_until' => $tenant->current_period_end?->toDateString(),
+            'reason'       => $reason,
         ]);
     }
 

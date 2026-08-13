@@ -62,3 +62,21 @@ export interface ReactivateRequest {
 export interface UpdateCardRequest {
   card_token: string
 }
+
+export type CancellationReason =
+  | "too_expensive"
+  | "missing_features"
+  | "competitor"
+  | "not_needed"
+  | "temporary"
+  | "other"
+
+export interface CancelSubscriptionRequest {
+  reason?: CancellationReason
+  reason_detail?: string
+}
+
+export interface CancelSubscriptionResult {
+  access_until: string | null
+  message?: string
+}

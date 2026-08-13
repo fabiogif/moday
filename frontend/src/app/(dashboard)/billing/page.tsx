@@ -26,6 +26,7 @@ import { UpgradeDialog } from "@/components/subscription/upgrade-dialog"
 import { DowngradeDialog } from "@/components/subscription/downgrade-dialog"
 import { CancelDialog } from "@/components/subscription/cancel-dialog"
 import { ArrowUp, ArrowDown, X, FileText } from "lucide-react"
+import { toast } from "sonner"
 import type { PlanWithDetails } from "@/types/plan"
 import type { SubscriptionInvoice } from "@/types/subscription"
 
@@ -149,10 +150,11 @@ export default function BillingPage() {
           </div>
 
           {!status?.cancellation_pending && accountStatus === "active" && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
               <Button
-                variant="destructive"
+                variant="ghost"
                 size="sm"
+                className="text-destructive hover:text-destructive"
                 onClick={() => setCancelDialog(true)}
               >
                 <X className="mr-1 h-4 w-4" />
@@ -285,7 +287,15 @@ export default function BillingPage() {
         open={cancelDialog}
         onOpenChange={setCancelDialog}
         currentPeriodEnd={status?.current_period_end ?? null}
-        onSuccess={refreshTrialStatus}
+        planName={currentPlan?.name ?? null}
+        onSuccess={async (accessUntil) => {
+          await refreshTrialStatus()
+          toast.success(
+            accessUntil
+              ? `Cancelamento confirmado. Acesso mantido até ${accessUntil}.`
+              : "Assinatura cancelada com sucesso.",
+          )
+        }}
       />
     </div>
   )

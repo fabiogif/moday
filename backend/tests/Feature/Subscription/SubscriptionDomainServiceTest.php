@@ -223,6 +223,7 @@ class SubscriptionDomainServiceTest extends TestCase
     {
         $this->tenant->mp_subscription_id = 'pre_test_123';
         $this->tenant->account_status     = 'active';
+        $this->tenant->current_period_end = now()->addDays(10);
         $this->tenant->save();
 
         $this->mpMock
@@ -230,11 +231,19 @@ class SubscriptionDomainServiceTest extends TestCase
             ->once()
             ->andReturn(['success' => true, 'data' => []]);
 
-        $this->domain->requestCancellation($this->tenant);
+        $this->domain->requestCancellation($this->tenant, 'too_expensive', null);
 
         $this->tenant->refresh();
         $this->assertNotNull($this->tenant->cancellation_requested_at);
         $this->assertEquals('active', $this->tenant->account_status); // still active until period end
+
+        $event = SubscriptionEvent::where('tenant_id', $this->tenant->id)
+            ->where('event_type', SubscriptionEvent::CANCELLATION_REQUESTED)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($event);
+        $this->assertEquals('too_expensive', $event->metadata['reason'] ?? null);
     }
 
     public function test_request_cancellation_throws_when_already_cancelled(): void
