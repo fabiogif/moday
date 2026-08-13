@@ -4,6 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Sincroniza flags de feature em planos pagos.
+ * Colunas podem ausentar se plans veio da migration 0000 mínima — ver create_core_tables.
+ */
 return new class extends Migration
 {
     public function up(): void
