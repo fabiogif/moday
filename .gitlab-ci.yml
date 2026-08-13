@@ -58,10 +58,39 @@ backend:test:
         fi
       fi
       php -m | grep -qi '^pdo_sqlite$' || { echo "Extensao pdo_sqlite ainda ausente apos tentativa de instalacao" >&2; exit 1; }
-      composer install --no-interaction --prefer-dist
+      composer install --no-interaction --prefer-dist --quiet
       cp .env.production.example .env
       php artisan key:generate --ansi --force
-      XDEBUG_MODE=off php -d memory_limit=2048M vendor/bin/phpunit
+      # Log completo em arquivo (limite do GitLab job log = 4MB); console só com resumo
+      mkdir -p storage/logs
+      set +e
+      XDEBUG_MODE=off \
+        LOG_CHANNEL=null \
+        APP_DEBUG=false \
+        php -d memory_limit=2048M vendor/bin/phpunit \
+          --colors=never \
+          --display-deprecations=none \
+          --display-notices=none \
+          --display-warnings=none \
+          --log-junit storage/logs/phpunit-junit.xml \
+          --testdox-text storage/logs/phpunit-testdox.txt \
+          > storage/logs/phpunit.out 2>&1
+      status=$?
+      set -e
+      echo "=== PHPUnit resumo (exit=${status}) ==="
+      grep -E '^(OK |FAILURES!|ERRORS!|Tests:|There were|Time:)' storage/logs/phpunit.out || true
+      echo "=== últimas 80 linhas ==="
+      tail -n 80 storage/logs/phpunit.out
+      exit "$status"
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - backend/storage/logs/phpunit-junit.xml
+      - backend/storage/logs/phpunit-testdox.txt
+      - backend/storage/logs/phpunit.out
+    reports:
+      junit: backend/storage/logs/phpunit-junit.xml
 
 backend:deploy:
   stage: deploy
