@@ -296,6 +296,10 @@ frontend:deploy:
 
       # .env.production a partir do exemplo + overrides de CI Variables
       if [ ! -f .env.production ]; then
+        if [ ! -f .env.production.example ]; then
+          echo "Falta .env.production.example no frontend (precisa estar versionado)" >&2
+          exit 1
+        fi
         cp .env.production.example .env.production
       fi
       if [ -n "${NEXT_PUBLIC_API_URL:-}" ]; then
