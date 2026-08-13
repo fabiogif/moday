@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "orderNumber": "ORD-0001",
+    "customerName": "João Silva",
+    "customerEmail": "joao@example.com",
+    "status": "Pendente",
+    "total": 89.90,
+    "items": 3,
+    "orderDate": "2024-01-15",
+    "deliveryDate": "2024-01-22"
+  },
+  {
+    "id": 2,
+    "orderNumber": "ORD-0002",
+    "customerName": "Maria Santos",
+    "customerEmail": "maria@example.com",
+    "status": "Entregue",
+    "total": 156.50,
+    "items": 5,
+    "orderDate": "2024-01-14",
+    "deliveryDate": "2024-01-21"
+  },
+  {
+    "id": 3,
+    "orderNumber": "ORD-0003",
+    "customerName": "Pedro Costa",
+    "customerEmail": "pedro@example.com",
+    "status": "Em Preparo",
+    "total": 234.75,
+    "items": 7,
+    "orderDate": "2024-01-13",
+    "deliveryDate": "2024-01-20"
+  },
+  {
+    "id": 4,
+    "orderNumber": "ORD-0004",
+    "customerName": "Ana Oliveira",
+    "customerEmail": "ana@example.com",
+    "status": "Cancelado",
+    "total": 67.30,
+    "items": 2,
+    "orderDate": "2024-01-12",
+    "deliveryDate": "2024-01-19"
+  },
+  {
+    "id": 5,
+    "orderNumber": "ORD-0005",
+    "customerName": "Carlos Ferreira",
+    "customerEmail": "carlos@example.com",
+    "status": "Entregue",
+    "total": 198.20,
+    "items": 4,
+    "orderDate": "2024-01-11",
+    "deliveryDate": "2024-01-18"
+  }
+]

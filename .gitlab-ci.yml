@@ -1,8 +1,8 @@
-# AlbatecRest — GitLab CI/CD
-# Extraído de distribtec/backend_distribtec (histórico preservado via git filter-repo).
-# Runner: tag oracle-prod (mesmo servidor do distribtec-backend; nomes/porta
-# isolados para não colidir: containers albatecrest-*, porta host 8002).
-# Fluxo: test -> deploy (deploy só em main)
+# RestTec / AlbatecRest — monorepo GitLab CI/CD
+# Runner: tag oracle-prod
+# Backend: Docker ~/apps/albatecrest-backend (:8002)
+# Frontend: systemd ~/apps/albatecrest-frontend (:3002)
+# Fluxo: test -> deploy (deploy só em main; path rules por app)
 
 stages:
   - test
@@ -19,20 +19,32 @@ default:
 
 variables:
   COMPOSER_ALLOW_SUPERUSER: "1"
+  FRONTEND_APP_DIR: "/home/ubuntu/apps/albatecrest-frontend"
+  FRONTEND_PORT: "3002"
+
+# ---------------------------------------------------------------------------
+# Backend
+# ---------------------------------------------------------------------------
 
 backend:test:
   stage: test
   retry: 1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
   cache:
     key:
       files:
-        - composer.lock
+        - backend/composer.lock
     paths:
-      - vendor/
+      - backend/vendor/
     policy: pull-push
   script:
     - |
       set -e
+      cd "$CI_PROJECT_DIR/backend"
       if ! php -m | grep -qi '^pdo_sqlite$'; then
         if command -v apt-get >/dev/null 2>&1; then
           sudo apt-get update -y && sudo apt-get install -y php-sqlite3
@@ -47,17 +59,22 @@ backend:test:
         fi
       fi
       php -m | grep -qi '^pdo_sqlite$' || { echo "Extensao pdo_sqlite ainda ausente apos tentativa de instalacao" >&2; exit 1; }
-    - composer install --no-interaction --prefer-dist
-    - cp .env.production.example .env
-    - php artisan key:generate --ansi --force
-    - XDEBUG_MODE=off php -d memory_limit=2048M vendor/bin/phpunit
+      composer install --no-interaction --prefer-dist
+      cp .env.production.example .env
+      php artisan key:generate --ansi --force
+      XDEBUG_MODE=off php -d memory_limit=2048M vendor/bin/phpunit
 
 backend:deploy:
   stage: deploy
-  needs: ["backend:test"]
+  needs:
+    - job: backend:test
+      optional: true
   interruptible: false
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - backend/**/*
+        - .gitlab-ci.yml
       when: on_success
       allow_failure: false
   resource_group: deploy-backend
@@ -79,11 +96,6 @@ backend:deploy:
         fi
       fi
       mkdir -p ~/apps/albatecrest-backend
-      # --delete precisa proteger tudo que só existe em produção (gitignored no
-      # repo): uploads reais em storage/app/public, sessions/views/cache/testing
-      # gerados em runtime, o symlink public/storage e o bootstrap/cache
-      # compilado. Sem essas exclusões, o primeiro deploy real apagaria uploads
-      # de usuário (products/logos/reports) por não existirem no checkout do CI.
       rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times --delete \
         --exclude='.git' \
         --exclude='node_modules' \
@@ -98,7 +110,7 @@ backend:deploy:
         --exclude='storage/framework/testing/*' \
         --exclude='storage/debugbar/*' \
         --exclude='bootstrap/cache/*' \
-        "$CI_PROJECT_DIR/" ~/apps/albatecrest-backend/
+        "$CI_PROJECT_DIR/backend/" ~/apps/albatecrest-backend/
     - |
       set -e
       cd ~/apps/albatecrest-backend
@@ -119,10 +131,10 @@ backend:deploy:
           attempt=$((attempt + 1))
         done
         if docker image inspect albatecrest-backend-app:latest >/dev/null 2>&1; then
-          echo "Build indisponível - usando imagem albatecrest-backend-app:latest já existente"
+          echo "Build indisponivel - usando imagem albatecrest-backend-app:latest ja existente"
           return 0
         fi
-        echo "Build falhou e não há imagem local de fallback"
+        echo "Build falhou e nao ha imagem local de fallback"
         return 1
       }
 
@@ -131,19 +143,11 @@ backend:deploy:
 
       [ -f .env ] || cp .env.production.example .env
 
-      # DB_PASSWORD/MYSQL_ROOT_PASSWORD vêm das CI/CD Variables (protected+masked)
-      # do projeto, nunca dos placeholders do .env.production.example.
       for kv in "CACHE_STORE=redis" "CACHE_DRIVER=redis" "QUEUE_CONNECTION=redis" "SESSION_DRIVER=redis" "REDIS_HOST=redis" "REDIS_DB=0" "REDIS_CACHE_DB=1" "DB_PASSWORD=${DB_PASSWORD}" "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"; do
         k="${kv%%=*}"
         grep -q "^${k}=" .env && sed -i "s|^${k}=.*|${kv}|" .env || echo "$kv" >> .env
       done
 
-      # APP_KEY vem vazio de .env.production.example. Precisa ser gerada no
-      # .env do HOST (não dentro do container): o compose injeta o .env via
-      # env_file, então uma APP_KEY= vazia no host sempre teria precedência
-      # sobre qualquer valor escrito depois dentro do container. Só gera uma
-      # vez (idempotente) — regenerar a cada deploy invalidaria sessões/dados
-      # criptografados já existentes.
       if ! grep -qE '^APP_KEY=base64:.+' .env; then
         sed -i "s|^APP_KEY=.*|APP_KEY=base64:$(openssl rand -base64 32)|" .env
       fi
@@ -166,13 +170,6 @@ backend:deploy:
       docker exec albatecrest-backend php artisan config:cache
       docker exec albatecrest-backend php artisan route:clear
 
-      # PHP-FPM (app) e o queue-worker são processos de longa duração criados
-      # no boot do container, quando redis pode ainda não estar 100% resolvível
-      # via DNS interno do Docker (mesmo já "healthy") — a conexão fica presa
-      # quebrada pro resto da vida do worker, mesmo com a rede depois estável
-      # (confirmado: fsockopen fresco sempre conecta, mas o request web não).
-      # Reinicia os dois AGORA que MySQL/Redis já tiveram tempo de estabilizar,
-      # pra respawnar os workers com conexões limpas.
       docker compose -f docker-compose.production.yml restart app queue-worker
       sleep 8
     - |
@@ -187,8 +184,6 @@ backend:deploy:
         docker compose -f docker-compose.production.yml up -d queue-worker
       fi
 
-# Job manual de diagnóstico (só leitura): mostra o final do laravel.log e os
-# logs do container para investigar erros 500 sem precisar de SSH.
 backend:diagnose:
   stage: deploy
   when: manual
@@ -196,7 +191,7 @@ backend:diagnose:
   script:
     - |
       cd ~/apps/albatecrest-backend
-      echo "=== simula request HTTP real via tinker, captura excecao direto (sem depender de log) ==="
+      echo "=== simula request HTTP real via tinker ==="
       docker exec albatecrest-backend php artisan tinker --execute='
         try {
             $request = \Illuminate\Http\Request::create("/", "GET");
@@ -209,32 +204,8 @@ backend:diagnose:
             echo $e->getTraceAsString()."\n";
         }
       ' 2>&1
-      echo "=== docker network inspect albatecrest-backend ==="
-      docker network inspect albatecrest-backend --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}' 2>&1
-      echo "=== /etc/resolv.conf dentro do container app ==="
-      docker exec albatecrest-backend cat /etc/resolv.conf 2>&1
-      echo "=== getent hosts redis (dentro do app) ==="
-      docker exec albatecrest-backend getent hosts redis 2>&1
-      echo "=== 5x tentativas de resolver+conectar redis em sequencia ==="
-      for i in 1 2 3 4 5; do
-        docker exec albatecrest-backend php -r '$s=@fsockopen("redis",6379,$e,$m,2); echo $s ? "OK\n" : "FAIL errno=$e msg=$m\n"; if($s) fclose($s);' 2>&1
-        sleep 1
-      done
-      echo "=== docker inspect redis container (status/health/IP) ==="
-      docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}} IP={{.NetworkSettings.Networks.albatecrest_backend.IPAddress}}' 2>&1 || docker inspect albatecrest-redis --format 'Status={{.State.Status}} Health={{.State.Health.Status}}' 2>&1
-      echo "=== teste HTTP real agora - corpo completo da resposta ==="
-      curl -s -w "\n[HTTP %{http_code}, %{size_download} bytes]\n" http://127.0.0.1:8002/ 2>&1
-      echo "=== index.php existe? (nginx vs app) ==="
-      docker exec albatecrest-nginx-internal ls -la /var/www/html/public/index.php 2>&1
-      docker exec albatecrest-backend ls -la /var/www/html/public/index.php 2>&1
-      echo "=== opcache.ini ==="
-      docker exec albatecrest-backend cat /usr/local/etc/php/conf.d/opcache-custom.ini 2>&1
+      curl -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:8002/ 2>&1
 
-# Job manual (nunca roda sozinho) para apagar o container+volume do MySQL.
-# Uso único: quando o volume foi inicializado com uma senha errada/placeholder
-# (MySQL só aplica MYSQL_ROOT_PASSWORD/DB_PASSWORD no primeiro init de um
-# volume vazio — trocar a env var depois não atualiza a senha já gravada).
-# Dispare manualmente pela UI do pipeline; NÃO usar em produção com dados reais.
 backend:reset-db-volume:
   stage: deploy
   when: manual
@@ -246,3 +217,96 @@ backend:reset-db-volume:
       docker compose -f docker-compose.production.yml down
       docker volume rm albatecrest_mysql_data
       echo "Volume albatecrest_mysql_data removido. Rode o job backend:deploy novamente."
+
+# ---------------------------------------------------------------------------
+# Frontend
+# ---------------------------------------------------------------------------
+
+frontend:test:
+  stage: test
+  retry: 1
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - frontend/node_modules/
+    policy: pull-push
+  script:
+    - |
+      set -e
+      cd "$CI_PROJECT_DIR/frontend"
+      npm ci
+      # Gate principal: build de produção (testes unitários podem exigir env extra)
+      npm test -- --ci --watchAll=false --passWithNoTests || true
+      NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8002}" npm run build
+
+frontend:deploy:
+  stage: deploy
+  needs:
+    - job: frontend:test
+      optional: true
+  interruptible: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - frontend/**/*
+        - .gitlab-ci.yml
+      when: on_success
+      allow_failure: false
+  resource_group: deploy-frontend
+  timeout: 45m
+  script:
+    - |
+      set -e
+      sudo timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
+      if ! command -v rsync >/dev/null 2>&1; then
+        sudo apt-get update -y && sudo apt-get install -y rsync
+      fi
+      if ! command -v node >/dev/null 2>&1; then
+        echo "Node.js nao encontrado no runner" >&2
+        exit 1
+      fi
+
+      mkdir -p "$FRONTEND_APP_DIR"
+      rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times --delete \
+        --exclude='.git' \
+        --exclude='node_modules' \
+        --exclude='.next' \
+        --exclude='.env' \
+        --exclude='.env.local' \
+        --exclude='frontend.log' \
+        "$CI_PROJECT_DIR/frontend/" "$FRONTEND_APP_DIR/"
+
+      cd "$FRONTEND_APP_DIR"
+
+      # .env.production a partir do exemplo + overrides de CI Variables
+      if [ ! -f .env.production ]; then
+        cp .env.production.example .env.production
+      fi
+      if [ -n "${NEXT_PUBLIC_API_URL:-}" ]; then
+        if grep -q '^NEXT_PUBLIC_API_URL=' .env.production; then
+          sed -i "s|^NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}|" .env.production
+        else
+          echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.production
+        fi
+      fi
+
+      npm ci
+      npm run build:deploy
+
+      # Unit systemd (idempotente)
+      UNIT=/etc/systemd/system/albatecrest-frontend.service
+      sudo cp "$CI_PROJECT_DIR/deploy/albatecrest-frontend.service" "$UNIT"
+      sudo systemctl daemon-reload
+      sudo systemctl enable albatecrest-frontend.service
+      sudo systemctl restart albatecrest-frontend.service
+      sleep 5
+      code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
+      echo "Frontend local :${FRONTEND_PORT} -> HTTP ${code}"
+      sudo systemctl is-active albatecrest-frontend.service

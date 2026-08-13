@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+*.md diff=markdown
+*.css diff=css
+*.html diff=html

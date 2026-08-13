@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "number": "Mesa 01",
+    "capacity": 4,
+    "status": "Disponível",
+    "location": "Salão Principal",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 2,
+    "number": "Mesa 02",
+    "capacity": 6,
+    "status": "Ocupada",
+    "location": "Salão Principal",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "number": "Mesa 03",
+    "capacity": 2,
+    "status": "Reservada",
+    "location": "Área VIP",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 4,
+    "number": "Mesa 04",
+    "capacity": 8,
+    "status": "Disponível",
+    "location": "Terraço",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 5,
+    "number": "Mesa 05",
+    "capacity": 4,
+    "status": "Manutenção",
+    "location": "Salão Principal",
+    "isActive": false,
+    "createdAt": "2024-01-10"
+  }
+]

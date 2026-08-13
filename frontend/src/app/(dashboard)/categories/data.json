@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Pizzas",
+    "description": "Pizzas tradicionais e especiais",
+    "color": "#FF6B6B",
+    "productCount": 15,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 2,
+    "name": "Bebidas",
+    "description": "Refrigerantes, sucos e água",
+    "color": "#4ECDC4",
+    "productCount": 8,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "name": "Sobremesas",
+    "description": "Doces e sobremesas variadas",
+    "color": "#45B7D1",
+    "productCount": 6,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 4,
+    "name": "Lanches",
+    "description": "Hambúrgueres e lanches rápidos",
+    "color": "#96CEB4",
+    "productCount": 12,
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 5,
+    "name": "Saladas",
+    "description": "Saladas frescas e saudáveis",
+    "color": "#FFEAA7",
+    "productCount": 4,
+    "isActive": false,
+    "createdAt": "2024-01-10"
+  }
+]

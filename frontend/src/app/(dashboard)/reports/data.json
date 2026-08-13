@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "name": "Relatório de Vendas Diário",
+    "type": "Vendas",
+    "description": "Relatório com vendas do dia atual",
+    "lastGenerated": "2024-01-15",
+    "status": "Gerado",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 2,
+    "name": "Relatório de Clientes",
+    "type": "Clientes",
+    "description": "Lista de todos os clientes cadastrados",
+    "lastGenerated": "2024-01-14",
+    "status": "Gerado",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "name": "Relatório de Produtos Mais Vendidos",
+    "type": "Produtos",
+    "description": "Ranking dos produtos mais vendidos",
+    "lastGenerated": "2024-01-13",
+    "status": "Gerado",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 4,
+    "name": "Relatório Financeiro Mensal",
+    "type": "Financeiro",
+    "description": "Análise financeira do mês",
+    "lastGenerated": "",
+    "status": "Não Gerado",
+    "isActive": false,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 5,
+    "name": "Relatório de Ocupação de Mesas",
+    "type": "Mesas",
+    "description": "Análise de ocupação das mesas",
+    "lastGenerated": "2024-01-12",
+    "status": "Gerado",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  }
+]

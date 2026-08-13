@@ -1,0 +1,51 @@
+name: moday-frontend
+region: nyc
+
+services:
+  - name: web
+    # Build configuration - use buildpack since Docker is being ignored
+    environment_slug: node-js
+    github:
+      branch: main
+      deploy_on_push: true
+    
+    # Porta HTTP
+    http_port: 3000
+    
+    # Run command
+    run_command: node server.js
+    
+    # Build command
+    build_command: npm run build
+    
+    # Health check
+    health_check:
+      http_path: /
+      port: 3000
+      initial_delay_seconds: 60
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    
+    # Recursos do container
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    
+    # Variáveis de ambiente
+    envs:
+      - key: NODE_ENV
+        value: "production"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: PORT
+        value: "3000"
+      - key: HOSTNAME
+        value: "0.0.0.0"
+      - key: USE_NPM_INSTALL
+        value: "true"
+      - key: NPM_CONFIG_PRODUCTION
+        value: "false"
+      # Adicione suas variáveis de ambiente aqui
+      # - key: NEXT_PUBLIC_API_URL
+      #   value: "https://sua-api.com"
