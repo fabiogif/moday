@@ -155,6 +155,7 @@ export function RegisterForm({
           name: string
           email: string
           is_active: boolean
+          email_verified?: boolean
           tenant: {
             id: number
             uuid: string
@@ -165,6 +166,8 @@ export function RegisterForm({
         token: string
         expires_in: number
         trial_status?: TrialStatus
+        email_verified?: boolean
+        requires_email_verification?: boolean
       }
 
       const response = await apiClient.post<RegisterResponse>('/api/register', data)
@@ -172,6 +175,9 @@ export function RegisterForm({
       if (response.success && response.data) {
         // Salvar token e dados do usuário
         const { token, user } = response.data
+        const emailVerified = Boolean(
+          response.data.email_verified ?? user.email_verified
+        )
         
         if (token) {
           setToken(token)
@@ -179,6 +185,8 @@ export function RegisterForm({
             id: String(user.id),
             name: user.name,
             email: user.email,
+            email_verified: emailVerified,
+            email_verified_at: emailVerified ? new Date().toISOString() : null,
             tenant_id: user.tenant?.id ? String(user.tenant.id) : undefined,
             tenant: user.tenant
               ? { uuid: user.tenant.uuid, name: user.tenant.name }
@@ -191,13 +199,15 @@ export function RegisterForm({
 
           toast({
             title: "Cadastro realizado!",
-            description: "Bem-vindo ao Alba Tec. Redirecionando...",
+            description: emailVerified
+              ? "Bem-vindo ao Alba Tec. Redirecionando..."
+              : "Confirme seu e-mail para proteger a conta.",
           })
 
           onSuccess?.()
 
           setTimeout(() => {
-            router.push('/dashboard')
+            router.push(emailVerified ? '/dashboard' : '/auth/verify-email')
           }, 1000)
         }
       }

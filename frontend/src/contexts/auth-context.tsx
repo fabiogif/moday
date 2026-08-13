@@ -19,6 +19,8 @@ interface User {
   name: string
   email: string
   tenant_id?: string
+  email_verified?: boolean
+  email_verified_at?: string | null
   tenant?: {
     uuid: string
     name: string
@@ -42,7 +44,7 @@ interface AuthContextType {
   trialStatus: TrialStatus | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string, remember?: boolean) => Promise<void>
+  login: (email: string, password: string, remember?: boolean) => Promise<{ email_verified: boolean }>
   logout: () => Promise<void>
   setUser: (user: User) => void
   setToken: (token: string) => void
@@ -221,14 +223,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       const data = result.data // Extract the data object from the response
+      const emailVerified = Boolean(
+        data.email_verified ?? data.user?.email_verified ?? data.user?.email_verified_at
+      )
+      const userPayload = {
+        ...data.user,
+        email_verified: emailVerified,
+      }
 
       persistAuthSession({
         token: data.token,
-        userJson: JSON.stringify(data.user),
+        userJson: JSON.stringify(userPayload),
         remember,
       })
       
-      setUser(data.user)
+      setUser(userPayload)
       setToken(data.token)
       setIsAuthenticated(true)
       
@@ -237,9 +246,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (data.trial_status) {
         persistTrialStatus(data.trial_status)
-      } else {
+      } else if (emailVerified) {
         await refreshTrialStatusWithToken(data.token)
       }
+
+      return { email_verified: emailVerified }
     } catch (error) {
       // Tratar erros de rede (Failed to fetch)
       if (error instanceof TypeError && error.message === 'Failed to fetch') {

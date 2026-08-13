@@ -130,7 +130,9 @@ class AuthController extends ApiController
                 'user' => $this->authenticatedUserResource($result['user']),
                 'token' => $result['token'],
                 'expires_in' => $ttlMinutes * 60,
-                'trial_status' => $result['trial_status'] ?? null
+                'trial_status' => $result['trial_status'] ?? null,
+                'email_verified' => $result['user']->email_verified_at !== null,
+                'requires_email_verification' => $result['user']->email_verified_at === null,
             ], 'Login realizado com sucesso')->withCookie($cookie);
 
         } catch (\Exception $e) {

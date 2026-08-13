@@ -7,18 +7,25 @@ import { getLoginRedirectUrl } from "@/lib/auth-routes"
 import { useTrialGuard } from "@/hooks/use-trial-guard"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useTrialGuard()
 
+  const needsEmailVerification = user?.email_verified === false
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       const search = typeof window !== "undefined" ? window.location.search : ""
       router.replace(getLoginRedirectUrl(pathname, search))
+      return
     }
-  }, [isLoading, isAuthenticated, pathname, router])
+
+    if (!isLoading && isAuthenticated && needsEmailVerification) {
+      router.replace("/auth/verify-email")
+    }
+  }, [isLoading, isAuthenticated, needsEmailVerification, pathname, router])
 
   if (isLoading) {
     return (
@@ -29,6 +36,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
+    return null
+  }
+
+  if (needsEmailVerification) {
     return null
   }
 

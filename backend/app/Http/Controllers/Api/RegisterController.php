@@ -33,6 +33,8 @@ class RegisterController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'is_active' => $user->is_active,
+                    'email_verified' => false,
+                    'email_verified_at' => null,
                     'tenant' => [
                         'id' => $tenant->id,
                         'uuid' => $tenant->uuid,
@@ -43,7 +45,9 @@ class RegisterController extends Controller
                 'token' => $token,
                 'expires_in' => config('jwt.ttl', 120) * 60,
                 'trial_status' => $result['trial_status'],
-            ], 'Cadastro realizado com sucesso! Bem-vindo ao Alba Tec.', 201);
+                'email_verified' => false,
+                'requires_email_verification' => true,
+            ], 'Cadastro realizado com sucesso! Confirme seu e-mail para continuar.', 201);
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao realizar cadastro. Por favor, tente novamente.');
         }

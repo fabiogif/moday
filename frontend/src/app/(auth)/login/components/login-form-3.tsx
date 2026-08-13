@@ -69,9 +69,14 @@ export function LoginForm3({
     setIsLoading(true)
     setAuthError(null)
     try {
-      await login(data.email, data.password, rememberMe)
+      const { email_verified: emailVerified } = await login(data.email, data.password, rememberMe)
       setRememberedEmail(rememberMe ? data.email : null)
       toast.success("Login realizado com sucesso!")
+
+      if (!emailVerified) {
+        router.push("/auth/verify-email")
+        return
+      }
 
       const redirectParam = searchParams.get("redirect")
       let destination = "/dashboard"

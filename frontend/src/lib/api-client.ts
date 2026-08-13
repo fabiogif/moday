@@ -138,6 +138,16 @@ class ApiClient {
             window.dispatchEvent(new CustomEvent('auth:unauthorized'))
           }
         }
+
+        // E-mail não verificado: hard gate no painel (não trata como logout)
+        if (
+          response.status === 403 &&
+          data?.error === 'email_unverified' &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/auth/verify-email')
+        ) {
+          window.location.assign('/auth/verify-email')
+        }
         
         const error: ApiError = {
           success: false,
