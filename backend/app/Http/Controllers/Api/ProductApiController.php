@@ -6,6 +6,7 @@ use App\Classes\ApiResponseClass;
 use Illuminate\Routing\Controller;
 use App\Http\Requests\{Api\TenantFormRequest, StoreUpdateProductRequest, UpdateProductRequest};
 use App\Http\Resources\ProductResource;
+use App\Services\ImageCompressionService;
 use App\Services\ProductService;
 use Illuminate\Http\{Response, JsonResponse};
 
@@ -18,7 +19,10 @@ use Illuminate\Http\{Response, JsonResponse};
 class ProductApiController extends Controller
 {
 
-    public function __construct(private readonly ProductService $productService)
+    public function __construct(
+        private readonly ProductService $productService,
+        private readonly ImageCompressionService $imageCompressionService
+    )
     {
     }
 
@@ -164,7 +168,10 @@ class ProductApiController extends Controller
             $data['tenant_id'] = $user->tenant_id;
             
             if($request->hasFile('image') && $request->image->isValid()){
-                $data['image'] = $request->image->store("tenants/{$user->tenant->uuid}/products");
+                $data['image'] = $this->imageCompressionService->compressAndStore(
+                    $request->image,
+                    "tenants/{$user->tenant->uuid}/products"
+                );
             }
             $product = $this->productService->store($data);
 
@@ -264,7 +271,10 @@ class ProductApiController extends Controller
 
             $data = $request->all();
             if ($request->hasFile('image') && $request->image->isValid()) {
-                $data['image'] = $request->image->store("tenants/{$user->uuid}/products");
+                $data['image'] = $this->imageCompressionService->compressAndStore(
+                    $request->image,
+                    "tenants/{$user->tenant->uuid}/products"
+                );
             }
             
             $product = $this->productService->update($data, $id);
