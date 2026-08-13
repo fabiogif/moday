@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarConfigProvider } from "@/contexts/sidebar-context";
 import { AuthProvider } from "@/contexts/auth-context";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { inter } from "@/lib/fonts";
 import { ToasterProvider } from "@/components/toaster-provider";
 import { GoogleAnalyticsHead } from "@/components/google-analytics";
@@ -43,12 +44,14 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider defaultTheme="system" storageKey="nextjs-ui-theme">
+          <TooltipProvider>
           <AuthProvider>
             <SidebarConfigProvider>
               {children}
               <ToasterProvider />
             </SidebarConfigProvider>
           </AuthProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

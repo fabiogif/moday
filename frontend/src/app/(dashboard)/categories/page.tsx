@@ -99,14 +99,11 @@ export default function CategoriesPage() {
 
   const handleDeleteCategory = async (identify: string) => {
     try {
-      const result = await deleteCategory(endpoints.categories.delete(identify), "DELETE")
-
-      if (result) {
-        toast.success("Categoria excluída com sucesso")
-        await refreshCategories()
-      }
+      await deleteCategory(endpoints.categories.delete(identify), "DELETE")
+      toast.success("Categoria inativada com sucesso")
+      await refreshCategories()
     } catch (error: unknown) {
-      toast.error(getApiErrorMessage(error, "Erro ao excluir categoria"))
+      toast.error(getApiErrorMessage(error, "Erro ao inativar categoria"))
     }
   }
 

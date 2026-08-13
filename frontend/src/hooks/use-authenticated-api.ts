@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, endpoints } from '@/lib/api-client'
+import { getAuthToken } from '@/lib/auth-storage'
 
 interface UseAuthenticatedApiState<T> {
   data: T | null
@@ -97,7 +98,7 @@ export function useAuthenticatedApi<T>(
 
     // Garantir que o token está no ApiClient
     if (typeof window !== 'undefined') {
-      const tokenFromStorage = localStorage.getItem('auth-token')
+      const tokenFromStorage = getAuthToken()
       apiClient.setToken(tokenFromStorage || token)
     } else {
       apiClient.setToken(token)
@@ -391,6 +392,9 @@ export function useMutation<T, P = any>() {
       }
 
       if (response.success) {
+        if (response.data === '' || response.data === null || response.data === undefined) {
+          return true as T
+        }
         return response.data
       } else {
         const errorMsg = response.message || 'Erro na operação'

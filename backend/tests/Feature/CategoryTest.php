@@ -242,7 +242,7 @@ class CategoryTest extends TestCase
         $response->assertStatus(200)
                 ->assertJson([
                     'success' => true,
-                    'message' => 'Categoria deletada com sucesso'
+                    'message' => 'Categoria inativada com sucesso'
                 ]);
 
         $this->assertDatabaseHas('categories', [

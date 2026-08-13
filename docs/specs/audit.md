@@ -1,7 +1,7 @@
 # Auditoria pré-conclusão
 
 Antes de considerar uma tarefa concluída, percorra esta checklist mentalmente (e corrija o que falhar).
-Baseada na arquitetura **real** do Moday (`docs/specs/*`), verificada no código — não em arquitetura aspiracional.
+Baseada na arquitetura **real** do Moday/Alba Tec (`docs/specs/*`), não em Clean Architecture teórica.
 
 Este arquivo é a checklist de **fechamento**. O planejamento pré-implementação (Medium/High) está em `docs/specs/engineering-protocol.md` — os dois se somam; o protocolo **não** substitui o audit.
 
@@ -13,8 +13,8 @@ Este arquivo é a checklist de **fechamento**. O planejamento pré-implementaç�
 
 ## 2. Arquitetura
 
-- [ ] Segui o fluxo do módulo vizinho (Controller→Service→Repository, sempre plano — não há facade+sub-services em nenhum domínio)
-- [ ] Não inventei Interface/DTO/Provider/exception de domínio sem precedente
+- [ ] Segui o fluxo do módulo vizinho (Controller→Service→Repository; facade+sub-services só se o domínio já tiver essa complexidade, como Orders)
+- [ ] Não inventei Interface/DTO/Provider/lib/exception de domínio sem precedente
 - [ ] Reutilizei service/hook/componente/endpoint existente quando havia equivalente
 - [ ] Controller sem regra de negócio e sem HTML
 - [ ] Service sem Request/Response HTTP
@@ -29,9 +29,8 @@ Este arquivo é a checklist de **fechamento**. O planejamento pré-implementaç�
 
 ## 4. Segurança
 
-- [ ] Endpoint autenticado com o guard correto (`api` dashboard/tenant, ou `client` loja pública — não há guard `admin`)
-- [ ] Escopo de tenant verificado manualmente (`tenant_id` — não há trait automática)
-- [ ] Permissão (`acl.permission`) se o módulo exige (não há `plan.feature`/`plan.order_limit`/`plan.user_limit` neste projeto)
+- [ ] Auth + tenant scope (guard correto: `api`/`client`/`admin`)
+- [ ] Permission (`acl.permission`) ou plan feature/limit (`plan.feature`, `plan.order_limit`, `plan.user_limit`) se o módulo exige
 - [ ] Validação de input (Form Request no padrão dominante)
 - [ ] Sem secrets no código
 
@@ -39,18 +38,20 @@ Este arquivo é a checklist de **fechamento**. O planejamento pré-implementaç�
 
 - [ ] Sem N+1 óbvio
 - [ ] Paginação em listagens (via `PaginateRepositoryInterface` quando o domínio já usa)
-- [ ] Cache invalidado no domínio correto se o service usa `CacheService`/`ListingCacheService`
+- [ ] Cache invalidado se o domínio usa `CacheService`/`ListingCacheService`
 
 ## 6. Frontend (se aplicável)
 
-- [ ] Chamadas de API via `use-authenticated-api.ts` (nunca o `use-api.ts` legado)
+- [ ] Paths via `endpoints` (`lib/api-client.ts`)
+- [ ] Hooks `useAuthenticatedApi` / `useMutation` / `useMutationWithValidation` (nunca o `use-api.ts` legado)
 - [ ] Form RHF+Zod se for formulário
 - [ ] Componentes em `{area}/components/` reutilizados/colocados corretamente
 
 ## 7. Testes
 
 - [ ] Teste alinhado ao domínio ou justificativa explícita se não houver
-- [ ] Suite relacionada passa (não há comando `ci:architecture`/`audit:layers` neste projeto — rodar `php artisan test` / `npm test` diretamente)
+- [ ] Suite relacionada passa
+- [ ] `composer run ci:architecture` sem violação nova, se a mudança for no backend
 
 ## 8. Saída da auditoria
 

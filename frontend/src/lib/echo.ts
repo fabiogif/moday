@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import { buildApiUrl } from './api-config'
+import { getAuthToken } from './auth-storage'
 
 declare global {
   interface Window {
@@ -40,7 +41,7 @@ export const initializeEcho = () => {
     return null
   }
 
-  const token = localStorage.getItem('auth-token') || localStorage.getItem('token')
+  const token = getAuthToken() || localStorage.getItem('token')
   const appKey = process.env.NEXT_PUBLIC_REVERB_APP_KEY
   
   if (!token) {

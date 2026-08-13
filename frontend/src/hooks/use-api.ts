@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient, endpoints } from '@/lib/api-client'
+import { getAuthToken } from '@/lib/auth-storage'
 
 interface UseApiState<T> {
   data: T | null
@@ -59,7 +60,7 @@ export function useApi<T>(
 
     // Garantir que o token está no apiClient antes de fazer a requisição
     if (typeof window !== 'undefined') {
-      const tokenFromStorage = localStorage.getItem('auth-token')
+      const tokenFromStorage = getAuthToken()
       if (tokenFromStorage) {
         apiClient.setToken(tokenFromStorage)
         apiClient.reloadToken()
@@ -211,7 +212,7 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth-token')
+        const token = getAuthToken()
         if (token) {
           apiClient.setToken(token)
       const response = await apiClient.get('/api/auth/me')

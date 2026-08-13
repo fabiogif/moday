@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient, endpoints } from '@/lib/api-client'
 import { useAuth } from '@/contexts/auth-context'
+import { getAuthToken } from '@/lib/auth-storage'
 
 export interface PlanLimitData {
   has_limit_reached: boolean
@@ -66,7 +67,7 @@ export function usePlanLimits(): UsePlanLimitsState {
       // Garantir que o token está carregado antes da requisição
       // Verificar diretamente no localStorage primeiro
       if (typeof window !== 'undefined') {
-        const tokenFromStorage = localStorage.getItem('auth-token')
+        const tokenFromStorage = getAuthToken()
         if (tokenFromStorage) {
           apiClient.setToken(tokenFromStorage)
         } else if (token) {

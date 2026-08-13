@@ -73,9 +73,11 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
             return false;
         }
 
-        return (bool) $category->update([
+        $category->update([
             'status' => 'I',
         ]);
+
+        return $category->fresh();
     }
 
     public function getStats(int $tenantId): array

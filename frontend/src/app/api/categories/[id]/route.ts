@@ -65,12 +65,13 @@ export async function DELETE(
     if (!response.ok) {
       const error = await response.json()
       return NextResponse.json(
-        { message: error.message || 'Erro ao excluir categoria' },
+        { message: error.message || 'Erro ao inativar categoria' },
         { status: response.status }
       )
     }
 
-    return NextResponse.json({ message: 'Categoria excluída com sucesso' })
+    const payload = await response.json()
+    return NextResponse.json(payload)
   } catch (error) {
     return NextResponse.json(
       { message: 'Erro interno do servidor' },

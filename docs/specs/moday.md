@@ -80,7 +80,7 @@ Definition of Done:
 
 ✓ Design System respected
 
-✓ Graphify updated (`graphify update .` no app tocado — sem merge-graphs, cada app tem seu próprio `graphify-out/`)
+✓ Graphify updated (per-app + merge-graphs)
 
 ✓ `docs/specs/audit.md` applied
 

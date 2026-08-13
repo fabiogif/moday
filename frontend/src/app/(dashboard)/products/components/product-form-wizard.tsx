@@ -10,12 +10,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ComboboxForm, ComboboxOption } from "@/components/ui/combobox";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Info, DollarSign, Package, ImageIcon, Layers } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Info, DollarSign, Package, ImageIcon, Layers, ClipboardCheck } from "lucide-react";
 import { OrderStepper } from "@/components/order-stepper";
 import { ProductVariationsManager } from "@/components/product-variations-manager";
 import { ProductOptionalsManager } from "@/components/product-optionals-manager";
 import { ProductVariation, ProductOptional } from "@/types/product-variations";
 import { ImageDropzone } from "@/components/image-dropzone";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ProductFormReview } from "./product-form-review";
+import {
+  clearProductFormDraft,
+  hasMeaningfulDraft,
+  loadProductFormDraft,
+  saveProductFormDraft,
+} from "./product-form-draft";
 
 export interface ProductFormValues {
   name: string;
@@ -43,11 +51,13 @@ const STEPS = [
   { label: "Logística", icon: Package },
   { label: "Imagem", icon: ImageIcon },
   { label: "Variações e Opcionais", icon: Layers },
+  { label: "Revisão", icon: ClipboardCheck },
 ];
 
 const STEP_FIELDS: (keyof ProductFormValues)[][] = [
   ["name", "description", "categories"],
   ["price_cost", "price", "qtd_stock"],
+  [],
   [],
   [],
   [],
@@ -119,10 +129,13 @@ export function ProductFormWizard({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const ignoreSaveClickRef = useRef(false);
+  const draftRestoredRef = useRef(false);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const name = form.watch("name");
   const description_ = form.watch("description");
   const categories = form.watch("categories");
+  const watchedValues = form.watch();
 
   const canContinue =
     STEP_FIELDS[currentStep].length === 0 ||
@@ -162,6 +175,34 @@ export function ProductFormWizard({
     }
   };
 
+  useEffect(() => {
+    if (mode !== "create" || draftRestoredRef.current) return;
+    draftRestoredRef.current = true;
+    const draft = loadProductFormDraft();
+    if (!hasMeaningfulDraft(draft)) return;
+    form.reset({ ...form.getValues(), ...draft.values });
+    onVariationsChange(draft.variations ?? []);
+    onOptionalsChange(draft.optionals ?? []);
+    const restoredStep = Math.min(Math.max(draft.step, 0), STEPS.length - 1);
+    setCurrentStep(restoredStep);
+    setCompletedSteps(new Set(Array.from({ length: restoredStep }, (_, index) => index)));
+    setDraftRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "create") return;
+    const draft = {
+      step: currentStep,
+      values: watchedValues,
+      variations,
+      optionals,
+    };
+    if (!hasMeaningfulDraft(draft)) return;
+    const timer = window.setTimeout(() => saveProductFormDraft(draft), 400);
+    return () => window.clearTimeout(timer);
+  }, [mode, currentStep, watchedValues, variations, optionals]);
+
   // Se um erro (frontend ou backend) surgir num campo de um passo anterior, leva o usuário até lá
   useEffect(() => {
     const erroredFields = Object.keys(form.formState.errors) as (keyof ProductFormValues)[];
@@ -193,6 +234,27 @@ export function ProductFormWizard({
       <div className="mb-6 px-1 overflow-x-auto">
         <OrderStepper currentStep={currentStep} steps={STEPS} onStepClick={goToStep} completedSteps={completedSteps} />
       </div>
+
+      {draftRestored && (
+        <Alert className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>Rascunho restaurado. Você pode continuar de onde parou. A imagem precisa ser selecionada de novo.</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start sm:self-auto"
+              onClick={() => {
+                clearProductFormDraft();
+                setDraftRestored(false);
+              }}
+            >
+              Dispensar aviso
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form
@@ -635,9 +697,27 @@ export function ProductFormWizard({
             {/* Passo 5: Variações e Opcionais */}
             {currentStep === 4 && (
               <div className="space-y-6">
+                <div>
+                  <h2 className="text-lg font-semibold">Variações e Opcionais</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Tamanhos e adicionais. Esta etapa é opcional se o produto não tiver variações.
+                  </p>
+                </div>
                 <ProductVariationsManager variations={variations} onChange={onVariationsChange} />
                 <ProductOptionalsManager optionals={optionals} onChange={onOptionalsChange} />
               </div>
+            )}
+
+            {/* Passo 6: Revisão */}
+            {currentStep === 5 && (
+              <ProductFormReview
+                values={watchedValues}
+                categoryOptions={categoryOptions}
+                variations={variations}
+                optionals={optionals}
+                currentImage={currentImage}
+                onEditStep={goToStep}
+              />
             )}
           </div>
 

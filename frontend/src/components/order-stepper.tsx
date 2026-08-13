@@ -35,6 +35,8 @@ export function OrderStepper({
               type="button"
               onClick={() => isClickable && onStepClick?.(index)}
               disabled={!isClickable}
+              aria-current={isCurrent ? "step" : undefined}
+              aria-label={`${step.label}, passo ${index + 1} de ${steps.length}`}
               className={cn(
                 "flex min-w-0 max-w-full flex-col items-center gap-1 transition-colors sm:flex-row sm:gap-2",
                 isClickable && "cursor-pointer",

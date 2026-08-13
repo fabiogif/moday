@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { getApiBaseUrl } from "@/lib/api-config"
 import { endpoints } from "@/lib/api-client"
+import { getAuthToken } from "@/lib/auth-storage"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +48,7 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
     if (!order) return
     setDownloadingCalendar(true)
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null
+      const token = typeof window !== "undefined" ? getAuthToken() : null
       const baseUrl = getApiBaseUrl()
       const res = await fetch(`${baseUrl}${endpoints.orders.calendarLink(order.identify)}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
