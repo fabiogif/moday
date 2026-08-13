@@ -19,7 +19,45 @@ readonly class CategoryService
 
     public function store(array $data)
     {
-        return $this->categoryRepositoryInterface->store($data);
+        $tenantId = isset($data['tenant_id']) ? (int) $data['tenant_id'] : null;
+        $name = isset($data['name']) ? trim((string) $data['name']) : null;
+
+        // Soft-delete uses status=I: reactivate inactive category with same name.
+        if ($tenantId && $name) {
+            $inactive = \App\Models\Category::query()
+                ->where('tenant_id', $tenantId)
+                ->where('name', $name)
+                ->where('status', 'I')
+                ->first();
+
+            if ($inactive) {
+                $payload = array_intersect_key(
+                    array_merge($data, ['status' => 'A']),
+                    array_flip(['name', 'description', 'url', 'status'])
+                );
+                $category = $this->categoryRepositoryInterface->updateByTenant(
+                    $payload,
+                    (int) $inactive->id,
+                    $tenantId
+                );
+
+                $this->cacheService->invalidateCategoryCache($tenantId);
+
+                return $category;
+            }
+        }
+
+        if (!isset($data['status'])) {
+            $data['status'] = 'A';
+        }
+
+        $category = $this->categoryRepositoryInterface->store($data);
+
+        if ($tenantId) {
+            $this->cacheService->invalidateCategoryCache($tenantId);
+        }
+
+        return $category;
     }
 
     public function getByUuid(string $identify, int $tenantId = null)

@@ -42,7 +42,9 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
                 $this->applyFullTextSearch($query, ['name'], $filter);
             }
             $query->where('tenant_id', $tenantId);
-        })->paginate(perPage: $totalPerPage, columns: ['*'], pageName:'page', page: $page, total: null);
+        })
+            ->orderByDesc('id')
+            ->paginate(perPage: $totalPerPage, columns: ['*'], pageName:'page', page: $page, total: null);
         return new PaginatePresenter($result);
     }
     
