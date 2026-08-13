@@ -3,6 +3,16 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { buildApiUrl } from '@/lib/api-config'
+import {
+  clearAuthSession,
+  getAuthToken,
+  getAuthUserRaw,
+  getTrialStatusRaw,
+  persistAuthSession,
+  persistAuthToken,
+  persistAuthUser,
+  persistTrialStatusRaw,
+} from '@/lib/auth-storage'
 
 interface User {
   id: string
@@ -32,7 +42,7 @@ interface AuthContextType {
   trialStatus: TrialStatus | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember?: boolean) => Promise<void>
   logout: () => Promise<void>
   setUser: (user: User) => void
   setToken: (token: string) => void
@@ -65,10 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     setHasMounted(true)
     
-    // Verificar se há dados no localStorage ao inicializar
-    const savedUser = localStorage.getItem('auth-user')
-    const savedToken = localStorage.getItem('auth-token')
-    const savedTrialStatus = localStorage.getItem('trial-status')
+    const savedUser = getAuthUserRaw()
+    const savedToken = getAuthToken()
+    const savedTrialStatus = getTrialStatusRaw()
     
     if (savedUser && savedToken) {
       try {
@@ -77,10 +86,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(savedToken)
         setIsAuthenticated(true)
 
-        // Cookie para o middleware enxergar a sessão após refresh
-        document.cookie = `auth-token=${savedToken}; path=/; max-age=${2 * 60 * 60}; SameSite=Lax`
+        persistAuthToken(savedToken)
           
-        // Recuperar trial status se existir
         if (savedTrialStatus) {
           try {
             const trialData = JSON.parse(savedTrialStatus)
@@ -90,13 +97,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
         
-        // Also set the token in apiClient
         apiClient.setToken(savedToken)
       } catch (error) {
-        // Limpar dados inválidos
-        localStorage.removeItem('auth-user')
-        localStorage.removeItem('auth-token')
-        localStorage.removeItem('trial-status')
+        clearAuthSession()
       }
     }
     
@@ -108,10 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setToken(null)
       setIsAuthenticated(false)
       setTrialStatus(null)
-      localStorage.removeItem('auth-user')
-      localStorage.removeItem('auth-token')
-      localStorage.removeItem('trial-status')
-      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      clearAuthSession()
 
       const path = window.location.pathname + window.location.search
       const loginPath = path && !path.startsWith('/auth/login') && !path.startsWith('/login')
@@ -130,10 +130,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const persistTrialStatus = (status: TrialStatus | null | undefined) => {
     if (!status) return
     setTrialStatus(status)
-    localStorage.setItem('trial-status', JSON.stringify(status))
+    persistTrialStatusRaw(JSON.stringify(status))
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, remember = true) => {
     setIsLoading(true)
     try {
       const response = await fetch(buildApiUrl('/api/auth/login'), {
@@ -222,21 +222,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       const data = result.data // Extract the data object from the response
 
-      // Salvar dados do usuário e token
-      localStorage.setItem('auth-user', JSON.stringify(data.user))
-      localStorage.setItem('auth-token', data.token)
+      persistAuthSession({
+        token: data.token,
+        userJson: JSON.stringify(data.user),
+        remember,
+      })
       
-      // IMPORTANTE: Atualizar o estado do contexto após login bem-sucedido
       setUser(data.user)
       setToken(data.token)
       setIsAuthenticated(true)
       
-      // Also set the token in apiClient
       apiClient.setToken(data.token)
-      apiClient.reloadToken() // Forçar recarga para garantir sincronização
-      
-      // Também salvar no cookie para compatibilidade
-      document.cookie = `auth-token=${data.token}; path=/; max-age=${2 * 60 * 60}`
+      apiClient.reloadToken()
 
       if (data.trial_status) {
         persistTrialStatus(data.trial_status)
@@ -276,14 +273,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // Clear token from apiClient
       apiClient.clearToken()
-      
-      // Remover dados do localStorage
-      localStorage.removeItem('auth-user')
-      localStorage.removeItem('auth-token')
-      localStorage.removeItem('trial-status')
-      
-      // Limpar cookie
-      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      clearAuthSession()
 
       window.location.href = '/auth/login'
     }
@@ -319,7 +309,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateTrialStatus = (status: TrialStatus | null) => {
     if (!status) {
       setTrialStatus(null)
-      localStorage.removeItem('trial-status')
+      persistTrialStatusRaw('')
       return
     }
     persistTrialStatus(status)
@@ -328,14 +318,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUser = (userData: User) => {
     setUser(userData)
     setIsAuthenticated(true)
-    localStorage.setItem('auth-user', JSON.stringify(userData))
+    persistAuthUser(JSON.stringify(userData))
   }
 
   const updateToken = (tokenValue: string) => {
     setToken(tokenValue)
     setIsAuthenticated(true)
-    localStorage.setItem('auth-token', tokenValue)
-    // Also set in apiClient
+    persistAuthToken(tokenValue)
     apiClient.setToken(tokenValue)
   }
 

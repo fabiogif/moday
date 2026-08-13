@@ -128,16 +128,20 @@ class CategoryApiController extends Controller
             if ($check['blocked']) {
                 return ApiResponseClass::validationError([
                     'linked_products' => $check['products']
-                ], 'Não é possível excluir: existem produtos ativos vinculados à categoria');
+                ], 'Não é possível inativar: existem produtos ativos vinculados à categoria');
             }
 
             $deleted = $this->categoryService->delete($identify, $user->tenant_id);
             if (!$deleted) {
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }
-            return ApiResponseClass::sendResponse('', 'Categoria deletada com sucesso', 200);
+            return ApiResponseClass::sendResponse(
+                new CategoryResource($deleted),
+                'Categoria inativada com sucesso',
+                200
+            );
         } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao deletar categoria');
+            return ApiResponseClass::rollback($ex, 'Erro ao inativar categoria');
         }
     }
 

@@ -11,11 +11,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { ShoppingCart, BarChart3, Users, Utensils } from "lucide-react"
+import { ShoppingCart, BarChart3, Users, Utensils, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { AlbaTecLogo } from "@/components/albatec-logo"
+import { getRememberedEmail, setRememberedEmail } from "@/lib/auth-storage"
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -29,6 +32,9 @@ export function LoginForm3({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login } = useAuth()
@@ -36,6 +42,7 @@ export function LoginForm3({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -46,17 +53,24 @@ export function LoginForm3({
   })
 
   useEffect(() => {
+    const remembered = getRememberedEmail()
+    if (remembered) {
+      setValue("email", remembered)
+    }
+
     const url = new URL(window.location.href)
     if (url.searchParams.has('email') || url.searchParams.has('password')) {
       window.history.replaceState({}, '', window.location.pathname)
       toast.error("⚠️ Credenciais não devem ser enviadas via URL. Use o formulário.")
     }
-  }, [])
+  }, [setValue])
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
+    setAuthError(null)
     try {
-      await login(data.email, data.password)
+      await login(data.email, data.password, rememberMe)
+      setRememberedEmail(rememberMe ? data.email : null)
       toast.success("Login realizado com sucesso!")
 
       const redirectParam = searchParams.get("redirect")
@@ -71,6 +85,9 @@ export function LoginForm3({
       router.push(destination)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login"
+      setAuthError(errorMessage)
+      setValue("email", data.email)
+      setValue("password", "")
       toast.error(errorMessage)
     } finally {
       setIsLoading(false)
@@ -98,6 +115,13 @@ export function LoginForm3({
                 </div>
               </div>
 
+              {authError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{authError}</AlertDescription>
+                </Alert>
+              )}
+
               <div className="grid gap-2">
                 <Label htmlFor="email">E-mail</Label>
                 <Input
@@ -123,17 +147,44 @@ export function LoginForm3({
                     Esqueceu a senha?
                   </Link>
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Digite sua senha"
-                  autoComplete="current-password"
-                  {...register("password")}
-                  className={cn("h-11", errors.password && "border-destructive")}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Digite sua senha"
+                    autoComplete="current-password"
+                    {...register("password")}
+                    className={cn("h-11 pr-10", errors.password && "border-destructive")}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </Button>
+                </div>
                 {errors.password && (
                   <p className="text-sm text-destructive">{errors.password.message}</p>
                 )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                  Lembrar-me
+                </Label>
               </div>
 
               <Button

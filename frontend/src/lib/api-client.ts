@@ -4,6 +4,7 @@
  */
 
 import { getApiBaseUrl } from './api-config'
+import { clearAuthSession, getAuthToken, persistAuthToken } from './auth-storage'
 
 const API_BASE_URL = getApiBaseUrl()
 
@@ -38,19 +39,8 @@ class ApiClient {
 
   private loadToken() {
     if (typeof window !== 'undefined') {
-      // Primeiro tenta pegar do localStorage (usando a mesma chave do AuthContext)
-      this.token = localStorage.getItem('auth-token')
+      this.token = getAuthToken()
       
-      // Se não encontrar, tenta pegar do cookie
-      if (!this.token) {
-        const cookies = document.cookie.split(';')
-        const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='))
-        if (authCookie) {
-          this.token = authCookie.split('=')[1]?.trim()
-        }
-      }
-      
-      // Debug em desenvolvimento
       if (process.env.NODE_ENV === 'development' && this.token) {
         console.log('[ApiClient] Token carregado:', {
           hasToken: !!this.token,
@@ -64,9 +54,7 @@ class ApiClient {
   setToken(token: string) {
     this.token = token
     if (typeof window !== 'undefined') {
-      localStorage.setItem('auth-token', token)
-      // Também salvar no cookie para sincronizar com AuthContext
-      document.cookie = `auth-token=${token}; path=/; max-age=${2 * 60 * 60}`
+      persistAuthToken(token)
     }
   }
 
@@ -83,9 +71,7 @@ class ApiClient {
   clearToken() {
     this.token = null
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth-token')
-      // Também remover do cookie
-      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      clearAuthSession()
     }
   }
 
@@ -93,7 +79,7 @@ class ApiClient {
     // SEMPRE verificar localStorage primeiro antes de construir headers
     // Isso garante que o token mais recente seja usado
     if (typeof window !== 'undefined') {
-      const tokenFromStorage = localStorage.getItem('auth-token')
+      const tokenFromStorage = getAuthToken()
       if (tokenFromStorage) {
         // Se encontrou token no storage, usar ele (pode ser mais recente)
         this.token = tokenFromStorage
@@ -118,7 +104,7 @@ class ApiClient {
     } else {
       // Log apenas em desenvolvimento para debug
       if (process.env.NODE_ENV === 'development') {
-        const tokenCheck = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+        const tokenCheck = typeof window !== 'undefined' ? getAuthToken() : null
         console.warn('[ApiClient] Token não encontrado para requisição', {
           hasTokenInInstance: !!this.token,
           hasTokenInStorage: !!tokenCheck,

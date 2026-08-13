@@ -65,6 +65,10 @@ function Harness({ onSubmit, mode = 'create' as const }: { onSubmit: jest.Mock; 
 }
 
 describe('ProductFormWizard - wizard de passos', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   test('renders only step 1 fields on open', () => {
     render(<Harness onSubmit={jest.fn()} />)
 
@@ -113,8 +117,12 @@ describe('ProductFormWizard - wizard de passos', () => {
     expect(await screen.findByText(/Sem imagem cadastrada/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
-    // Passo 5: Variações e Opcionais — botão final
+    // Passo 5: Variações e Opcionais
     expect(await screen.findByText('Variações do Produto')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
+    // Passo 6: Revisão
+    expect(await screen.findByText(/Confira os dados antes de salvar/i)).toBeInTheDocument()
     await act(async () => {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
     })
@@ -147,7 +155,12 @@ describe('ProductFormWizard - wizard de passos', () => {
     expect(onSubmit).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
-    // Botao final aparece; nao deve ter salvo automaticamente
+    // Passo variações: ainda Continuar, sem submit automático
+    expect(await screen.findByText('Variações do Produto')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Continuar/i })).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: /Continuar/i }))
+
     expect(await screen.findByRole('button', { name: /Criar Produto/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Continuar/i })).not.toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
@@ -161,5 +174,48 @@ describe('ProductFormWizard - wizard de passos', () => {
   test('hides the "Produto Ativo" toggle in create mode', () => {
     render(<Harness onSubmit={jest.fn()} mode="create" />)
     expect(screen.queryByText(/Produto Ativo/i)).not.toBeInTheDocument()
+  })
+
+  test('review step offers edit links back to previous sections', async () => {
+    const user = userEvent.setup()
+    render(<Harness onSubmit={jest.fn()} />)
+
+    await user.type(screen.getByLabelText(/Nome do Produto/i), 'Pizza Margherita')
+    await user.type(screen.getByLabelText(/Descrição/i), 'Molho, mussarela e manjericão')
+    await user.click(screen.getByRole('combobox'))
+    await user.click(await screen.findByText('Bebidas'))
+
+    for (let i = 0; i < 5; i++) {
+      await user.click(screen.getByRole('button', { name: /Continuar/i }))
+    }
+
+    expect(await screen.findByText(/Confira os dados antes de salvar/i)).toBeInTheDocument()
+    await user.click(screen.getAllByRole('button', { name: /Editar/i })[0])
+    expect(await screen.findByLabelText(/Nome do Produto/i)).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Pizza Margherita')).toBeInTheDocument()
+  })
+
+  test('restores a saved draft on create', async () => {
+    localStorage.setItem(
+      'product-form-draft',
+      JSON.stringify({
+        step: 1,
+        values: {
+          name: 'Hambúrguer',
+          description: 'Pão, carne e queijo',
+          categories: ['cat-1'],
+          price: 20,
+          price_cost: 10,
+          qtd_stock: 5,
+        },
+        variations: [],
+        optionals: [],
+      }),
+    )
+
+    render(<Harness onSubmit={jest.fn()} />)
+
+    expect(await screen.findByText(/Rascunho restaurado/i)).toBeInTheDocument()
+    expect(await screen.findByLabelText(/Preço de Venda/i)).toBeInTheDocument()
   })
 })

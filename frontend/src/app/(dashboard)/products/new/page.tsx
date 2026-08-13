@@ -12,6 +12,7 @@ import { endpoints } from "@/lib/api-client";
 import { toast } from "sonner";
 import { ProductVariation, ProductOptional } from "@/types/product-variations";
 import { ProductFormWizard, ProductFormValues } from "../components/product-form-wizard";
+import { clearProductFormDraft } from "../components/product-form-draft";
 
 const productFormSchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres."),
@@ -138,6 +139,7 @@ export default function NewProductPage() {
       const result = await createProduct(endpoints.products.create, 'POST', formData);
 
       if (result) {
+        clearProductFormDraft();
         toast.success('Produto criado com sucesso!');
         router.push('/products');
       }

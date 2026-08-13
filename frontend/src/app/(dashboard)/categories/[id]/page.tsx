@@ -12,7 +12,7 @@ import {
   Tag,
   Calendar,
   Edit,
-  Trash2,
+  Ban,
   Package,
   CheckCircle2,
   XCircle,
@@ -151,13 +151,11 @@ export default function CategoryDetailPage() {
 
   const handleDelete = async () => {
     try {
-      const response = await deleteCategory(endpoints.categories.delete(categoryId), "DELETE")
-      if (response) {
-        toast.success("Categoria excluída com sucesso!")
-        router.push("/categories")
-      }
+      await deleteCategory(endpoints.categories.delete(categoryId), "DELETE")
+      toast.success("Categoria inativada com sucesso")
+      router.push("/categories")
     } catch (err: any) {
-      toast.error(err.message || "Erro ao excluir categoria")
+      toast.error(err.message || "Erro ao inativar categoria")
     }
   }
 
@@ -474,17 +472,18 @@ export default function CategoryDetailPage() {
         <CardHeader>
           <CardTitle className="text-base text-destructive">Zona de risco</CardTitle>
           <CardDescription>
-            Ações irreversíveis. A exclusão pode ser bloqueada se houver produtos ativos vinculados.
+            A categoria será inativada e deixará de aparecer nas listagens ativas e no cardápio.
+            A inativação pode ser bloqueada se houver produtos ativos vinculados.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button
             variant="destructive"
             onClick={() => setShowDeleteDialog(true)}
-            disabled={isEditing}
+            disabled={isEditing || category.status === "I"}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Excluir categoria
+            <Ban className="w-4 h-4 mr-2" />
+            Inativar categoria
           </Button>
         </CardContent>
       </Card>
@@ -492,9 +491,9 @@ export default function CategoryDetailPage() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar inativação</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a categoria <strong>{category.name}</strong>?
+              Tem certeza que deseja inativar a categoria <strong>{category.name}</strong>?
               {productCount > 0 && (
                 <span className="block mt-2 text-orange-600 dark:text-orange-400">
                   Atenção: esta categoria possui {productCount} produto(s) associado(s).
@@ -509,7 +508,7 @@ export default function CategoryDetailPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
             >
-              {deleting ? "Excluindo..." : "Excluir"}
+              {deleting ? "Inativando..." : "Inativar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

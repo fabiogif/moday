@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ShoppingCart, Eye } from 'lucide-react'
 import { useOrderRefresh } from '@/hooks/use-order-refresh'
 import { invalidateCache } from '@/hooks/use-authenticated-api'
+import { getAuthToken } from '@/lib/auth-storage'
 
 interface OrderNotification {
   id: string
@@ -159,7 +160,7 @@ export function OrderNotificationsProvider({ children }: OrderNotificationsProvi
       }
 
       try {
-        const token = localStorage.getItem('auth-token') || localStorage.getItem('token')
+        const token = getAuthToken() || localStorage.getItem('token')
         if (!token) return
 
         const response = await fetch(

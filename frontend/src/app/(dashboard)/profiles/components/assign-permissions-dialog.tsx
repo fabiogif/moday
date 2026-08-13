@@ -20,6 +20,7 @@ import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { endpoints } from "@/lib/api-client"
 import { buildApiUrl } from "@/lib/api-config"
+import { getAuthToken } from "@/lib/auth-storage"
 
 interface Permission {
   id: number
@@ -77,7 +78,7 @@ export function AssignPermissionsDialog({
     try {
       const response = await fetch(buildApiUrl(endpoints.profiles.permissions(profile.id)), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Accept': 'application/json',
         },
       })

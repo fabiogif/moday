@@ -20,7 +20,7 @@ import {
   EllipsisVertical,
   Eye,
   Pencil,
-  Trash2,
+  Ban,
   Download,
   Search,
 } from "lucide-react"
@@ -54,6 +54,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { CategoryFormDialog, type CategoryFormValues } from "./category-form-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Category {
   id?: number
@@ -83,6 +93,7 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
+  const [categoryToInactivate, setCategoryToInactivate] = useState<Category | null>(null)
 
   const getStatusColor = (isActive: boolean) => {
     return isActive 
@@ -200,11 +211,15 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => onDeleteCategory(category.identify)}
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setCategoryToInactivate(category)
+                }}
                 className="text-red-600"
+                disabled={category.status === "I"}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Excluir
+                <Ban className="mr-2 h-4 w-4" />
+                Inativar
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -374,6 +389,36 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
           </Button>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!categoryToInactivate}
+        onOpenChange={(open) => !open && setCategoryToInactivate(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar inativação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja inativar a categoria{" "}
+              <strong>{categoryToInactivate?.name}</strong>? Ela deixará de aparecer nas
+              listagens ativas e no cardápio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (categoryToInactivate) {
+                  onDeleteCategory(categoryToInactivate.identify)
+                  setCategoryToInactivate(null)
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
