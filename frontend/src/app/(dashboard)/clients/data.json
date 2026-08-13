@@ -1,0 +1,57 @@
+[
+  {
+    "id": 1,
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "phone": "(11) 99999-9999",
+    "address": "Rua das Flores, 123 - São Paulo/SP",
+    "totalOrders": 15,
+    "lastOrder": "2024-01-15",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 2,
+    "name": "Maria Santos",
+    "email": "maria@example.com",
+    "phone": "(11) 88888-8888",
+    "address": "Av. Paulista, 456 - São Paulo/SP",
+    "totalOrders": 8,
+    "lastOrder": "2024-01-14",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 3,
+    "name": "Pedro Costa",
+    "email": "pedro@example.com",
+    "phone": "(11) 77777-7777",
+    "address": "Rua Augusta, 789 - São Paulo/SP",
+    "totalOrders": 3,
+    "lastOrder": "2024-01-13",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 4,
+    "name": "Ana Oliveira",
+    "email": "ana@example.com",
+    "phone": "(11) 66666-6666",
+    "address": "Rua Oscar Freire, 321 - São Paulo/SP",
+    "totalOrders": 0,
+    "lastOrder": "",
+    "isActive": false,
+    "createdAt": "2024-01-10"
+  },
+  {
+    "id": 5,
+    "name": "Carlos Ferreira",
+    "email": "carlos@example.com",
+    "phone": "(11) 55555-5555",
+    "address": "Rua da Consolação, 654 - São Paulo/SP",
+    "totalOrders": 22,
+    "lastOrder": "2024-01-12",
+    "isActive": true,
+    "createdAt": "2024-01-10"
+  }
+]
