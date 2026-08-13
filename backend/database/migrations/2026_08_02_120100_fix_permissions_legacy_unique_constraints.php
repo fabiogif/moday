@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -16,34 +15,37 @@ use Illuminate\Support\Facades\Schema;
  *
  * Esta migration remove os índices globais legados (se existirem) e garante
  * o índice composto ['slug', 'tenant_id'] já definido no código-fonte atual.
+ *
+ * Usa Schema::getIndexes() (driver-agnostic, Laravel 11+) em vez de consultar
+ * information_schema direto: a versão anterior só rodava em mysql e assumia
+ * que o SQLite (usado nos testes) já tinha o índice certo via
+ * 2025_11_09_000001_create_core_tables — suposição falsa, já que o
+ * Schema::hasTable('permissions') pula esse bloco igualmente no SQLite,
+ * deixando o mesmo índice legado global também nos testes.
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        if (DB::connection()->getDriverName() !== 'mysql') {
-            // SQLite (usado em testes) já cria a tabela com o índice correto
-            // via 2025_11_09_000001_create_core_tables — nada a fazer aqui.
-            return;
+        $indexes = Schema::getIndexes('permissions');
+
+        foreach ($indexes as $index) {
+            if ($index['unique'] && ! $index['primary'] && $index['columns'] === ['slug']) {
+                Schema::table('permissions', function (Blueprint $table) use ($index) {
+                    $table->dropUnique($index['name']);
+                });
+            }
+            if ($index['unique'] && ! $index['primary'] && $index['columns'] === ['name']) {
+                Schema::table('permissions', function (Blueprint $table) use ($index) {
+                    $table->dropUnique($index['name']);
+                });
+            }
         }
 
-        $legacyIndexes = DB::select(
-            "SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'permissions'
-             AND INDEX_NAME IN ('permissions_name_unique', 'permissions_slug_unique')"
-        );
+        $hasCompositeUnique = collect(Schema::getIndexes('permissions'))
+            ->contains(fn ($index) => $index['unique'] && in_array($index['columns'], [['slug', 'tenant_id'], ['tenant_id', 'slug']], true));
 
-        foreach ($legacyIndexes as $index) {
-            DB::statement("ALTER TABLE `permissions` DROP INDEX `{$index->INDEX_NAME}`");
-        }
-
-        $hasCompositeUnique = (bool) DB::selectOne(
-            "SELECT COUNT(*) AS total FROM information_schema.STATISTICS
-             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'permissions'
-             AND INDEX_NAME = 'permissions_slug_tenant_id_unique'"
-        )->total;
-
-        if (!$hasCompositeUnique) {
+        if (! $hasCompositeUnique) {
             Schema::table('permissions', function (Blueprint $table) {
                 $table->unique(['slug', 'tenant_id']);
             });
