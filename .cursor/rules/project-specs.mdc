@@ -1,0 +1,31 @@
+---
+description: Especificações de arquitetura do projeto Moday — mesma fonte usada pelo CLAUDE.md
+alwaysApply: true
+---
+
+# Specs do projeto
+
+Antes de qualquer alteração no código (backend ou frontend), consulte **todos** os arquivos em `docs/specs/`:
+
+- `docs/specs/architecture.md` — visão geral de backend + frontend
+- `docs/specs/backend.md` — Laravel: controllers, services, repositories, rotas
+- `docs/specs/frontend.md` — Next.js: rotas, hooks, componentes, auth
+- `docs/specs/coding-standards.md`, `design-patterns.md`, `naming.md`
+- `docs/specs/security.md`, `performance.md`, `testing.md`
+- `docs/specs/modules.md` — mapa real de módulos existentes
+- `docs/specs/engineering-protocol.md` — processo para mudanças Medium/High + estratégia de agentes
+- `docs/specs/audit.md` — checklist antes de considerar uma tarefa concluída
+- `docs/specs/glossary.md`, `graphify.md`, `laravel.md`, `react.md`, `moday.md`
+
+**Estas specs descrevem o código real deste repositório (`backend/` + `frontend/`), verificado diretamente — não são aspiracionais.** Se algo no código divergir do que a spec descreve, o código manda; reporte a divergência em vez de assumir a spec como verdade.
+
+## Regras
+
+- Sempre siga a arquitetura existente.
+- Nunca crie novos padrões sem necessidade (nenhum módulo hoje usa service-facade, Ports/Adapters ou exceções de domínio customizadas — não introduzir sem precedente real).
+- Sempre reutilize implementações existentes.
+- Respeite SOLID, DRY, KISS e YAGNI.
+- Antes de concluir qualquer implementação, percorra mentalmente `docs/specs/audit.md`.
+- Para tarefas médias/grandes, siga o fluxo de `docs/specs/engineering-protocol.md` (investigar → análise de impacto → estratégia de agentes → parar para aprovação quando aplicável).
+
+Esta mesma pasta `docs/specs/` é a fonte usada pelo `CLAUDE.md` na raiz — não duplique conteúdo de arquitetura aqui, mantenha as duas fontes apontando para os mesmos arquivos.
