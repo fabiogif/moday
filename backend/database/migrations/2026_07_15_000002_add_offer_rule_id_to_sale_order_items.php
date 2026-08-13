@@ -8,16 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('sale_order_items', function (Blueprint $table) {
-            $table->foreignId('offer_rule_id')->nullable()->after('batch_id')
-                ->constrained()->nullOnDelete();
-        });
+        if (!Schema::hasTable('sale_order_items')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('sale_order_items', 'offer_rule_id')) {
+            Schema::table('sale_order_items', function (Blueprint $table) {
+                $table->foreignId('offer_rule_id')->nullable()->after('batch_id')
+                    ->constrained()->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('sale_order_items', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('offer_rule_id');
-        });
+        if (Schema::hasTable('sale_order_items') && Schema::hasColumn('sale_order_items', 'offer_rule_id')) {
+            Schema::table('sale_order_items', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('offer_rule_id');
+            });
+        }
     }
 };

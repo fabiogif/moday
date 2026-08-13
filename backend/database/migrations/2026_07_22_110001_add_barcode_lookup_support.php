@@ -9,39 +9,47 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            if (!Schema::hasColumn('products', 'volume')) {
-                $table->decimal('volume', 12, 4)->nullable()->after('depth');
-            }
-            if (!Schema::hasColumn('products', 'image_url')) {
-                $table->string('image_url', 500)->nullable()->after('image');
-            }
-        });
+        if (Schema::hasTable('products')) {
+            Schema::table('products', function (Blueprint $table) {
+                if (!Schema::hasColumn('products', 'volume')) {
+                    $table->decimal('volume', 12, 4)->nullable()->after('depth');
+                }
+                if (!Schema::hasColumn('products', 'image_url')) {
+                    $table->string('image_url', 500)->nullable()->after('image');
+                }
+            });
 
-        if (!$this->indexExists('products', 'idx_produto_codigo_barras') && !$this->hasDuplicateBarcodes()) {
-            try {
-                Schema::table('products', function (Blueprint $table) {
-                    $table->unique(['tenant_id', 'barcode'], 'idx_produto_codigo_barras');
-                });
-            } catch (\Throwable) {
-                // Ambientes com dados legados / índice equivalente
+            if (
+                Schema::hasColumn('products', 'barcode')
+                && !$this->indexExists('products', 'idx_produto_codigo_barras')
+                && !$this->hasDuplicateBarcodes()
+            ) {
+                try {
+                    Schema::table('products', function (Blueprint $table) {
+                        $table->unique(['tenant_id', 'barcode'], 'idx_produto_codigo_barras');
+                    });
+                } catch (\Throwable) {
+                    // Ambientes com dados legados / índice equivalente
+                }
             }
         }
 
-        Schema::create('barcode_lookups', function (Blueprint $table) {
-            $table->id();
-            $table->string('barcode', 20)->unique();
-            $table->string('source', 40);
-            $table->string('name')->nullable();
-            $table->string('brand', 150)->nullable();
-            $table->string('category', 150)->nullable();
-            $table->string('unit_of_measure', 50)->nullable();
-            $table->decimal('weight', 12, 4)->nullable();
-            $table->decimal('volume', 12, 4)->nullable();
-            $table->string('image_url', 500)->nullable();
-            $table->json('raw_payload')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('barcode_lookups')) {
+            Schema::create('barcode_lookups', function (Blueprint $table) {
+                $table->id();
+                $table->string('barcode', 20)->unique();
+                $table->string('source', 40);
+                $table->string('name')->nullable();
+                $table->string('brand', 150)->nullable();
+                $table->string('category', 150)->nullable();
+                $table->string('unit_of_measure', 50)->nullable();
+                $table->decimal('weight', 12, 4)->nullable();
+                $table->decimal('volume', 12, 4)->nullable();
+                $table->string('image_url', 500)->nullable();
+                $table->json('raw_payload')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

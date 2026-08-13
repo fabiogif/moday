@@ -32,17 +32,34 @@ return new class extends Migration
             }
         });
 
-        Schema::table('clients', function (Blueprint $table) {
-            $table->index(['tenant_id', 'abc_classification'], 'clients_tenant_abc_idx');
-            $table->index(['tenant_id', 'is_vip'], 'clients_tenant_vip_idx');
-        });
+        try {
+            Schema::table('clients', function (Blueprint $table) {
+                $table->index(['tenant_id', 'abc_classification'], 'clients_tenant_abc_idx');
+            });
+        } catch (\Throwable) {
+            // Índice já existe
+        }
+
+        try {
+            Schema::table('clients', function (Blueprint $table) {
+                $table->index(['tenant_id', 'is_vip'], 'clients_tenant_vip_idx');
+            });
+        } catch (\Throwable) {
+            // Índice já existe
+        }
     }
 
     public function down(): void
     {
         Schema::table('clients', function (Blueprint $table) {
-            $table->dropIndex('clients_tenant_abc_idx');
-            $table->dropIndex('clients_tenant_vip_idx');
+            try {
+                $table->dropIndex('clients_tenant_abc_idx');
+            } catch (\Throwable) {
+            }
+            try {
+                $table->dropIndex('clients_tenant_vip_idx');
+            } catch (\Throwable) {
+            }
 
             $columns = array_filter([
                 Schema::hasColumn('clients', 'latitude') ? 'latitude' : null,

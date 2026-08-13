@@ -70,9 +70,21 @@ return new class extends Migration
 
             Schema::table($table, function (Blueprint $blueprint) use ($table, $columnSets) {
                 foreach ($columnSets as $columns) {
+                    $missing = array_filter(
+                        $columns,
+                        static fn (string $column): bool => !Schema::hasColumn($table, $column)
+                    );
+                    if ($missing !== []) {
+                        continue;
+                    }
+
                     $indexName = $table . '_' . implode('_', $columns) . '_fulltext';
                     if (!$this->indexExists($table, $indexName)) {
-                        $blueprint->fullText($columns, $indexName);
+                        try {
+                            $blueprint->fullText($columns, $indexName);
+                        } catch (\Throwable) {
+                            // Índice equivalente / engine sem FULLTEXT
+                        }
                     }
                 }
             });
