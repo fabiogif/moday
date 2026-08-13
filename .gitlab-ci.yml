@@ -68,14 +68,12 @@ backend:test:
       : > storage/logs/phpunit-testdox.txt
       : > storage/logs/phpunit.out
       set +e
+      # Saída completa no artifact; flags --display-*=none são inválidas no PHPUnit 11 (VALUE_NONE → exit 2)
       XDEBUG_MODE=off \
         LOG_CHANNEL=null \
         APP_DEBUG=false \
         php -d memory_limit=2048M vendor/bin/phpunit \
           --colors=never \
-          --display-deprecations=none \
-          --display-notices=none \
-          --display-warnings=none \
           --log-junit storage/logs/phpunit-junit.xml \
           --testdox-text storage/logs/phpunit-testdox.txt \
           > storage/logs/phpunit.out 2>&1
@@ -86,7 +84,7 @@ backend:test:
       fi
       touch storage/logs/phpunit-testdox.txt
       echo "=== PHPUnit resumo (exit=${status}) ==="
-      grep -E '^(OK |FAILURES!|ERRORS!|Tests:|There were|Time:|PHPUnit|Fatal|Error)' storage/logs/phpunit.out || true
+      grep -E '^(OK |FAILURES!|ERRORS!|Tests:|There were|Time:|PHPUnit|Fatal|Error|Unknown option)' storage/logs/phpunit.out || true
       echo "=== últimas 80 linhas ==="
       tail -n 80 storage/logs/phpunit.out
       exit "$status"
