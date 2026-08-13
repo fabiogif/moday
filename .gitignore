@@ -5,3 +5,7 @@
 .idea/
 .vscode/
 *.swp
+
+# Local analysis cache
+backend/graphify-out/
+frontend/graphify-out/
