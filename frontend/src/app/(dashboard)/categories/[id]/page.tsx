@@ -153,7 +153,7 @@ export default function CategoryDetailPage() {
     try {
       const response = await deleteCategory(endpoints.categories.delete(categoryId), "DELETE")
       if (response) {
-        toast.success("Categoria excluÌda com sucesso!")
+        toast.success("Categoria exclu√≠da com sucesso!")
         router.push("/categories")
       }
     } catch (err: any) {
@@ -166,7 +166,7 @@ export default function CategoryDetailPage() {
   if (error || !category) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 px-6">
-        <p className="text-muted-foreground">Categoria n„o encontrada</p>
+        <p className="text-muted-foreground">Categoria n√£o encontrada</p>
         <Button onClick={() => router.push("/categories")} variant="outline">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar para Categorias
@@ -295,7 +295,7 @@ export default function CategoryDetailPage() {
               <CardDescription>
                 {isEditing
                   ? "Altere os campos e salve para aplicar"
-                  : "InformaÁıes essenciais da categoria"}
+                  : "Informa√ß√µes essenciais da categoria"}
               </CardDescription>
             </div>
             {isEditing && (
@@ -343,14 +343,14 @@ export default function CategoryDetailPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>DescriÁ„o</FormLabel>
+                      <FormLabel>Descri√ß√£o</FormLabel>
                       <FormControl>
                         <Textarea
                           {...field}
                           disabled={!isEditing}
                           rows={4}
                           className="resize-none"
-                          placeholder="DescriÁ„o da categoria"
+                          placeholder="Descri√ß√£o da categoria"
                         />
                       </FormControl>
                       <FormMessage />
@@ -366,7 +366,7 @@ export default function CategoryDetailPage() {
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Categoria ativa</FormLabel>
                         <FormDescription>
-                          Quando inativa, deixa de ficar disponÌvel para uso
+                          Quando inativa, deixa de ficar dispon√≠vel para uso
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -445,7 +445,7 @@ export default function CategoryDetailPage() {
             <CardContent>
               {relatedProducts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Ainda n„o h· produtos associados a esta categoria.
+                  Ainda n√£o h√° produtos associados a esta categoria.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -474,7 +474,7 @@ export default function CategoryDetailPage() {
         <CardHeader>
           <CardTitle className="text-base text-destructive">Zona de risco</CardTitle>
           <CardDescription>
-            AÁıes irreversÌveis. A exclus„o pode ser bloqueada se houver produtos ativos vinculados.
+            A√ß√µes irrevers√≠veis. A exclus√£o pode ser bloqueada se houver produtos ativos vinculados.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -492,12 +492,12 @@ export default function CategoryDetailPage() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclus„o</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclus√£o</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a categoria <strong>{category.name}</strong>?
               {productCount > 0 && (
                 <span className="block mt-2 text-orange-600 dark:text-orange-400">
-                  AtenÁ„o: esta categoria possui {productCount} produto(s) associado(s).
+                  Aten√ß√£o: esta categoria possui {productCount} produto(s) associado(s).
                 </span>
               )}
             </AlertDialogDescription>
