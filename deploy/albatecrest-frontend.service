@@ -5,20 +5,20 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=ubuntu
-Group=ubuntu
-WorkingDirectory=/home/ubuntu/apps/albatecrest-frontend/.next/standalone
+User=gitlab-runner
+Group=gitlab-runner
+WorkingDirectory=/home/gitlab-runner/apps/albatecrest-frontend/.next/standalone
 Environment=NODE_ENV=production
 Environment=PORT=3002
 Environment=HOSTNAME=0.0.0.0
-EnvironmentFile=-/home/ubuntu/apps/albatecrest-frontend/.env.production
+EnvironmentFile=-/home/gitlab-runner/apps/albatecrest-frontend/.env.production
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
 StartLimitInterval=300
 StartLimitBurst=10
-StandardOutput=append:/home/ubuntu/apps/albatecrest-frontend/frontend.log
-StandardError=append:/home/ubuntu/apps/albatecrest-frontend/frontend.log
+StandardOutput=append:/home/gitlab-runner/apps/albatecrest-frontend/frontend.log
+StandardError=append:/home/gitlab-runner/apps/albatecrest-frontend/frontend.log
 
 [Install]
 WantedBy=multi-user.target

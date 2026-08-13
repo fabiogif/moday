@@ -19,7 +19,8 @@ default:
 
 variables:
   COMPOSER_ALLOW_SUPERUSER: "1"
-  FRONTEND_APP_DIR: "/home/ubuntu/apps/albatecrest-frontend"
+  # Resolvido em runtime via $HOME (runner = gitlab-runner)
+  FRONTEND_APP_DIR: ""
   FRONTEND_PORT: "3002"
 
 # ---------------------------------------------------------------------------
@@ -264,6 +265,8 @@ frontend:deploy:
   script:
     - |
       set -e
+      FRONTEND_APP_DIR="${HOME}/apps/albatecrest-frontend"
+      export FRONTEND_APP_DIR
       sudo timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
       if ! command -v rsync >/dev/null 2>&1; then
         sudo apt-get update -y && sudo apt-get install -y rsync
@@ -300,9 +303,36 @@ frontend:deploy:
       npm ci
       npm run build:deploy
 
-      # Unit systemd (idempotente)
+      # Unit systemd (idempotente) — paths do usuario do runner ($HOME)
       UNIT=/etc/systemd/system/albatecrest-frontend.service
-      sudo cp "$CI_PROJECT_DIR/deploy/albatecrest-frontend.service" "$UNIT"
+      RUN_USER="$(id -un)"
+      RUN_GROUP="$(id -gn)"
+      sudo tee "$UNIT" >/dev/null <<EOF
+[Unit]
+Description=RestTec / AlbatecRest - Next.js Frontend (porta ${FRONTEND_PORT})
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${RUN_USER}
+Group=${RUN_GROUP}
+WorkingDirectory=${FRONTEND_APP_DIR}/.next/standalone
+Environment=NODE_ENV=production
+Environment=PORT=${FRONTEND_PORT}
+Environment=HOSTNAME=0.0.0.0
+EnvironmentFile=-${FRONTEND_APP_DIR}/.env.production
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+StartLimitInterval=300
+StartLimitBurst=10
+StandardOutput=append:${FRONTEND_APP_DIR}/frontend.log
+StandardError=append:${FRONTEND_APP_DIR}/frontend.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
       sudo systemctl daemon-reload
       sudo systemctl enable albatecrest-frontend.service
       sudo systemctl restart albatecrest-frontend.service
