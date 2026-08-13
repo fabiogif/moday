@@ -103,7 +103,7 @@ export function QuickActions() {
             <p>
               {action.label}
               {action.shortcut && (
-                <span className="ml-2 text-muted-foreground">({action.shortcut})</span>
+                <span className="ml-2 opacity-70">({action.shortcut})</span>
               )}
             </p>
           </TooltipContent>

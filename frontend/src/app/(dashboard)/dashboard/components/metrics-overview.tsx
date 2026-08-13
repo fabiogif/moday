@@ -143,7 +143,7 @@ function KpiCard({ title, value, change, trend, icon: Icon, iconClassName, foote
                 {title}
               </CardDescription>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent dismissible>
               <p className="max-w-56">{tooltip}</p>
             </TooltipContent>
           </Tooltip>

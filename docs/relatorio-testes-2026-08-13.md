@@ -100,3 +100,25 @@ npx jest --ci --watchAll=false
 2. Corrigir o teste flaky `FinancialCategoryApiTest::it_can_filter_categories_by_type` (fixar `is_active` na factory/estado).
 3. Atualizar os 3 testes de landing (CTA, FAQ, Footer) para o texto/estrutura atual.
 4. Ambiente local: instalar `php8.2-sqlite3` no WSL ou adicionar `php8.2-sqlite3` ao Dockerfile para rodar a suíte fora de container custom.
+
+---
+
+## 4. Correções aplicadas (2026-08-13)
+
+### Backend
+- **`tests/Feature/FinancialCategoryApiTest.php`** — `it_can_filter_categories_by_type`: as 3 categorias `receita` agora são criadas com `is_active => true` explícito. Como `getByType` usa o scope `active()`, o factory (`boolean(95)`) podia gerar categorias inativas e o teste flakear.
+  - Validação: 8/8 execuções OK (antes 1/5 falhava); suíte completa **1009 testes, 0 falhas**.
+
+### Frontend
+- **`src/app/(dashboard)/categories/page.tsx`** — re-salvo em UTF-8 (estava ISO-8859-1). Corrigidas as strings `Usuário não autenticado. Faça login para continuar.` e `Categoria excluída com sucesso`.
+- **`src/app/(dashboard)/categories/[id]/page.tsx`** — re-salvo em UTF-8 (mesmo problema); 10 strings corrigidas.
+- **`src/app/(dashboard)/categories/components/category-form-dialog.tsx`** — re-salvo em UTF-8; 3 strings corrigidas.
+- **`src/app/landing/__tests__/cta-section.test.tsx`** — `getByText` → `getAllByText` para "Sem cartão de crédito" (aparece 2x no componente).
+- **`src/app/landing/__tests__/faq-section.test.tsx`** — `getByText` → `getAllByText` para "/Fale [Cc]onosco/i".
+- **`src/app/landing/__tests__/footer.test.tsx`** — `/FAQ/i` → `/Perguntas frequentes/i` (copy atual do rodapé) e `/Contato/i` → `getAllByText`.
+- **`src/components/albatec-logo.tsx`** — `priority={priority}` → `priority={priority || undefined}` em ambas as ocorrências para eliminar o warning do React 19 (`Received false for non-boolean attribute`).
+
+### Validação final
+- Frontend: `npx jest --ci --watchAll=false` → **100 suítes OK / 100, 710 passaram, 1 pulado, 0 falhas**.
+- Backend: `phpunit` completo → **1009 testes, 3730 asserções, 0 erros, 0 falhas, 12 pulados**.
+- `artisan audit:layers` → **6 violações pré-existentes** (sem violação nova; nada tocado nas áreas apontadas — Services/Controllers que usam Models).
