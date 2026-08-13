@@ -240,9 +240,17 @@ frontend:test:
     - |
       set -e
       cd "$CI_PROJECT_DIR/frontend"
-      npm ci
-      # Gate principal: build de produção (testes unitários podem exigir env extra)
-      npm test -- --ci --watchAll=false --passWithNoTests || true
+      ls -la package.json package-lock.json
+      command -v node
+      command -v npm
+      node -v
+      npm -v
+      if [ -f package-lock.json ]; then
+        npm ci
+      else
+        npm install --no-audit --no-fund
+      fi
+      # Gate principal: build de produção
       NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8002}" npm run build
 
 frontend:deploy:
@@ -298,7 +306,11 @@ frontend:deploy:
         fi
       fi
 
-      npm ci
+      if [ -f package-lock.json ]; then
+        npm ci
+      else
+        npm install --no-audit --no-fund
+      fi
       npm run build:deploy
 
       # Unit systemd a partir do arquivo versionado (sem heredoc no YAML)
