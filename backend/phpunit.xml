@@ -28,7 +28,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="JWT_SECRET" value="test-jwt-secret-key-for-testing"/>
+        <env name="JWT_SECRET" value="test-jwt-secret-key-for-testing-min-32-bytes-required"/>
         <env name="JWT_TTL" value="60"/>
         <env name="REDIS_CLIENT" value="array"/>
         <env name="LOG_CHANNEL" value="single"/>

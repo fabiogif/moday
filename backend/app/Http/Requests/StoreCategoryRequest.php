@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use App\Http\Requests\BaseRequest as BaseRequest;
 
 class StoreCategoryRequest extends BaseRequest
@@ -22,8 +23,18 @@ class StoreCategoryRequest extends BaseRequest
      */
     public function rules(): array
     {
+        $tenantId = $this->user()?->tenant_id;
+        $identify = $this->route('identify');
+
+        $uniqueName = Rule::unique('categories', 'name')
+            ->where(fn ($query) => $query->where('tenant_id', $tenantId)->where('status', 'A'));
+
+        if ($identify !== null) {
+            $uniqueName = $uniqueName->ignore($identify, is_numeric($identify) ? 'id' : 'uuid');
+        }
+
         return [
-            'name'=> 'required|string|min:2|max:255',
+            'name'=> ['required', 'string', 'min:2', 'max:255', $uniqueName],
             'description' => 'nullable|string|max:500',
             'url' => 'nullable|string|max:255',
         ];

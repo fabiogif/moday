@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Plan;
 use App\Models\Tenant;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -29,8 +30,10 @@ class TenantFactory extends Factory
         
         return [
             'uuid' => Str::uuid(),
+            'plan_id' => Plan::factory(),
             'name' => $name,
             'slug' => Str::slug($name),
+            'cnpj' => fake()->unique()->numerify('##.###.###/0001-##'),
             'email' => fake()->companyEmail(),
             'phone' => fake()->phoneNumber(),
             'document' => fake()->numerify('##.###.###/0001-##'),

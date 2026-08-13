@@ -60,9 +60,10 @@ class ApiResponseClass
            'success' => true,
            'meta' => [
                'total' => $result->total(),
+               'per_page' => $result->perPage(),
+               'current_page' => $result->currentPage(),
                'is_first_page' => $result->isFirstPage(),
                'is_last_page' => $result->isLastPage(),
-               'current_page' => $result->currentPage(),
                'next_page'=> $result->getNumberNextPage(),
                'previous_page' => $result->getNumberPreviousPage(),
            ]

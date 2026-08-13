@@ -9,6 +9,7 @@ interface PaginateRepositoryInterface
      */
     public function items(): array;
     public function total(): int;
+    public function perPage(): int;
     public function isFirstPage(): bool;
     public function isLastPage(): bool;
     public function currentPage(): int;

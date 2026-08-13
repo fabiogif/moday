@@ -241,8 +241,9 @@ class CategoryTest extends TestCase
                     'message' => 'Categoria deletada com sucesso'
                 ]);
 
-        $this->assertDatabaseMissing('categories', [
-            'id' => $category->id
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'status' => 'I'
         ]);
     }
 
