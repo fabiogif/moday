@@ -2,11 +2,16 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('plans')) {
+            return;
+        }
+
         $paidSlugs = [
             'plano-basico',
             'plano-profissional',
@@ -15,16 +20,23 @@ return new class extends Migration
             'premium',
         ];
 
+        $payload = [];
+        foreach (['has_reports', 'has_marketing', 'has_order_completion_email'] as $column) {
+            if (Schema::hasColumn('plans', $column)) {
+                $payload[$column] = true;
+            }
+        }
+
+        if ($payload === []) {
+            return;
+        }
+
         DB::table('plans')
             ->where(function ($query) use ($paidSlugs) {
                 $query->whereIn('url', $paidSlugs)
                     ->orWhere('price', '>', 0);
             })
-            ->update([
-                'has_reports' => true,
-                'has_marketing' => true,
-                'has_order_completion_email' => true,
-            ]);
+            ->update($payload);
     }
 
     public function down(): void

@@ -26,6 +26,28 @@ return new class extends Migration
                 $table->boolean('has_reports')->default(false);
                 $table->timestamps();
             });
+        } else {
+            // plans já pode existir via 0000_02_23 (schema mínimo) — completa colunas do core
+            Schema::table('plans', function (Blueprint $table) {
+                if (!Schema::hasColumn('plans', 'is_active')) {
+                    $table->boolean('is_active')->default(true);
+                }
+                if (!Schema::hasColumn('plans', 'max_users')) {
+                    $table->integer('max_users')->nullable();
+                }
+                if (!Schema::hasColumn('plans', 'max_products')) {
+                    $table->integer('max_products')->nullable();
+                }
+                if (!Schema::hasColumn('plans', 'max_orders_per_month')) {
+                    $table->integer('max_orders_per_month')->nullable();
+                }
+                if (!Schema::hasColumn('plans', 'has_marketing')) {
+                    $table->boolean('has_marketing')->default(false);
+                }
+                if (!Schema::hasColumn('plans', 'has_reports')) {
+                    $table->boolean('has_reports')->default(false);
+                }
+            });
         }
 
         if (!Schema::hasTable('profiles')) {
