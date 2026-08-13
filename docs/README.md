@@ -6,6 +6,29 @@ Ver também: [`AGENTS.md`](../AGENTS.md) e `.cursor/rules/docs-and-scripts-place
 
 ## Pastas
 
+### Specs normativas (`docs/specs/`)
+
+Fonte de verdade para agentes e engenharia (ver também `CLAUDE.md` / `.cursor/rules/project-specs.mdc`):
+
+- [architecture](specs/architecture.md)
+- [backend](specs/backend.md) · [frontend](specs/frontend.md)
+- [laravel](specs/laravel.md) · [react](specs/react.md) · [moday](specs/moday.md)
+- [coding-standards](specs/coding-standards.md) · [design-patterns](specs/design-patterns.md) · [naming](specs/naming.md)
+- [security](specs/security.md) · [performance](specs/performance.md) · [testing](specs/testing.md)
+- [modules](specs/modules.md) · [glossary](specs/glossary.md)
+- [engineering-protocol](specs/engineering-protocol.md) · [audit](specs/audit.md) · [graphify](specs/graphify.md)
+
+### AlbaTec / arquitetura descritiva (raiz de `docs/`)
+
+- [architecture-audit](architecture-audit.md)
+- [architecture-current](architecture-current.md)
+- [identidade-visual-albatec](identidade-visual-albatec.md)
+- [location-ibge](location-ibge.md)
+- [prompt-app-mobile-albatec](prompt-app-mobile-albatec.md)
+- [prompt-video-publicidade-albatec](prompt-video-publicidade-albatec.md)
+- [prompts/seed-cargo-vendedor](prompts/seed-cargo-vendedor.md)
+- [AlbaTec_Identidade_Visual.pdf](AlbaTec_Identidade_Visual.pdf)
+
 ### Guias e Quick Start (`docs/guias/`)
 
 - [COMO_ADICIONAR_REFRESH_EDICAO](guias/COMO_ADICIONAR_REFRESH_EDICAO.md)

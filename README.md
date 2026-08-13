@@ -4,6 +4,15 @@ Monorepo GitLab do produto **RestTec**:
 
 - `backend/` — API Laravel (deploy Docker em `:8002`)
 - `frontend/` — app Next.js (deploy systemd em `:3002`)
+- `docs/` — documentação por tema ([índice](docs/README.md))
+- `scripts/` — scripts de teste ([índice](scripts/README.md))
+- `backend/scripts/` — utilitários Laravel / Docker
+
+## Documentação
+
+Toda a documentação em Markdown está em [`docs/`](docs/README.md). Specs normativas em [`docs/specs/`](docs/specs/).
+
+Convenções para agentes / Cursor: [`AGENTS.md`](AGENTS.md) e `.cursor/rules/`.
 
 ## CI/CD
 
