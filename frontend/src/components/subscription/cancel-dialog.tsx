@@ -83,7 +83,7 @@ export function CancelDialog({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-foreground">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <CheckCircle2 className="size-5 shrink-0 text-emerald-600" aria-hidden />
                 Cancelamento confirmado
               </DialogTitle>
               <DialogDescription>
@@ -107,14 +107,14 @@ export function CancelDialog({
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={() => handleOpenChange(false)}>Entendi</Button>
+              <Button onClick={() => handleOpenChange(false)}>Voltar à cobrança</Button>
             </DialogFooter>
           </>
         ) : (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-5 w-5" />
+                <AlertTriangle className="size-5 shrink-0" aria-hidden />
                 Cancelar assinatura
               </DialogTitle>
               <DialogDescription>
