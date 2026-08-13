@@ -352,6 +352,9 @@ frontend:deploy:
       fi
       npm run build:deploy
 
+      # Restart via systemd: requer albatecrest-frontend.service instalada/enabled
+      # no servidor e sudoers liberando "systemctl restart/status albatecrest-frontend"
+      # (sem sufixo .service) pro usuario do runner. Ver deploy/restart-albatecrest-frontend.sh.
       chmod +x "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
       "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
       code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
