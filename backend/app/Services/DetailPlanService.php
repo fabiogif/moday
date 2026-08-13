@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\PlanRepositoryInterface;
+use App\Repositories\Contracts\PlanRepositoryInterface;
 
 readonly class DetailPlanService
 {

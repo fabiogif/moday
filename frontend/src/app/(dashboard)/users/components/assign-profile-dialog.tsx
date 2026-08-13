@@ -70,7 +70,7 @@ export function AssignProfileDialog({
         setProfiles(Array.isArray(profilesList) ? profilesList : [])
       }
     } catch (error) {
-      console.error("Erro ao carregar perfis:", error)
+
       toast({
         title: "Erro",
         description: "Erro ao carregar perfis",

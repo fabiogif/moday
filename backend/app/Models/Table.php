@@ -38,5 +38,19 @@ class Table extends Model
         });
     }
 
+    /**
+     * Relacionamento com pedidos
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 
+    /**
+     * Relacionamento com tenant
+     */
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
+    }
 }

@@ -1,49 +1,44 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { isAdminRoute, isPublicRoute } from '@/lib/auth-routes'
+
+const AUTH_COOKIE = 'auth-token'
+
+function resolvePostLoginPath(redirectParam: string | null): string {
+  if (!redirectParam || !redirectParam.startsWith('/') || redirectParam.startsWith('//')) {
+    return '/dashboard'
+  }
+  if (redirectParam === '/login' || redirectParam === '/auth/login' || isPublicRoute(redirectParam.split('?')[0])) {
+    return '/dashboard'
+  }
+  return redirectParam
+}
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('auth-token')?.value
-  const { pathname } = request.nextUrl
+  const token = request.cookies.get(AUTH_COOKIE)?.value
+  const { pathname, search } = request.nextUrl
 
-  // Rotas públicas que não precisam de autenticação
-  const publicRoutes = [
-    '/login',
-    '/sign-up-3', 
-    '/forgot-password-3',
-    '/reset-password',
-    '/'
-  ]
-
-  // Rotas protegidas que precisam de autenticação
-  const protectedRoutes = [
-    '/dashboard',
-    '/users',
-    '/orders',
-    '/categories',
-    '/products',
-    '/tables',
-    '/clients',
-    '/reports',
-    '/permissions',
-    '/profiles',
-    '/settings'
-  ]
-
-  // Se está em uma rota pública, permitir acesso
-  if (publicRoutes.some(route => pathname.startsWith(route))) {
+  // Admin tem fluxo próprio (admin-auth-context)
+  if (isAdminRoute(pathname)) {
     return NextResponse.next()
   }
 
-  // Se está em uma rota protegida e não tem token, redirecionar para login
-  if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url))
+  if (isPublicRoute(pathname)) {
+    if (token && (pathname === '/login' || pathname === '/auth/login')) {
+      const redirectParam = request.nextUrl.searchParams.get('redirect')
+      const target = resolvePostLoginPath(redirectParam)
+      return NextResponse.redirect(new URL(target, request.url))
     }
+    return NextResponse.next()
   }
 
-  // Se tem token e está tentando acessar login, redirecionar para dashboard
-  if (token && pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (!token) {
+    const loginUrl = new URL('/auth/login', request.url)
+    const destination = `${pathname}${search}`
+    if (destination && destination !== '/auth/login' && destination !== '/login') {
+      loginUrl.searchParams.set('redirect', destination)
+    }
+    return NextResponse.redirect(loginUrl)
   }
 
   return NextResponse.next()
@@ -51,6 +46,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

@@ -54,7 +54,7 @@ export function SignupForm1({
   })
 
   function onSubmit(data: SignupFormValues) {
-    console.log("Signup attempt:", data)
+
     // Here you would typically handle the signup
   }
 

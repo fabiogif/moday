@@ -13,6 +13,7 @@ class PaymentMethod extends Model
     protected $fillable = [
         'uuid',
         'name',
+        'type',
         'description',
         'tenant_id',
         'is_active'

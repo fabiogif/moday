@@ -24,7 +24,7 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'sometimes|required|string|in:Em Preparo,Pronto,Entregue,Cancelado',
+            'status' => 'sometimes|required|string',
             'comment' => 'nullable|string|max:500',
             'is_delivery' => 'sometimes|boolean',
             'use_client_address' => 'sometimes|boolean',
@@ -36,6 +36,13 @@ class UpdateOrderRequest extends FormRequest
             'delivery_number' => 'nullable|string|max:20',
             'delivery_complement' => 'nullable|string|max:100',
             'delivery_notes' => 'nullable|string|max:500',
+            'products' => 'sometimes|array',
+            'products.*.identify' => 'required_with:products|string',
+            'products.*.qty' => 'required_with:products|integer|min:1',
+            'products.*.price' => 'required_with:products|numeric|min:0',
+            'payment_method_id' => 'sometimes|string|exists:payment_methods,uuid',
+            'precisa_troco' => 'sometimes|boolean',
+            'valor_recebido' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -45,8 +52,6 @@ class UpdateOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'status.required' => 'O status é obrigatório.',
-            'status.in' => 'Status inválido. Valores permitidos: Em Preparo, Pronto, Entregue, Cancelado.',
             'comment.max' => 'O comentário deve ter no máximo :max caracteres.',
             'delivery_address.max' => 'O endereço deve ter no máximo :max caracteres.',
             'delivery_city.max' => 'A cidade deve ter no máximo :max caracteres.',

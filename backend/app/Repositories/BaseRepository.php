@@ -2,8 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Repositories\Concerns\SearchesFullText;
 use Illuminate\Database\Eloquent\{Model};
-use App\Repositories\contracts\{BaseRepositoryInterface,
+use App\Repositories\Contracts\{BaseRepositoryInterface,
     PaginateRepositoryInterface,
     Presenter\PaginatePresenter};
 
@@ -11,13 +12,15 @@ use stdClass;
 
 abstract class BaseRepository implements BaseRepositoryInterface
 {
+    use SearchesFullText;
+
     protected Model $entity;
 
     public function index(string $filter = null): array
     {
         return $this->entity->where(function($query) use($filter) {
             if($filter) {
-                $query->where('name' ,'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
         })->get()->toArray();
     }
@@ -46,7 +49,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
     {
         $result = $this->entity->where(function($query) use($filter) {
             if($filter) {
-               $query->where('name' ,'like', "%{$filter}%");
+               $this->applyFullTextSearch($query, ['name'], $filter);
             }
             $query->where('is_active', '!=', '0');
         })->paginate(perPage: $totalPrePage, columns: ['*'], pageName:'page', page: $page, total: null);

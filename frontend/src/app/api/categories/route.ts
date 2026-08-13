@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildApiUrl } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
-    const response = await fetch(`${backendUrl}/api/category`, {
+    const response = await fetch(buildApiUrl('/api/category', { server: true }), {
       headers: {
         'Accept': 'application/json',
       },
@@ -35,9 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
-    
-    const response = await fetch(`${backendUrl}/api/category`, {
+    const response = await fetch(buildApiUrl('/api/category', { server: true }), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

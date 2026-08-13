@@ -18,6 +18,7 @@
         </include>
     </source>
     <php>
+        <ini name="memory_limit" value="2048M"/>
         <env name="APP_ENV" value="testing"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
@@ -28,9 +29,10 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="JWT_SECRET" value="test-jwt-secret-key-for-testing-min-32-bytes-required"/>
+        <env name="JWT_SECRET" value="r2wXmzxYx4SxgwGHLw2wvERxQ1H7MgUxmHv2PQk4wsJl6yYAZSfAzqKG83NVLeHc"/>
         <env name="JWT_TTL" value="60"/>
         <env name="REDIS_CLIENT" value="array"/>
+        <env name="REDIS_ENABLED" value="false" force="true"/>
         <env name="LOG_CHANNEL" value="single"/>
         <env name="DOTENV_SUPPRESS_DEPRECATION_WARNINGS" value="true"/>
     </php>

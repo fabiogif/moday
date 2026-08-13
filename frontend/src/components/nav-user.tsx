@@ -6,6 +6,7 @@ import {
   LogOut,
   BellDot,
   CircleUser,
+  Building2,
 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
@@ -39,9 +40,8 @@ export function NavUser({
   const { isMobile } = useSidebar()
   const { logout } = useAuth()
 
-  const handleLogout = () => {
-    logout()
-    window.location.href = '/login'
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
@@ -90,6 +90,12 @@ export function NavUser({
                 <Link href="/settings/account">
                   <CircleUser />
                   Conta
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/settings/company">
+                  <Building2 />
+                  Empresa
                 </Link>
               </DropdownMenuItem>
           

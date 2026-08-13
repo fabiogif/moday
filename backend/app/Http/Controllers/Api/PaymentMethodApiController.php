@@ -11,6 +11,7 @@ use App\Services\PaymentMethodService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentMethodApiController extends Controller
 {
@@ -24,7 +25,7 @@ class PaymentMethodApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -48,7 +49,7 @@ class PaymentMethodApiController extends Controller
     public function store(StorePaymentMethodRequest $request): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -76,7 +77,7 @@ class PaymentMethodApiController extends Controller
     public function show(string $uuid): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -104,7 +105,7 @@ class PaymentMethodApiController extends Controller
     public function update(UpdatePaymentMethodRequest $request, string $uuid): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -136,10 +137,19 @@ class PaymentMethodApiController extends Controller
     public function destroy(string $uuid): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $check = $guard->verificarVinculoPedidoAtivo($uuid, 'forma_pagamento', $tenantId);
+            if ($check['blocked']) {
+                return ApiResponseClass::conflict(
+                    'Forma de pagamento não pode ser excluída, existe um pedido ativo ou não arquivado vinculado.',
+                    ['orders' => $check['orders']]
+                );
             }
 
             $deleted = $this->paymentMethodService->deletePaymentMethod($uuid, $tenantId);
@@ -164,7 +174,7 @@ class PaymentMethodApiController extends Controller
     public function active(): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);

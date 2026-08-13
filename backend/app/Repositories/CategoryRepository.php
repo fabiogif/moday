@@ -18,39 +18,11 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     {
         return $this->entity->where(function($query) use($filter) {
             if($filter) {
-                $query->where('name', 'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
         })->get()->toArray();
     }
     
-    public function store(array $data)
-    {
-        $tenantId = $data['tenant_id'] ?? null;
-        $name = $data['name'] ?? null;
-
-        if ($tenantId && $name) {
-            $existing = $this->entity->where('tenant_id', $tenantId)
-                ->where('name', $name)
-                ->where('status', 'I')
-                ->first();
-
-            if ($existing) {
-                $payload = array_intersect_key($data, array_flip(['name', 'description', 'url']));
-                $payload['status'] = 'A';
-
-                if (empty($payload['url'])) {
-                    $payload['url'] = \Illuminate\Support\Str::slug($payload['name'] ?? $existing->name);
-                }
-
-                $existing->update($payload);
-
-                return $existing->fresh();
-            }
-        }
-
-        return $this->entity->create($data);
-    }
-
     public function getByUuid(string $identify)
     {
         return $this->entity->where('uuid', $identify)->first();
@@ -65,9 +37,9 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
     
     public function paginateByTenant(int $page, int $totalPerPage, string $filter, int $tenantId): PaginateRepositoryInterface
     {
-        $result = $this->entity->where(function($query) use($filter, $tenantId) {
+        $result = $this->entity->withCount('products')->where(function($query) use($filter, $tenantId) {
             if($filter) {
-                $query->where('name', 'like', "%{$filter}%");
+                $this->applyFullTextSearch($query, ['name'], $filter);
             }
             $query->where('tenant_id', $tenantId);
         })
@@ -76,30 +48,17 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         return new PaginatePresenter($result);
     }
     
-    public function updateByTenant(array $data, string|int $id, int $tenantId)
+    public function updateByTenant(array $data, int $id, int $tenantId)
     {
-        $query = $this->entity->where('tenant_id', $tenantId);
-
-        if (is_numeric($id)) {
-            $query->where('id', (int) $id);
-        } else {
-            $query->where('uuid', (string) $id);
-        }
-
-        $category = $query->first();
+        $category = $this->entity->where('id', $id)
+                           ->where('tenant_id', $tenantId)
+                           ->first();
 
         if (!$category) {
             return null;
         }
 
-        // Evita mass-assignment de campos inválidos do frontend
-        $payload = array_intersect_key($data, array_flip(['name', 'description', 'url', 'status']));
-
-        if (isset($payload['name']) && empty($payload['url'])) {
-            $payload['url'] = \Illuminate\Support\Str::slug($payload['name']);
-        }
-
-        $category->update($payload);
+        $category->update($data);
 
         return $category->fresh();
     }

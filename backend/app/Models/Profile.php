@@ -4,25 +4,40 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\User;
 class Profile extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
-        'name', 
-        'description', 
+        'name',
+        'description',
         'tenant_id',
-        'is_active'
+        'is_active',
+        'max_discount_percent',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $profile) {
+            if ($profile->users()->exists() || User::where('profile_id', $profile->id)->exists()) {
+                return false;
+            }
+
+            $profile->permissions()->detach();
+            $profile->plans()->detach();
+
+            return true;
+        });
+    }
 
     /**
      * Relacionamento com tenant

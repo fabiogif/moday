@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\ClientRepositoryInterface;
+use App\Repositories\Contracts\ClientRepositoryInterface;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +50,36 @@ class ClientService {
         });
     }
 
+    public function paginateClientsByTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $sort = null,
+        ?string $filter = null
+    ) {
+        $params = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $search,
+            'sort' => $sort,
+            'filter' => $filter,
+        ];
+
+        return $this->cacheService->getClientListPaginated(
+            $tenantId,
+            $params,
+            fn () => $this->clientRepositoryInterface->paginateForTenant(
+                $tenantId,
+                $page,
+                $perPage,
+                $search,
+                $sort,
+                $filter
+            )
+        );
+    }
+
     public function getClientById($id)
     {
         return $this->clientRepositoryInterface->getClientById($id);
@@ -86,6 +116,77 @@ class ClientService {
         }
         
         return $result;
+    }
+
+    /**
+     * Find client by CPF and tenant
+     */
+    public function findByCpfAndTenant(string $cpf, int $tenantId)
+    {
+        return $this->clientRepositoryInterface->findByCpfAndTenant($cpf, $tenantId);
+    }
+
+    /**
+     * Update or create client based on CPF
+     * Returns array ['client' => Client, 'existed' => bool]
+     */
+    public function updateOrCreateByCpf(array $data, int $tenantId): array
+    {
+        $cpf = $data['cpf'] ?? null;
+        
+        if (!$cpf) {
+            // Se não tem CPF, apenas cria novo
+            $client = $this->createClient(array_merge($data, ['tenant_id' => $tenantId]));
+            return ['client' => $client, 'existed' => false];
+        }
+        
+        $existingClient = $this->findByCpfAndTenant($cpf, $tenantId);
+        
+        if ($existingClient) {
+            // Atualiza cliente existente
+            $updatedClient = $this->updateClient($existingClient->id, $data);
+            return ['client' => $updatedClient, 'existed' => true];
+        }
+        
+        // Cria novo cliente
+        $client = $this->createClient(array_merge($data, ['tenant_id' => $tenantId]));
+        return ['client' => $client, 'existed' => false];
+    }
+
+    /**
+     * Find-or-create client based on a client-generated request id (idempotency key).
+     * Protects retries of the same offline queue item from creating duplicate clients.
+     * Returns array ['client' => Client, 'existed' => bool]
+     */
+    public function findOrCreateByRequestId(array $data, int $tenantId): array
+    {
+        $requestId = $data['client_request_id'] ?? null;
+
+        if (!$requestId) {
+            $client = $this->createClient($data);
+            return ['client' => $client, 'existed' => false];
+        }
+
+        $existingClient = $this->clientRepositoryInterface->findByRequestIdAndTenant($requestId, $tenantId);
+        if ($existingClient) {
+            return ['client' => $existingClient, 'existed' => true];
+        }
+
+        try {
+            $client = $this->createClient($data);
+            return ['client' => $client, 'existed' => false];
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() !== '23000') {
+                throw $e;
+            }
+
+            $existingClient = $this->clientRepositoryInterface->findByRequestIdAndTenant($requestId, $tenantId);
+            if ($existingClient) {
+                return ['client' => $existingClient, 'existed' => true];
+            }
+
+            throw $e;
+        }
     }
 
     /**

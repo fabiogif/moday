@@ -33,10 +33,18 @@ class UserUpdateRequest extends FormRequest
             ],
             'password' => 'sometimes|string|min:6|confirmed',
             'phone' => 'nullable|string|max:20',
+            'rg' => 'nullable|string|max:20',
+            'job_position_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('job_positions', 'id')->where(fn ($q) => $q->where('tenant_id', auth()->user()->tenant_id)),
+            ],
             'avatar' => 'nullable|string|max:255',
             'is_active' => 'sometimes|boolean',
             'profiles' => 'nullable|array',
-            'profiles.*' => 'exists:profiles,id',
+            'profiles.*' => Rule::exists('profiles', 'id')->where(
+                fn ($q) => $q->where('tenant_id', auth()->user()->tenant_id)
+            ),
         ];
     }
 

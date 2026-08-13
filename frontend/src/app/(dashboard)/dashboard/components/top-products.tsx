@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
 import { useAuthenticatedApi } from "@/hooks/use-authenticated-api"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 interface TopProduct {
   rank: number
@@ -15,6 +16,7 @@ interface TopProduct {
   uuid: string
   name: string
   image: string | null
+  image_url?: string | null
   price: number
   formatted_price: string
   total_quantity: number
@@ -90,14 +92,32 @@ export function TopProducts() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {products.length === 0 ? (
+          {error && products.length === 0 ? (
+            <div className="text-center py-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Não foi possível carregar os produtos.</p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : products.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum produto encontrado</p>
           ) : (
             products.map((product) => (
               <div key={product.id} className="flex items-center gap-4">
                 <div className="flex items-center justify-center h-10 w-10 rounded bg-muted">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} className="h-full w-full object-cover rounded" />
+                  {product.image || product.image_url ? (
+                    <img
+                      src={resolveImageUrl(product.image_url || product.image) || ""}
+                      alt={product.name}
+                      className="h-full w-full object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                      }}
+                    />
                   ) : (
                     <Package className="h-5 w-5 text-muted-foreground" />
                   )}

@@ -11,6 +11,7 @@ use App\Http\Responses\Dashboard\TopProductsResponse;
 use App\Services\DashboardMetricsService;
 use App\Services\CacheService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardMetricsController extends Controller
 {
@@ -24,7 +25,7 @@ class DashboardMetricsController extends Controller
      */
     public function getMetricsOverview(DashboardMetricsRequest $request): DashboardMetricsResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         
         $metrics = $this->dashboardMetricsService->getMetricsOverview($tenantId);
         
@@ -36,7 +37,7 @@ class DashboardMetricsController extends Controller
      */
     public function getSalesPerformance(DashboardMetricsRequest $request): SalesPerformanceResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         
         $performance = $this->dashboardMetricsService->getSalesPerformance($tenantId);
         
@@ -48,7 +49,7 @@ class DashboardMetricsController extends Controller
      */
     public function getRecentTransactions(DashboardMetricsRequest $request): RecentTransactionsResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         $limit = $request->input('limit', 10);
         
         $transactions = $this->dashboardMetricsService->getRecentTransactions($tenantId, $limit);
@@ -61,7 +62,7 @@ class DashboardMetricsController extends Controller
      */
     public function getTopProducts(DashboardMetricsRequest $request): TopProductsResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         $limit = $request->input('limit', 10);
         
         $products = $this->dashboardMetricsService->getTopProducts($tenantId, $limit);
@@ -70,11 +71,27 @@ class DashboardMetricsController extends Controller
     }
 
     /**
+     * Get profit metrics
+     */
+    public function getProfit(DashboardMetricsRequest $request): JsonResponse
+    {
+        $tenantId = Auth::user()->tenant_id;
+
+        $profit = $this->dashboardMetricsService->getProfit($tenantId);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $profit,
+            'message' => 'Lucro calculado com sucesso',
+        ]);
+    }
+
+    /**
      * Get realtime updates status
      */
     public function getRealtimeUpdates(DashboardMetricsRequest $request): JsonResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         
         return response()->json([
             'success' => true,
@@ -92,7 +109,7 @@ class DashboardMetricsController extends Controller
      */
     public function clearCache(): JsonResponse
     {
-        $tenantId = auth()->user()->tenant_id;
+        $tenantId = Auth::user()->tenant_id;
         
         $this->cacheService->invalidateDashboardCache($tenantId);
 

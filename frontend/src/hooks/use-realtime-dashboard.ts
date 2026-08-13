@@ -26,7 +26,7 @@ export function useRealtimeDashboard({
   const channelRef = useRef<any>(null)
 
   const handleMetricsUpdate = useCallback((data: { metrics: DashboardMetrics }) => {
-    console.log('Dashboard metrics updated:', data.metrics)
+
     onMetricsUpdate?.(data.metrics)
   }, [onMetricsUpdate])
 
@@ -39,7 +39,6 @@ export function useRealtimeDashboard({
     const echo = initializeEcho()
     
     if (!echo) {
-      console.warn('useRealtimeDashboard: WebSocket not available (optional feature)')
       setIsConnected(false)
       return
     }
@@ -48,7 +47,6 @@ export function useRealtimeDashboard({
 
     // Subscribe to private channel for tenant dashboard
     const channelName = `tenant.${tenantId}.dashboard`
-    console.log(`useRealtimeDashboard: Subscribing to channel: ${channelName}`)
 
     const channel = echo.private(channelName)
     channelRef.current = channel
@@ -58,19 +56,18 @@ export function useRealtimeDashboard({
 
     // Handle connection status
     channel.subscribed(() => {
-      console.log(`useRealtimeDashboard: Successfully subscribed to ${channelName}`)
+
       setIsConnected(true)
     })
 
     channel.error((error: any) => {
-      console.error(`useRealtimeDashboard: Channel error on ${channelName}`, error)
+
       setIsConnected(false)
     })
 
     // Cleanup function
     return () => {
-      console.log(`useRealtimeDashboard: Cleaning up channel ${channelName}`)
-      
+
       if (channelRef.current) {
         echo.leave(channelName)
         channelRef.current = null

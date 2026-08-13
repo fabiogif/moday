@@ -20,8 +20,16 @@ class PlanFactory extends Factory
     {
         return [
             'name' => fake()->unique()->word(),
-            'price' =>fake()->randomNumber(2),
+            'url' => fake()->unique()->slug(2),
+            'price' => fake()->randomFloat(2, 0, 9999),
             'description' => fake()->sentence(),
+            'is_active' => true,
+            'max_users' => fake()->numberBetween(1, 1000),
+            'max_products' => fake()->numberBetween(1, 10000),
+            'max_orders_per_month' => fake()->numberBetween(10, 10000),
+            'has_marketing' => fake()->boolean(),
+            'has_order_completion_email' => fake()->boolean(),
+            'has_reports' => fake()->boolean(),
         ];
     }
 }

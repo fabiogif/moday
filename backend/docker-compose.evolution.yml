@@ -1,0 +1,49 @@
+# Evolution API — produção OCI
+# Compartilha rede, MySQL e Redis do stack principal (distribtec-backend)
+# Usar:   docker compose -f docker-compose.evolution.yml up -d
+# Parar:  docker compose -f docker-compose.evolution.yml down
+# Logs:   docker logs evolution -f
+
+name: distribtec-evolution
+
+services:
+  evolution:
+    image: evoapicloud/evolution-api:latest
+    container_name: evolution
+    restart: unless-stopped
+    # Remove CONFIG_SESSION_PHONE_VERSION do .env interno para usar fetchLatestBaileysVersion()
+    entrypoint:
+      - /bin/bash
+      - -c
+      - "sed -i '/^CONFIG_SESSION_PHONE_VERSION=/d' /evolution/.env && . ./Docker/scripts/deploy_database.sh && npm run start:prod"
+    ports:
+      - '8181:8080'
+    environment:
+      # URL pública onde a Evolution API está disponível (para webhooks)
+      SERVER_URL: '${EVOLUTION_SERVER_URL:-https://evolution.albatec.com.br}'
+      AUTHENTICATION_API_KEY: '${EVOLUTION_API_KEY}'
+      # MySQL compartilhado com o stack Laravel
+      DATABASE_ENABLED: 'true'
+      DATABASE_PROVIDER: 'mysql'
+      DATABASE_CONNECTION_URI: 'mysql://${DB_USERNAME}:${DB_PASSWORD}@distribtec-mysql:3306/evolution_api'
+      DATABASE_CONNECTION_CLIENT_NAME: 'evolution_api'
+      # Redis compartilhado (db 4 para não colidir com Laravel)
+      CACHE_REDIS_ENABLED: 'true'
+      CACHE_REDIS_URI: 'redis://distribtec-redis:6379/4'
+      CACHE_REDIS_PREFIX_KEY: 'evolution'
+      CACHE_LOCAL_ENABLED: 'false'
+      # Persistência de dados
+      DATABASE_SAVE_DATA_INSTANCES: 'true'
+      DATABASE_SAVE_DATA_NEW_MESSAGE: 'true'
+      DATABASE_SAVE_MESSAGE_UPDATE: 'true'
+      DATABASE_SAVE_DATA_CONTACTS: 'true'
+      DATABASE_SAVE_DATA_CHATS: 'true'
+      DATABASE_SAVE_DATA_HISTORIC: 'true'
+    networks:
+      - distribtec-backend
+
+# A rede já existe — criada pelo docker-compose.production.yml
+networks:
+  distribtec-backend:
+    external: true
+    name: distribtec-backend

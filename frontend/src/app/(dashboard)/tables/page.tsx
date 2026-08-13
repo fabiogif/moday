@@ -12,6 +12,7 @@ import {
 import { endpoints } from "@/lib/api-client";
 import { PageLoading } from "@/components/ui/loading-progress";
 import { TableData, TableFormValues } from "./types";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function TablesPage() {
   const {
@@ -21,6 +22,7 @@ export default function TablesPage() {
     refetch,
     isAuthenticated,
   } = useAuthenticatedTables();
+  const { isLoading: authLoading } = useAuth();
   const { mutate: createTable, loading: creating } = useMutation();
   const { mutate: updateTable, loading: updating } = useMutation();
   const { mutate: deleteTable, loading: deleting } = useMutation();
@@ -56,7 +58,7 @@ export default function TablesPage() {
         }, 100);
       }
     } catch (error) {
-      console.error("Erro ao criar mesa:", error);
+
       setSuccessAlert({
         open: true,
         title: "Erro!",
@@ -77,7 +79,16 @@ export default function TablesPage() {
         await refetch();
       }
     } catch (error) {
-      console.error("Erro ao excluir mesa:", error);
+
+      const apiError = error as any;
+      if (apiError?.status === 409) {
+        setSuccessAlert({
+          open: true,
+          title: "Ação não permitida",
+          message: apiError?.message || "Mesa não pode ser excluída, existe um pedido ativo ou não arquivado vinculado.",
+        });
+        return;
+      }
       setSuccessAlert({
         open: true,
         title: "Erro!",
@@ -110,7 +121,7 @@ export default function TablesPage() {
         }, 100);
       }
     } catch (error) {
-      console.error("Erro ao atualizar mesa:", error);
+
       setSuccessAlert({
         open: true,
         title: "Erro!",
@@ -137,7 +148,8 @@ export default function TablesPage() {
     });
   };
 
-  if (!isAuthenticated) {
+  // Só mostrar mensagem de não autenticado se não estiver carregando E não estiver autenticado
+  if (!authLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-destructive">

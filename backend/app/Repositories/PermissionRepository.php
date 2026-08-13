@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Permission;
-use App\Repositories\contracts\PermissionRepositoryInterface;
+use App\Repositories\Contracts\PermissionRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
@@ -23,9 +23,9 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         
         // Apply filters
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
-        
+
         if (isset($filters['description'])) {
             $query->where('description', 'like', '%' . $filters['description'] . '%');
         }
@@ -66,5 +66,19 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         }
         
         return $permission->delete();
+    }
+
+    public function findForTenant(int $permissionId, int $tenantId): ?Permission
+    {
+        return $this->entity->where('id', $permissionId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    public function countByIdsForTenant(array $ids, int $tenantId): int
+    {
+        return $this->entity->whereIn('id', $ids)
+            ->where('tenant_id', $tenantId)
+            ->count();
     }
 }

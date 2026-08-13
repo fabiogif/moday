@@ -201,7 +201,6 @@ export function CustomerInsights() {
             </div>
           </TabsContent>
 
-
           <TabsContent value="regions" className="mt-8">
             <div className="rounded-lg border bg-card">
               <Table>

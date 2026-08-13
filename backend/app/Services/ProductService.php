@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\CategoryRepositoryInterface;
-use App\Repositories\contracts\PaginateRepositoryInterface;
-use App\Repositories\contracts\ProductRepositoryInterface;
-use App\Repositories\contracts\TenantRepositoryInterface;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\PaginateRepositoryInterface;
+use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 
 readonly class ProductService
 {
@@ -50,6 +50,11 @@ readonly class ProductService
             $data['variations'] = $this->processVariations($data['variations']);
         }
 
+        // Processar opcionais se existirem
+        if (isset($data['optionals'])) {
+            $data['optionals'] = $this->processVariations($data['optionals']);
+        }
+
         $store =  $this->productRepositoryInterface->store($data);
 
         // Verificar se categories existe e não é vazio
@@ -78,43 +83,68 @@ readonly class ProductService
         return $this->productRepositoryInterface->getByUuid($identify);
     }
 
+    /**
+     * Get product by identifier (can be UUID or numeric ID)
+     */
+    public function getByIdentifier($identifier)
+    {
+        // Se é numérico, buscar por ID
+        if (is_numeric($identifier)) {
+            return $this->productRepositoryInterface->getById($identifier);
+        }
+        // Caso contrário, buscar por UUID
+        return $this->productRepositoryInterface->getByUuid($identifier);
+    }
+
     public function update(array $data, int $id)
     {
         // Processar variações se existirem
         if (isset($data['variations'])) {
             $data['variations'] = $this->processVariations($data['variations']);
         }
+        
+        // Processar opcionais se existirem
+        if (isset($data['optionals'])) {
+            $data['optionals'] = $this->processVariations($data['optionals']);
+        }
 
+        // Separar categories dos dados antes de atualizar
+        $categories = $data['categories'] ?? null;
+        unset($data['categories']);
+        
         $product = $this->productRepositoryInterface->update($data, $id);
         
         // Atualizar categorias se fornecidas
-        if ($product && isset($data['categories']) && !empty($data['categories'])) {
+        if ($product && $categories && !empty($categories)) {
             // Se categories é uma string, converter para array
-            if (is_string($data['categories'])) {
-                $categories = json_decode($data['categories'], true) ?? [$data['categories']];
-            } else {
-                $categories = $data['categories'];
+            if (is_string($categories)) {
+                $categories = json_decode($categories, true) ?? [$categories];
             }
             
             $categoryData = $this->getCategoryByProduct($categories);
             // Primeiro, remove todas as categorias existentes
-            $this->productRepositoryInterface->detachAllCategories($product->id);
+            $this->productRepositoryInterface->detachAllCategories($id);
             // Depois, anexa as novas categorias
-            $this->productRepositoryInterface->attachCategories($product->id, $categoryData);
+            $this->productRepositoryInterface->attachCategories($id, $categoryData);
         }
         
         // Invalidate cache after updating product
-        if ($product && $product->tenant_id) {
-            $this->cacheService->invalidateProductCache($product->tenant_id);
+        if ($product) {
+            // Buscar produto para pegar tenant_id
+            $productModel = $this->productRepositoryInterface->getById($id);
+            if ($productModel && $productModel->tenant_id) {
+                $this->cacheService->invalidateProductCache($productModel->tenant_id);
+            }
         }
         
-        return $product;
+        // Retornar o produto atualizado com relacionamentos
+        return $this->productRepositoryInterface->getById($id);
     }
 
     public function delete(int $id)
     {
         // Get product before deletion to get tenant_id
-        $product = $this->productRepositoryInterface->getByUuid($id);
+        $product = $this->productRepositoryInterface->getById($id);
         $tenantId = $product ? $product->tenant_id : null;
         
         $result = $this->productRepositoryInterface->delete($id);
@@ -134,6 +164,54 @@ readonly class ProductService
         });
     }
 
+    /**
+     * Produtos para PDV, novo pedido e demais fluxos de venda (sem inativos / sem estoque).
+     */
+    public function getCatalogProductsByTenantId(int $idTenant)
+    {
+        return $this->cacheService->getProductCatalogList($idTenant, function () use ($idTenant) {
+            return $this->productRepositoryInterface->getCatalogProductsByTenant($idTenant, []);
+        });
+    }
+
+    public function paginateProductsByTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $filter = null
+    ) {
+        $params = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $search,
+            'filter' => $filter,
+        ];
+
+        return $this->cacheService->getProductListPaginated(
+            $tenantId,
+            $params,
+            fn () => $this->productRepositoryInterface->paginateForTenant(
+                $tenantId,
+                $page,
+                $perPage,
+                $search,
+                $filter
+            )
+        );
+    }
+
+    public function paginateCatalogProductsByTenant(int $tenantId, int $page, int $perPage, ?string $search = null)
+    {
+        $params = ['page' => $page, 'per_page' => $perPage, 'search' => $search];
+
+        return $this->cacheService->getProductCatalogListPaginated(
+            $tenantId,
+            $params,
+            fn () => $this->productRepositoryInterface->paginateCatalogForTenant($tenantId, $page, $perPage, $search)
+        );
+    }
+
     public function getProductsByTenantUuid(string $uuid, array $categories)
     {
         $tenant = $this->tenantRepositoryInterface->getTenantByUuid($uuid);
@@ -145,6 +223,11 @@ readonly class ProductService
         return $this->cacheService->getProductStats($tenantId, function () use ($tenantId) {
             return $this->productRepositoryInterface->getStats($tenantId);
         });
+    }
+
+    public function findByCode(string $code, int $tenantId, bool $catalogOnly = true)
+    {
+        return $this->productRepositoryInterface->findByCode($code, $tenantId, $catalogOnly);
     }
 
     private function getCategoryByProduct(array $categoryProduct): array
@@ -211,15 +294,17 @@ readonly class ProductService
         $cleanVariations = [];
         
         foreach ($variations as $variation) {
+            // Novo formato: id, name, price
             if (is_array($variation) && 
-                isset($variation['type']) && 
-                isset($variation['value']) &&
-                !empty(trim($variation['type'])) &&
-                !empty(trim($variation['value']))) {
+                isset($variation['id']) && 
+                isset($variation['name']) &&
+                isset($variation['price']) &&
+                !empty(trim($variation['name']))) {
                 
                 $cleanVariations[] = [
-                    'type' => trim($variation['type']),
-                    'value' => trim($variation['value'])
+                    'id' => trim($variation['id']),
+                    'name' => trim($variation['name']),
+                    'price' => is_numeric($variation['price']) ? (float)$variation['price'] : 0
                 ];
             }
             // Ignora silenciosamente variações vazias ou inválidas

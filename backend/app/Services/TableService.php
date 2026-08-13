@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\PaginateRepositoryInterface;
-use App\Repositories\contracts\TableRepositoryInterface;
-use App\Repositories\contracts\TenantRepositoryInterface;
+use App\Repositories\Contracts\PaginateRepositoryInterface;
+use App\Repositories\Contracts\TableRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 
 readonly class TableService
 {

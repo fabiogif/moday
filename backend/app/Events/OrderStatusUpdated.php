@@ -24,7 +24,7 @@ class OrderStatusUpdated implements ShouldBroadcast
      */
     public function __construct(Order $order, string $oldStatus, string $newStatus)
     {
-        $this->order = $order->load(['client', 'table', 'products']);
+        $this->order = $order->load(['client', 'table', 'products', 'orderStatus']);
         $this->oldStatus = $oldStatus;
         $this->newStatus = $newStatus;
     }

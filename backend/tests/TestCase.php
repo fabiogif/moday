@@ -21,8 +21,7 @@ abstract class TestCase extends BaseTestCase
             'session.driver' => 'array',
         ]);
 
-        // Executa as migrações necessárias para os testes
-        $this->artisan('migrate');
+        // As migrações são gerenciadas automaticamente pelo trait RefreshDatabase
     }
 
     /**
@@ -56,6 +55,18 @@ abstract class TestCase extends BaseTestCase
             'Accept' => 'application/json',
             'Content-Type' => 'application/json'
         ]);
+    }
+
+    /**
+     * Concede ao usuário de teste o profile "Administrador" com todas as permissões
+     * do tenant, replicando o que acontece de verdade no registro de um tenant
+     * (App\Services\TenantAclProvisioner). Necessário desde que as rotas de
+     * produtos/mesas/clientes/módulos financeiros passaram a exigir acl.permission.
+     */
+    protected function grantFullAccess(\App\Models\User $user, \App\Models\Tenant $tenant): void
+    {
+        app(\App\Services\TenantAclProvisioner::class)->provisionAndAssignOwner($tenant, $user);
+        $user->clearPermissionsCache();
     }
 
     /**

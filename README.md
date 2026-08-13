@@ -1,23 +1,33 @@
-# Moday
+# RestTec (albatecrest)
 
-Sistema de gestão / cardápio digital.
+Monorepo GitLab do produto **RestTec**:
 
-## Documentação
+- `backend/` — API Laravel (deploy Docker em `:8002`)
+- `frontend/` — app Next.js (deploy systemd em `:3002`)
 
-Toda a documentação em Markdown está em [`docs/`](docs/README.md).
+## CI/CD
 
-## Scripts
+Runner tag `oracle-prod`:
 
-Shell scripts em [`scripts/`](scripts/README.md) e `backend/scripts/`.
+| Job | Quando |
+|-----|--------|
+| `backend:test` / `backend:deploy` | mudanças em `backend/**` ou `.gitlab-ci.yml` |
+| `frontend:test` / `frontend:deploy` | mudanças em `frontend/**` ou `.gitlab-ci.yml` |
 
-## Agentes / Cursor
+Deploy automático apenas em `main`.
 
-Convenções de pasta para `.md` e `.sh`: [`AGENTS.md`](AGENTS.md) e `.cursor/rules/`.
+## Local
 
-## Estrutura
+```bash
+# Backend
+cd backend && cp .env.production.example .env
+composer install && php artisan serve
 
-- `frontend/` — Next.js
-- `backend/` — Laravel API
-- `docs/` — documentação por tema
-- `scripts/` — scripts de teste e utilitários
-- `.cursor/rules/` — rules do Cursor
+# Frontend
+cd frontend && cp .env.production.example .env.local
+npm ci && npm run dev
+```
+
+## Relação com Moday (GitHub)
+
+O histórico deste repo diverge do GitHub Moday. Sincronização de backend continua **cirúrgica**. O frontend neste repositório é a fonte RestTec no GitLab.

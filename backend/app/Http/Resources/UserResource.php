@@ -20,6 +20,8 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
+            'rg' => $this->rg,
+            'job_position_id' => $this->job_position_id,
             'is_active' => $this->is_active,
             'tenant_id' => $this->tenant_id,
             'last_login_at' => $this->last_login_at,
@@ -29,6 +31,11 @@ class UserResource extends JsonResource
             'tenant' => new TenantResource($this->whenLoaded('tenant')),
             'profiles' => ProfileResource::collection($this->whenLoaded('profiles')),
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
+            'permission_slugs' => $this->when(
+                array_key_exists('permission_slugs', $this->resource->getAttributes()),
+                fn () => $this->resource->getAttribute('permission_slugs')
+            ),
+            'job_position' => new JobPositionResource($this->whenLoaded('jobPosition')),
         ];
     }
 }

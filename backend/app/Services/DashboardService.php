@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\ClientRepositoryInterface;
-use App\Repositories\contracts\ProductRepositoryInterface;
-use App\Repositories\contracts\OrderRepositoryInterface;
-use App\Repositories\contracts\CategoryRepositoryInterface;
-use App\Repositories\contracts\TableRepositoryInterface;
+use App\Repositories\Contracts\ClientRepositoryInterface;
+use App\Repositories\Contracts\ProductRepositoryInterface;
+use App\Repositories\Contracts\OrderRepositoryInterface;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\TableRepositoryInterface;
 
 class DashboardService
 {

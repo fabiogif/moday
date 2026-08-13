@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUpdateDetailPlanRequest;
 use App\Models\DetailPlan;
 use App\Models\Plan;
 
+/** @deprecated Legado Blade — use PlanApiController. */
 class DetailPlanController extends Controller
 {
     public function __construct(protected  DetailPlan $repository, protected  Plan $plan)

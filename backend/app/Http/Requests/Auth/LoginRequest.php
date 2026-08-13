@@ -3,6 +3,9 @@
 namespace App\Http\Requests\Auth;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Classes\ApiResponseClass;
 
 class LoginRequest extends FormRequest
 {
@@ -53,5 +56,16 @@ class LoginRequest extends FormRequest
             'password.min' => 'O campo senha deve ter pelo menos 6 caracteres.',
             'remember.boolean' => 'O campo lembrar deve ser verdadeiro ou falso.',
         ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     * Garante que sempre retorne JSON, mesmo se a requisição não especificar Accept: application/json
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(
+            ApiResponseClass::validationError($validator->errors(), 'Dados inválidos')
+        );
     }
 }

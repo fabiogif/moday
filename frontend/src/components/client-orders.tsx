@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Package, Calendar, MapPin, CreditCard, Truck, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
+import { buildApiUrl } from '@/lib/api-config'
+import { resolveImageUrl } from '@/lib/resolve-image-url'
 
 interface OrderProduct {
   uuid: string
@@ -61,7 +63,7 @@ export function ClientOrders({ slug }: ClientOrdersProps) {
       setLoading(true)
       
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/store/${slug}/orders`,
+        buildApiUrl(`/api/store/${slug}/orders`),
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -78,7 +80,7 @@ export function ClientOrders({ slug }: ClientOrdersProps) {
         toast.error(data.message || 'Erro ao carregar pedidos')
       }
     } catch (error) {
-      console.error('Error loading orders:', error)
+
       toast.error('Erro ao carregar pedidos')
     } finally {
       setLoading(false)
@@ -88,9 +90,9 @@ export function ClientOrders({ slug }: ClientOrdersProps) {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'Pendente': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
-      'Em Preparo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
-      'Pronto': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      'Entregue': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400',
+      'Aceito': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400',
+      'Preparo': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400',
+      'Concluído': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
       'Cancelado': 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
     }
     return colors[status] || 'bg-gray-100 text-gray-800'
@@ -202,7 +204,7 @@ export function ClientOrders({ slug }: ClientOrdersProps) {
                         {product.image && (
                           <div className="h-12 w-12 rounded overflow-hidden bg-muted flex-shrink-0">
                             <img 
-                              src={product.image} 
+                              src={resolveImageUrl(product.image) || ""} 
                               alt={product.name}
                               className="h-full w-full object-cover"
                             />

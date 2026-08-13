@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
+use App\Helpers\ImageHelper;
+use App\Http\Controllers\Concerns\ResolvesListPagination;
 use Illuminate\Routing\Controller;
 use App\Http\Requests\{Api\TenantFormRequest, StoreUpdateProductRequest, UpdateProductRequest};
 use App\Http\Resources\ProductResource;
-use App\Services\ImageCompressionService;
 use App\Services\ProductService;
-use Illuminate\Http\{Response, JsonResponse};
+use Illuminate\Http\{Request, Response, JsonResponse};
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @OA\Tag(
@@ -18,12 +21,11 @@ use Illuminate\Http\{Response, JsonResponse};
  */
 class ProductApiController extends Controller
 {
+    use ResolvesListPagination;
 
-    public function __construct(
-        private readonly ProductService $productService,
-        private readonly ImageCompressionService $imageCompressionService
-    )
+    public function __construct(private readonly ProductService $productService)
     {
+      
     }
 
     /**
@@ -55,25 +57,25 @@ class ProductApiController extends Controller
     public function index(): JsonResponse
     {
         try {
-            \Log::info('ProductApiController::index - Iniciando listagem de produtos');
-            
+            Log::info('ProductApiController::index - Iniciando listagem de produtos');
+
             $data = $this->productService->index();
-            
-            \Log::info('ProductApiController::index - Dados retornados:', [
+
+            Log::info('ProductApiController::index - Dados retornados:', [
                 'count' => $data ? count($data) : 0,
                 'is_collection' => $data instanceof \Illuminate\Database\Eloquent\Collection,
-                'user_id' => auth()->id(),
-                'tenant_id' => auth()->user()?->tenant_id
+                'user_id' => Auth::id(),
+                'tenant_id' => Auth::user()?->tenant_id
             ]);
-            
+
             if (!$data) {
                 return ApiResponseClass::sendResponse([], 'Nenhum produto encontrado', 404);
             }
-            
+
             $resource = ProductResource::collection($data);
             return ApiResponseClass::sendResponse($resource, 'Produtos listados com sucesso', 200);
         } catch (\Exception $ex) {
-            \Log::error('ProductApiController::index - Erro:', [
+            Log::error('ProductApiController::index - Erro:', [
                 'message' => $ex->getMessage(),
                 'trace' => $ex->getTraceAsString()
             ]);
@@ -88,8 +90,8 @@ class ProductApiController extends Controller
             // 1) via token_company (UUID) vindo do request
             // 2) via usuário autenticado (tenant vinculado)
             $tenantUuid = $request->input('token_company');
-            if (!$tenantUuid && auth()->check()) {
-                $tenantUuid = auth()->user()->tenant?->uuid;
+            if (!$tenantUuid && Auth::check()) {
+                $tenantUuid = Auth::user()->tenant?->uuid;
             }
 
             if (!$tenantUuid) {
@@ -107,34 +109,106 @@ class ProductApiController extends Controller
         }
     }
 
-    public function productsByAuthenticatedUser(): JsonResponse
+    public function productsByAuthenticatedUser(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
+            $user = Auth::user();
+
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }
-            
+
             if (!$user->tenant_id) {
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
-            
-            $products = $this->productService->getProductsByTenantId($user->tenant_id);
-            if (!$products) {
-                return ApiResponseClass::sendResponse([], 'Nenhum produto encontrado', 404);
+
+            $filter = $request->query('filter');
+            $filter = is_string($filter) ? trim($filter) : null;
+            if ($filter !== null && !in_array($filter, ['active', 'out_of_stock', 'promo'], true)) {
+                $filter = null;
             }
-    
-            return ApiResponseClass::sendResponse(ProductResource::collection($products), 'Produtos listados com sucesso', 200);
+
+            $paginated = $this->productService->paginateProductsByTenant(
+                $user->tenant_id,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request),
+                $filter
+            );
+
+            return response()->json([
+                'success' => true,
+                'data'    => ProductResource::collection($paginated->items()),
+                'meta'    => $this->listMeta($paginated),
+                'message' => 'Produtos listados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar produtos');
+        }
+    }
+
+    /**
+     * Produtos disponíveis para venda (PDV, novo pedido) — ativos e com estoque.
+     */
+    public function showByCode(string $code): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            $product = $this->productService->findByCode($code, $user->tenant_id, true);
+            if (!$product) {
+                return ApiResponseClass::sendResponse('', 'Produto não encontrado para este código', 404);
+            }
+
+            return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto encontrado', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar produto por código');
+        }
+    }
+
+    public function catalogProductsByAuthenticatedUser(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            $paginated = $this->productService->paginateCatalogProductsByTenant(
+                $user->tenant_id,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request)
+            );
+
+            return response()->json([
+                'success' => true,
+                'data'    => ProductResource::collection($paginated->items()),
+                'meta'    => $this->listMeta($paginated),
+                'message' => 'Produtos do catálogo de venda listados com sucesso',
+            ], 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao listar produtos do catálogo');
         }
     }
 
     public function stats(): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -154,7 +228,7 @@ class ProductApiController extends Controller
     public function store(StoreUpdateProductRequest $request):JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -164,26 +238,50 @@ class ProductApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
 
-            $data = $request->all();
+            $data = $request->except(['_method', 'trial_info']);
             $data['tenant_id'] = $user->tenant_id;
             
             if($request->hasFile('image') && $request->image->isValid()){
-                $data['image'] = $this->imageCompressionService->compressAndStore(
-                    $request->image,
-                    "tenants/{$user->tenant->uuid}/products"
+                $fileUploadService = app(\App\Services\FileUploadService::class);
+                $uploadResult = $fileUploadService->uploadFile(
+                    $request->image, 
+                    'product', 
+                    $user->tenant->uuid
                 );
+                $data['image'] = $uploadResult['path'];
+            } elseif (!empty($data['image_url']) && empty($data['image'])) {
+                $data['image'] = $this->resolveImageFromUrl(
+                    (string) $data['image_url'],
+                    $user->tenant->uuid
+                ) ?? ($data['image'] ?? null);
             }
+            unset($data['image_url']);
             $product = $this->productService->store($data);
 
-            return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto cadastrado com sucesso', 201);
+            if (isset($data['qtd_stock']) && (int) $data['qtd_stock'] > 0) {
+                app(\App\Services\Stock\StockService::class)->ensureStockFromDeclaredQuantity(
+                    $user->tenant_id,
+                    $product->id,
+                    $user->id
+                );
+                $product->refresh();
+            }
+
+            return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto criado com sucesso', 201);
+        } catch (\Illuminate\Database\QueryException $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao criar produto');
         } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex);
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage() ?: 'Erro ao criar produto',
+                'error' => $ex->getMessage() ?: 'Erro ao criar produto',
+            ], 422);
         }
     }
 
     public function show($identify):JsonResponse
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         if (!$user) {
             return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -193,15 +291,17 @@ class ProductApiController extends Controller
             return ApiResponseClass::forbidden('Usuário não possui tenant associado');
         }
 
-        $product = $this->productService->getByUuid($identify);
+        // Buscar por UUID ou ID numérico
+        $product = $this->productService->getByIdentifier($identify);
         if(!$product)
         {
             return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
         }
         
         // Verificar se o produto pertence ao tenant do usuário
+        // Retornar 404 ao invés de 403 para não revelar a existência do produto
         if ($product->tenant_id !== $user->tenant_id) {
-            return ApiResponseClass::forbidden('Acesso negado ao produto');
+            return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
         }
 
         return ApiResponseClass::sendResponse(new ProductResource($product), '', 200);
@@ -248,8 +348,8 @@ class ProductApiController extends Controller
     public function update(StoreUpdateProductRequest $request, $id): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
+            $user = Auth::user();
+         
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }
@@ -259,36 +359,63 @@ class ProductApiController extends Controller
             }
             
             // Verificar se o produto existe e pertence ao tenant
-            $existingProduct = $this->productService->getByUuid($id);
+            $existingProduct = $this->productService->getByIdentifier($id);
             
             if (!$existingProduct) {
                 return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
             }
             
+            // Retornar 404 ao invés de 403 para não revelar a existência do produto
             if ($existingProduct->tenant_id !== $user->tenant_id) {
-                return ApiResponseClass::forbidden('Acesso negado ao produto');
+                return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
             }
 
-            $data = $request->all();
+      
+
+            $data = $request->except(['_method', 'trial_info']);
             if ($request->hasFile('image') && $request->image->isValid()) {
-                $data['image'] = $this->imageCompressionService->compressAndStore(
-                    $request->image,
-                    "tenants/{$user->tenant->uuid}/products"
+                $fileUploadService = app(\App\Services\FileUploadService::class);
+                $uploadResult = $fileUploadService->uploadFile(
+                    $request->image, 
+                    'product', 
+                    $user->tenant->uuid
                 );
+                $data['image'] = $uploadResult['path'];
+            } elseif (!empty($data['image_url']) && !$request->hasFile('image') && empty($existingProduct->image)) {
+                $resolved = $this->resolveImageFromUrl((string) $data['image_url'], $user->tenant->uuid);
+                if ($resolved) {
+                    $data['image'] = $resolved;
+                }
+            }
+            unset($data['image_url']);
+            
+            $product = $this->productService->update($data, $existingProduct->id);
+
+            if (isset($data['qtd_stock']) && (int) $data['qtd_stock'] > 0) {
+                app(\App\Services\Stock\StockService::class)->ensureStockFromDeclaredQuantity(
+                    $user->tenant_id,
+                    $existingProduct->id,
+                    $user->id
+                );
+                $product->refresh();
             }
             
-            $product = $this->productService->update($data, $id);
-            
             return ApiResponseClass::sendResponse(new ProductResource($product), 'Produto atualizado com sucesso', 200);
-        } catch (\Exception $ex) {
+        } catch (\Illuminate\Database\QueryException $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar produto');
+        } catch (\Exception $ex) {
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage() ?: 'Erro ao atualizar produto',
+                'error' => $ex->getMessage() ?: 'Erro ao atualizar produto',
+            ], 422);
         }
     }
 
     public function delete($id): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -299,21 +426,52 @@ class ProductApiController extends Controller
             }
             
             // Verificar se o produto existe e pertence ao tenant
-            $existingProduct = $this->productService->getByUuid($id);
+            $existingProduct = $this->productService->getByIdentifier($id);
             
             if (!$existingProduct) {
                 return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
             }
             
+            // Retornar 404 ao invés de 403 para não revelar a existência do produto
             if ($existingProduct->tenant_id !== $user->tenant_id) {
-                return ApiResponseClass::forbidden('Acesso negado ao produto');
+                return ApiResponseClass::sendResponse('', 'Produto não encontrado', 404);
             }
             
-            $deleted = $this->productService->delete($id);
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $check = $guard->verificarVinculoPedidoAtivo($existingProduct->id, 'produto', $user->tenant_id);
+            if ($check['blocked']) {
+                return ApiResponseClass::conflict(
+                    'Produto não pode ser excluído, existe um pedido ativo ou não arquivado vinculado.',
+                    ['orders' => $check['orders']]
+                );
+            }
+
+            $deleted = $this->productService->delete($existingProduct->id);
             
-            return ApiResponseClass::sendResponse('', 'Produto removido com sucesso', 200);
+            if ($deleted) {
+                return response()->json(null, 204);
+            }
+
+            return ApiResponseClass::throw(new \RuntimeException('Falha ao deletar produto'), 'Erro ao remover produto');
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao remover produto');
+        }
+    }
+
+    private function resolveImageFromUrl(string $url, string $tenantUuid): ?string
+    {
+        try {
+            $uploadResult = app(\App\Services\FileUploadService::class)
+                ->uploadFromUrl($url, 'product', $tenantUuid);
+
+            return $uploadResult['path'] ?? null;
+        } catch (\Throwable $ex) {
+            Log::warning('Falha ao importar imagem remota do produto', [
+                'url' => $url,
+                'error' => $ex->getMessage(),
+            ]);
+
+            return null;
         }
     }
 }

@@ -86,7 +86,7 @@ export function PaymentMethodFormDialog({
       form.reset()
       setOpen(false)
     } catch (error) {
-      console.error('Erro ao salvar forma de pagamento:', error)
+
     } finally {
       setLoading(false)
     }

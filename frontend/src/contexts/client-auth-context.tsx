@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { buildApiUrl } from '@/lib/api-config'
 
 interface ClientUser {
   uuid: string
@@ -56,8 +57,11 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
   const [token, setToken] = useState<string | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
+    
     // Load from localStorage
     const savedClient = localStorage.getItem('client-auth-user')
     const savedToken = localStorage.getItem('client-auth-token')
@@ -69,7 +73,7 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
         setToken(savedToken)
         setIsAuthenticated(true)
       } catch (error) {
-        console.error('Error loading client auth:', error)
+
         localStorage.removeItem('client-auth-user')
         localStorage.removeItem('client-auth-token')
       }
@@ -79,7 +83,7 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
   }, [])
 
   const login = async (email: string, password: string, slug: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/store/${slug}/auth/login`, {
+    const response = await fetch(buildApiUrl(`/api/store/${slug}/auth/login`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -105,7 +109,7 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
   }
 
   const register = async (registerData: RegisterData, slug: string) => {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/store/${slug}/auth/register`, {
+    const response = await fetch(buildApiUrl(`/api/store/${slug}/auth/register`), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

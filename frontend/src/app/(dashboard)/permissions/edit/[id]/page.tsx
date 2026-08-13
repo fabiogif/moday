@@ -118,7 +118,7 @@ export default function EditPermissionPage() {
         setPermission(prev => prev ? { ...prev, ...data } : null)
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar permissão:', error)
+
       toast.error(error.message || 'Erro ao atualizar permissão')
     }
   }
@@ -135,7 +135,7 @@ export default function EditPermissionPage() {
         router.push('/permissions')
       }
     } catch (error: any) {
-      console.error('Erro ao excluir permissão:', error)
+
       toast.error(error.message || 'Erro ao excluir permissão')
     }
   }
@@ -172,7 +172,7 @@ export default function EditPermissionPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 py-2 px-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

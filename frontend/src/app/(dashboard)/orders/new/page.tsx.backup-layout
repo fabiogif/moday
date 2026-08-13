@@ -212,51 +212,51 @@ export default function NewOrderPage() {
   const discountType = form.watch("discountType");
 
   // Debug dos hooks após todas as declarações
-  console.log('=== COMPARAÇÃO DE HOOKS ===');
-  console.log('Hook NÃO autenticado:');
-  console.log('  - loading:', productsLoading);
-  console.log('  - data:', productsData);
-  console.log('Hook AUTENTICADO:');
-  console.log('  - loading:', productsLoadingAuth);
-  console.log('  - data:', productsDataAuth);
-  console.log('===========================');
+  // console.log('=== COMPARAÇÃO DE HOOKS ===');
+  // console.log('Hook NÃO autenticado:');
+  // console.log('  - loading:', productsLoading);
+  // console.log('  - data:', productsData);
+  // console.log('Hook AUTENTICADO:');
+  // console.log('  - loading:', productsLoadingAuth);
+  // console.log('  - data:', productsDataAuth);
+  // console.log('===========================');
 
   // Transformar dados da API com logs mais detalhados
   const getArrayFromData = (data: any) => {
-    console.log('getArrayFromData entrada:', data);
-    console.log('tipo:', typeof data);
-    console.log('é array?', Array.isArray(data));
+    // console.log('getArrayFromData entrada:', data);
+    // console.log('tipo:', typeof data);
+    // console.log('é array?', Array.isArray(data));
     
     if (!data) {
-      console.log('data é null/undefined');
+      // console.log('data é null/undefined');
       return [];
     }
     
     if (Array.isArray(data)) {
-      console.log('data é array direto, length:', data.length);
-      console.log('primeiros itens:', data.slice(0, 2));
+      // console.log('data é array direto, length:', data.length);
+      // console.log('primeiros itens:', data.slice(0, 2));
       return data;
     }
     
     if (data.data && Array.isArray(data.data)) {
-      console.log('data.data é array, length:', data.data.length);
-      console.log('primeiros itens:', data.data.slice(0, 2));
+      // console.log('data.data é array, length:', data.data.length);
+      // console.log('primeiros itens:', data.data.slice(0, 2));
       return data.data;
     }
     
     if (data.success && data.data && Array.isArray(data.data)) {
-      console.log('data.success.data é array, length:', data.data.length);
-      console.log('primeiros itens:', data.data.slice(0, 2));
+      // console.log('data.success.data é array, length:', data.data.length);
+      // console.log('primeiros itens:', data.data.slice(0, 2));
       return data.data;
     }
     
     // Tentar extrair se for Laravel Resource Collection
     if (data.data && data.data.data && Array.isArray(data.data.data)) {
-      console.log('Laravel Resource Collection detectada, length:', data.data.data.length);
+      // console.log('Laravel Resource Collection detectada, length:', data.data.data.length);
       return data.data.data;
     }
     
-    console.log('Não conseguiu extrair array, estrutura completa:', JSON.stringify(data, null, 2));
+    // console.log('Não conseguiu extrair array, estrutura completa:', JSON.stringify(data, null, 2));
     return [];
   };
 
@@ -271,7 +271,7 @@ export default function NewOrderPage() {
       const isActive = p.is_active === true || p.is_active === 1;
       const hasStock = p.qtd_stock > 0;
       
-      console.log('Filtrando produto:', {
+      // console.log('Filtrando produto:', {
         name: p?.name,
         identify: p?.identify,
         hasRequiredFields,
@@ -285,22 +285,22 @@ export default function NewOrderPage() {
   const tables = getArrayFromData(tablesData).filter((t: any) => t && t.id);
   const paymentMethods = getArrayFromData(paymentMethodsData).filter((pm: any) => pm && pm.uuid && pm.is_active);
 
-  console.log('=== DADOS FINAIS ===');
-  console.log('finalProductsData:', finalProductsData);
-  console.log('finalProductsLoading:', finalProductsLoading);
-  console.log('produtos após filtro:', products.length);
-  console.log('produtos brutos antes do filtro:', getArrayFromData(finalProductsData).length);
-  console.log('primeiro produto filtrado:', products[0]);
-  console.log('==================');
+  // console.log('=== DADOS FINAIS ===');
+  // console.log('finalProductsData:', finalProductsData);
+  // console.log('finalProductsLoading:', finalProductsLoading);
+  // console.log('produtos após filtro:', products.length);
+  // console.log('produtos brutos antes do filtro:', getArrayFromData(finalProductsData).length);
+  // console.log('primeiro produto filtrado:', products[0]);
+  // console.log('==================');
 
-  console.log('=== COMPARAÇÃO DE HOOKS ===');
-  console.log('Hook NÃO autenticado:');
-  console.log('  - loading:', productsLoading);
-  console.log('  - data:', productsData);
-  console.log('Hook AUTENTICADO:');
-  console.log('  - loading:', productsLoadingAuth);
-  console.log('  - data:', productsDataAuth);
-  console.log('===========================');
+  // console.log('=== COMPARAÇÃO DE HOOKS ===');
+  // console.log('Hook NÃO autenticado:');
+  // console.log('  - loading:', productsLoading);
+  // console.log('  - data:', productsData);
+  // console.log('Hook AUTENTICADO:');
+  // console.log('  - loading:', productsLoadingAuth);
+  // console.log('  - data:', productsDataAuth);
+  // console.log('===========================');
 
   const clientOptions: ComboboxOption[] = clients.map((client: Client) => ({
     value: client.uuid || client.identify || client.id.toString(),
@@ -308,7 +308,7 @@ export default function NewOrderPage() {
   }));
 
   const productOptions: ComboboxOption[] = products.map((product: Product) => {
-    console.log('Mapeando produto para opção:', product);
+    // console.log('Mapeando produto para opção:', product);
     
     // Converter price de string para number se necessário
     const price = typeof product.price === 'string' 
@@ -336,10 +336,10 @@ export default function NewOrderPage() {
     };
   });
 
-  console.log('=== PRODUTO OPTIONS FINAL ===');
-  console.log('Total de options:', productOptions.length);
-  console.log('Primeiras 3 options:', productOptions.slice(0, 3));
-  console.log('============================');
+  // console.log('=== PRODUTO OPTIONS FINAL ===');
+  // console.log('Total de options:', productOptions.length);
+  // console.log('Primeiras 3 options:', productOptions.slice(0, 3));
+  // console.log('============================');
 
   const tableOptions: ComboboxOption[] = tables.map((table: Table) => ({
     value: table.uuid || table.identify || table.id.toString(),
@@ -427,7 +427,7 @@ export default function NewOrderPage() {
         ? getPriceAsNumber(product.promotional_price)
         : getPriceAsNumber(product.price);
       
-      console.log('Produto selecionado:', {
+      // console.log('Produto selecionado:', {
         name: product.name,
         uuid: product.uuid,
         priceOriginal: product.price,
@@ -443,18 +443,18 @@ export default function NewOrderPage() {
 
   const onSubmit = async (data: OrderFormValues) => {
     try {
-      console.log('=== DEBUG onSubmit ===');
-      console.log('auth object:', auth);
-      console.log('auth.user:', auth.user);
+      // console.log('=== DEBUG onSubmit ===');
+      // console.log('auth object:', auth);
+      // console.log('auth.user:', auth.user);
       
       // Obter token da empresa do usuário autenticado
       const user = auth.user;
-      console.log('user from auth:', user);
-      console.log('user?.tenant:', user?.tenant);
-      console.log('user?.tenant_id:', user?.tenant_id);
+      // console.log('user from auth:', user);
+      // console.log('user?.tenant:', user?.tenant);
+      // console.log('user?.tenant_id:', user?.tenant_id);
       
       const tenantId = user?.tenant?.uuid || user?.tenant_id;
-      console.log('tenantId calculated:', tenantId);
+      // console.log('tenantId calculated:', tenantId);
       
       if (!tenantId) {
         console.error('tenantId is falsy:', tenantId);
@@ -485,11 +485,11 @@ export default function NewOrderPage() {
         }))
       };
       
-      console.log('=== DADOS CONVERTIDOS PARA O BACKEND ===');
-      console.log('orderData:', orderData);
-      console.log('token_company:', orderData.token_company);
-      console.log('table:', orderData.table);
-      console.log('products:', orderData.products);
+      // console.log('=== DADOS CONVERTIDOS PARA O BACKEND ===');
+      // console.log('orderData:', orderData);
+      // console.log('token_company:', orderData.token_company);
+      // console.log('table:', orderData.table);
+      // console.log('products:', orderData.products);
       
       const result = await createOrder(endpoints.orders.create, 'POST', orderData);
       
@@ -523,7 +523,7 @@ export default function NewOrderPage() {
     (discountType === "percentage" ? (subtotal * discountValue) / 100 : discountValue) : 0;
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 py-2 px-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />

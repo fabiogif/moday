@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Profile;
 use Illuminate\Http\Request;
 
+/** @deprecated Legado Blade — use a API REST. */
 class PermissionProfileController extends Controller
 {
 

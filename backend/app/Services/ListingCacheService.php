@@ -147,19 +147,32 @@ class ListingCacheService
     }
 
     /**
-     * Invalidate cache by pattern (Redis specific)
+     * Invalidate cache by pattern using Redis SCAN (safe for production)
      */
     private function invalidateCacheByPattern(string $pattern): void
     {
         try {
-            // For now, use a simple approach - clear all cache
-            // In production, you would implement pattern-based invalidation
-            Log::info("Invalidating cache pattern: {$pattern}");
-            Cache::flush();
+            $store = Cache::getStore();
+
+            if (method_exists($store, 'getRedis')) {
+                $redis  = $store->getRedis();
+                $prefix = config('cache.prefix') ? config('cache.prefix') . ':' : '';
+                $cursor = '0';
+
+                do {
+                    $result = $redis->scan($cursor, ['MATCH' => $prefix . $pattern, 'COUNT' => 100]);
+                    $cursor = $result[0];
+                    $keys   = $result[1] ?? [];
+
+                    foreach ($keys as $key) {
+                        Cache::forget(str_replace($prefix, '', $key));
+                    }
+                } while ($cursor !== '0');
+            } else {
+                Log::info("Cache pattern invalidation not supported for current driver: {$pattern}");
+            }
         } catch (\Exception $e) {
-            Log::warning("Failed to invalidate cache pattern: {$pattern}", [
-                'error' => $e->getMessage()
-            ]);
+            Log::warning("Failed to invalidate cache pattern: {$pattern}", ['error' => $e->getMessage()]);
         }
     }
 

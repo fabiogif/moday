@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Repositories\contracts\OrderRepositoryInterface;
+use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EvaluationRequest extends FormRequest

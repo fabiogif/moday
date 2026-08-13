@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
 
 export function ForceLogoutButton() {
   const [tokenInfo, setTokenInfo] = useState<string>('')
-  const router = useRouter()
 
   useEffect(() => {
     const token = localStorage.getItem('auth-token')
@@ -25,8 +23,7 @@ export function ForceLogoutButton() {
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     
     alert('Autenticação limpa! Faça login novamente.')
-    router.push('/login')
-    router.refresh()
+    window.location.href = '/auth/login'
   }
 
   if (process.env.NODE_ENV !== 'development') {

@@ -37,6 +37,18 @@ class CacheService
         'sales_performance' => 600,  // 10 minutes
         'recent_transactions' => 300, // 5 minutes
         'top_products' => 600,       // 10 minutes
+        // DistribTec modules
+        'supplier_list' => 600,          // 10 minutes
+        'warehouse_list' => 1800,        // 30 minutes
+        'batch_list' => 300,             // 5 minutes
+        'sale_order_list' => 300,        // 5 minutes
+        'sale_order_summary' => 60,      // 1 minute (quase realtime, card/gráfico da Home)
+        'purchase_order_list' => 300,    // 5 minutes
+        'stock_movement_list' => 180,    // 3 minutes
+        // Sales Goals & Gamification
+        'sales_goal_list' => 300,        // 5 minutes
+        'ranking_list' => 300,           // 5 minutes
+        'gamification_profile' => 600,   // 10 minutes
     ];
 
     /**
@@ -112,9 +124,10 @@ class CacheService
      */
     public function getOrderData(int $tenantId, string $identifier, callable $callback)
     {
-        $cacheKey = "order_data_{$tenantId}_{$identifier}";
+        $v = (int) Cache::get("order_data_v_{$tenantId}", 0);
+        $cacheKey = "order_data_{$tenantId}_v{$v}_{$identifier}";
         $ttl = self::CACHE_TTL['order_data'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
     }
 
@@ -136,8 +149,18 @@ class CacheService
     {
         $cacheKey = "client_list_{$tenantId}";
         $ttl = self::CACHE_TTL['client_list'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached paginated client list (search/paginação para telas com muitos clientes).
+     */
+    public function getClientListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("client_list_v_{$tenantId}", 0);
+        $key = "client_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['client_list'], $callback);
     }
 
     /**
@@ -147,18 +170,51 @@ class CacheService
     {
         $cacheKey = "product_list_{$tenantId}";
         $ttl = self::CACHE_TTL['product_list'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Lista de produtos visíveis no PDV / cardápio de venda.
+     */
+    public function getProductCatalogList(int $tenantId, callable $callback)
+    {
+        $cacheKey = "product_catalog_list_{$tenantId}";
+        $ttl = self::CACHE_TTL['product_list'];
+
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
+    /**
+     * Get cached paginated product list (search/paginação para catálogos grandes).
+     */
+    public function getProductListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("product_list_v_{$tenantId}", 0);
+        $key = "product_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['product_list'], $callback);
+    }
+
+    /**
+     * Get cached paginated product catalog list.
+     */
+    public function getProductCatalogListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("product_list_v_{$tenantId}", 0);
+        $key = "product_catalog_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['product_list'], $callback);
     }
 
     /**
      * Get cached order list
      */
-    public function getOrderList(int $tenantId, callable $callback)
+    public function getOrderList(int $tenantId, callable $callback, array $params = [])
     {
-        $cacheKey = "order_list_{$tenantId}";
+        $v = (int) Cache::get("order_list_v_{$tenantId}", 0);
+        $paramsKey = md5(json_encode($params));
+        $cacheKey = "order_list_{$tenantId}_v{$v}_{$paramsKey}";
         $ttl = self::CACHE_TTL['order_list'];
-        
+
         return $this->remember($cacheKey, $ttl, $callback);
     }
 
@@ -324,6 +380,7 @@ class CacheService
     {
         Cache::forget("client_stats_{$tenantId}");
         Cache::forget("client_list_{$tenantId}");
+        Cache::increment("client_list_v_{$tenantId}");
         Cache::forget("dashboard_data_{$tenantId}");
     }
 
@@ -334,6 +391,8 @@ class CacheService
     {
         Cache::forget("product_stats_{$tenantId}");
         Cache::forget("product_list_{$tenantId}");
+        Cache::forget("product_catalog_list_{$tenantId}");
+        Cache::increment("product_list_v_{$tenantId}");
         Cache::forget("dashboard_data_{$tenantId}");
     }
 
@@ -348,6 +407,17 @@ class CacheService
         
         // Invalidate all order data cache for this tenant
         $this->invalidateOrderDataCache($tenantId);
+        
+        // Invalidate all paginated order list cache with different parameters
+        $this->invalidateOrderListCache($tenantId);
+    }
+    
+    /**
+     * Invalidate all order list cache variations (with different pagination params)
+     */
+    public function invalidateOrderListCache(int $tenantId): void
+    {
+        Cache::increment("order_list_v_{$tenantId}");
     }
 
     /**
@@ -409,12 +479,7 @@ class CacheService
      */
     public function invalidateOrderDataCache(int $tenantId): void
     {
-        // Get all cache keys that match the pattern
-        $pattern = "order_data_{$tenantId}_*";
-        
-        // Note: This is a simplified approach. In production, you might want to use
-        // Redis SCAN or maintain a list of cache keys
-        $this->invalidateCacheByPattern($pattern);
+        Cache::increment("order_data_v_{$tenantId}");
     }
 
     /**
@@ -439,26 +504,24 @@ class CacheService
     {
         try {
             $store = Cache::getStore();
-            
-            // Check if we're using Redis store
+
             if (method_exists($store, 'getRedis')) {
-                $redis = $store->getRedis();
-                
-                // Use SCAN instead of KEYS for better performance
+                $redis  = $store->getRedis();
+                $prefix = config('cache.prefix') . ':';
+
                 $cursor = '0';
                 do {
-                    $result = $redis->scan($cursor, ['MATCH' => $pattern, 'COUNT' => 100]);
+                    $result = $redis->scan($cursor, ['MATCH' => $prefix . $pattern, 'COUNT' => 100]);
                     $cursor = $result[0];
-                    $keys = $result[1] ?? [];
-                    
+                    $keys   = $result[1] ?? [];
+
                     if (!empty($keys)) {
                         foreach ($keys as $key) {
-                            Cache::forget(str_replace(config('cache.prefix') . ':', '', $key));
+                            Cache::forget(str_replace($prefix, '', $key));
                         }
                     }
                 } while ($cursor !== '0');
             } else {
-                // Fallback: For non-Redis stores, we can't use pattern matching
                 Log::info("Cache pattern invalidation not supported for current driver");
             }
         } catch (\Exception $e) {
@@ -486,5 +549,132 @@ class CacheService
     public function clearAllCache(): void
     {
         Cache::flush();
+    }
+
+    // -------------------------------------------------------------------------
+    // DistribTec module caches
+    // -------------------------------------------------------------------------
+
+    public function getSupplierList(int $tenantId, callable $callback)
+    {
+        return $this->remember("supplier_list_{$tenantId}", self::CACHE_TTL['supplier_list'], $callback);
+    }
+
+    /**
+     * Lista paginada de fornecedores (evita dump completo no Redis/JSON).
+     */
+    public function getSupplierListPaginated(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("supplier_list_v_{$tenantId}", 0);
+        $key = "supplier_list_p_{$tenantId}_v{$v}_" . md5(json_encode($params));
+
+        return $this->remember($key, self::CACHE_TTL['supplier_list'], $callback);
+    }
+
+    public function getWarehouseList(int $tenantId, callable $callback)
+    {
+        return $this->remember("warehouse_list_{$tenantId}", self::CACHE_TTL['warehouse_list'], $callback);
+    }
+
+    public function getBatchList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("batch_v_{$tenantId}", 0);
+        $key = "batch_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['batch_list'], $callback);
+    }
+
+    public function getSaleOrderList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("sale_order_v_{$tenantId}", 0);
+        $key = "sale_order_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['sale_order_list'], $callback);
+    }
+
+    public function getSaleOrderSummary(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("sale_order_v_{$tenantId}", 0);
+        $key = "sale_order_summary_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['sale_order_summary'], $callback);
+    }
+
+    public function getPurchaseOrderList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("purchase_order_v_{$tenantId}", 0);
+        $key = "purchase_order_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['purchase_order_list'], $callback);
+    }
+
+    public function getStockMovementList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("stock_movement_v_{$tenantId}", 0);
+        $key = "stock_movement_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['stock_movement_list'], $callback);
+    }
+
+    public function invalidateSupplierCache(int $tenantId): void
+    {
+        Cache::forget("supplier_list_{$tenantId}");
+        Cache::increment("supplier_list_v_{$tenantId}");
+    }
+
+    public function invalidateWarehouseCache(int $tenantId): void
+    {
+        Cache::forget("warehouse_list_{$tenantId}");
+    }
+
+    public function invalidateBatchCache(int $tenantId): void
+    {
+        Cache::increment("batch_v_{$tenantId}");
+    }
+
+    public function invalidateSaleOrderCache(int $tenantId): void
+    {
+        Cache::increment("sale_order_v_{$tenantId}");
+    }
+
+    public function invalidatePurchaseOrderCache(int $tenantId): void
+    {
+        Cache::increment("purchase_order_v_{$tenantId}");
+    }
+
+    public function invalidateStockMovementCache(int $tenantId): void
+    {
+        Cache::increment("stock_movement_v_{$tenantId}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Sales Goals & Gamification caches
+    // -------------------------------------------------------------------------
+
+    public function getSalesGoalList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("sales_goal_v_{$tenantId}", 0);
+        $key = "sales_goal_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['sales_goal_list'], $callback);
+    }
+
+    public function getRankingList(int $tenantId, array $params, callable $callback)
+    {
+        $v = (int) Cache::get("ranking_v_{$tenantId}", 0);
+        $key = "ranking_list_{$tenantId}_v{$v}_" . md5(json_encode($params));
+        return $this->remember($key, self::CACHE_TTL['ranking_list'], $callback);
+    }
+
+    public function getGamificationProfile(int $tenantId, int $userId, callable $callback)
+    {
+        $key = "gamification_profile_{$tenantId}_{$userId}";
+        return $this->remember($key, self::CACHE_TTL['gamification_profile'], $callback);
+    }
+
+    public function invalidateSalesGoalCache(int $tenantId): void
+    {
+        Cache::increment("sales_goal_v_{$tenantId}");
+        Cache::increment("ranking_v_{$tenantId}");
+    }
+
+    public function invalidateGamificationCache(int $tenantId): void
+    {
+        Cache::increment("ranking_v_{$tenantId}");
+        $this->invalidateCacheByPattern("gamification_profile_{$tenantId}_*");
     }
 }

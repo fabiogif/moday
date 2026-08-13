@@ -3,31 +3,30 @@
 namespace App\Observers;
 
 use App\Models\Product;
+use App\Services\Audit\PriceHistoryService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ProductObserver
 {
-    /**
-     * Handle the Product "creating" event.
-     *
-     * @param  \App\Models\Product  $product
-     * @return void
-     */
-    public function creating(Product $product)
+    public function __construct(private readonly PriceHistoryService $priceHistoryService) {}
+
+    public function creating(Product $product): void
     {
         $product->flag = Str::kebab($product->name);
         $product->uuid = Str::uuid();
     }
 
-    /**
-     * Handle the Product "updated" event.
-     *
-     * @param  \App\Models\Product  $product
-     * @return void
-     */
-    public function updating(Product $product)
+    public function updating(Product $product): void
     {
-
         $product->flag = Str::kebab($product->name);
+    }
+
+    public function updated(Product $product): void
+    {
+        $this->priceHistoryService->recordChanges(
+            $product,
+            changedBy: Auth::id(),
+        );
     }
 }

@@ -9,13 +9,12 @@ class DetailPlan extends Model
 {
     use HasFactory;
 
-    protected $table = 'detail_plans';
+    protected $table = 'details_plan';
 
-    protected $fillable = ['name', 'description', 'plan_id', 'created_at', 'updated_at'];
+    protected $fillable = ['name', 'plan_id'];
 
     public function plan()
     {
-        $this->belongsTo(Plan::class);
+        return $this->belongsTo(Plan::class);
     }
-
 }

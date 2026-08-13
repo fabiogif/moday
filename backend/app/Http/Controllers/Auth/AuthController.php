@@ -7,6 +7,9 @@ use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\UpdateUserProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
@@ -14,7 +17,10 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * @OA\Tag(
@@ -56,7 +62,7 @@ class AuthController extends ApiController
      *                     @OA\Property(property="is_active", type="boolean", example=true)
      *                 ),
      *                 @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
-     *                 @OA\Property(property="expires_in", type="integer", example=3600)
+     *                 @OA\Property(property="expires_in", type="integer", example=7200)
      *             )
      *         )
      *     ),
@@ -75,40 +81,67 @@ class AuthController extends ApiController
         try {
             $credentials = $request->validated();
             
+            Log::info('AuthController login attempt', [
+                'email' => $credentials['email'],
+                'ip' => $request->ip(),
+                'request_id' => uniqid('auth_')
+            ]);
+            
             $result = $this->authService->login($credentials);
         
             if (!$result['success']) {
-                throw ValidationException::withMessages([
-                    'email' => [$result['message']]
+                Log::warning('AuthController login failed', [
+                    'email' => $credentials['email'],
+                    'reason' => $result['message'],
+                    'ip' => $request->ip(),
+                    'request_id' => uniqid('auth_')
                 ]);
+                
+                // Retornar erro seguindo o padrão da aplicação
+                return ApiResponseClass::validationError(
+                    ['email' => [$result['message']]],
+                    $result['message']
+                );
             }
 
-            // Criar cookie HttpOnly seguro (TTL padrão de 24 horas)
+            Log::info('AuthController login successful', [
+                'user_id' => $result['user']->id,
+                'email' => $result['user']->email,
+                'ip' => $request->ip(),
+                'request_id' => uniqid('auth_')
+            ]);
+
+            $ttlMinutes = config('jwt.ttl', 120);
+
+            // Criar cookie HttpOnly seguro (TTL configurado)
             $cookie = cookie(
                 'auth_token',
                 $result['token'],
-                24 * 60, // 24 horas em minutos
+                $ttlMinutes,
                 '/',
                 null,
-                true, // secure (HTTPS)
-                true  // httpOnly
+                true,   // secure (HTTPS)
+                true,   // httpOnly
+                false,  // raw
+                'strict' // sameSite
             );
 
             return ApiResponseClass::sendResponse([
-                'user' => new UserResource($result['user']),
-                'token' => $result['token'], // Incluir token no JSON
-                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
+                'user' => $this->authenticatedUserResource($result['user']),
+                'token' => $result['token'],
+                'expires_in' => $ttlMinutes * 60,
+                'trial_status' => $result['trial_status'] ?? null
             ], 'Login realizado com sucesso')->withCookie($cookie);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            Log::error('Erro no login: ' . $e->getMessage());
-            return ApiResponseClass::throw($e, 'Erro interno do servidor');
+            Log::error('AuthController internal error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'ip' => $request->ip(),
+                'request_id' => uniqid('auth_')
+            ]);
+            
+            return ApiResponseClass::throw($e, 'Erro ao realizar login');
         }
     }
 
@@ -142,7 +175,7 @@ class AuthController extends ApiController
      *                     @OA\Property(property="is_active", type="boolean", example=true)
      *                 ),
      *                 @OA\Property(property="token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
-     *                 @OA\Property(property="expires_in", type="integer", example=3600)
+     *                 @OA\Property(property="expires_in", type="integer", example=7200)
      *             )
      *         )
      *     ),
@@ -164,14 +197,13 @@ class AuthController extends ApiController
             $result = $this->authService->register($data);
             
             return ApiResponseClass::sendResponse([
-                'user' => new UserResource($result['user']),
+                'user' => $this->authenticatedUserResource($result['user']),
                 'token' => $result['token'],
-                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
+                'expires_in' => config('jwt.ttl', 120) * 60
             ], 'Usuário registrado com sucesso', 201);
 
         } catch (\Exception $e) {
             Log::error('Erro no registro: ' . $e->getMessage());
-            dd($e);
             return ApiResponseClass::throw($e, 'Erro ao registrar usuário');
         }
     }
@@ -202,9 +234,9 @@ class AuthController extends ApiController
      *     ),
      *     @OA\Response(
      *         response=401,
-     *         description="Não autenticado",
+     *         description="Não autorizado",
      *         @OA\JsonContent(
-     *             @OA\Property(property="message", type="string", example="Unauthenticated.")
+     *             @OA\Property(property="message", type="string", example="Não autorizado")
      *         )
      *     )
      * )
@@ -213,19 +245,65 @@ class AuthController extends ApiController
     {
         try {
             $user = auth('api')->user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Não autorizado');
+            }
             
             // Carregar relacionamentos diretamente
             $user->tenant;
             $user->profiles;
             
             return ApiResponseClass::sendResponse(
-                new UserResource($user),
+                $this->authenticatedUserResource($user),
                 'Dados do usuário recuperados com sucesso'
             );
 
         } catch (\Exception $e) {
             Log::error('Erro ao buscar dados do usuário: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao buscar dados do usuário');
+        }
+    }
+
+    /**
+     * Atualiza nome, email e opcionalmente a senha do usuário autenticado.
+     */
+    public function updateProfile(UpdateUserProfileRequest $request): JsonResponse
+    {
+        try {
+            $user = auth('api')->user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Não autorizado');
+            }
+
+            $data = $request->validated();
+
+            if (!empty($data['new_password'])) {
+                if (!Hash::check($data['current_password'], $user->password)) {
+                    return ApiResponseClass::validationError(
+                        ['current_password' => ['A senha atual está incorreta.']],
+                        'A senha atual está incorreta.'
+                    );
+                }
+
+                $data['password'] = $data['new_password'];
+            }
+
+            $result = $this->authService->updateProfile($user, [
+                'name' => $data['name'],
+                'email' => $data['email'],
+                ...(!empty($data['password']) ? ['password' => $data['password']] : []),
+            ]);
+
+            return ApiResponseClass::sendResponse(
+                $this->authenticatedUserResource($result['user']),
+                $result['message']
+            );
+        } catch (\Exception $e) {
+            Log::error('Erro ao atualizar perfil do usuário: '.$e->getMessage());
+
+            return ApiResponseClass::throw($e, 'Erro ao atualizar informações da conta');
         }
     }
 
@@ -238,7 +316,7 @@ class AuthController extends ApiController
             auth('api')->logout();
             
             // Limpar cookie HttpOnly
-            $cookie = cookie('auth_token', '', -1, '/', null, true, true);
+            $cookie = cookie('auth_token', '', -1, '/', null, true, true, false, 'strict');
             
             return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso')
                 ->withCookie($cookie);
@@ -255,32 +333,30 @@ class AuthController extends ApiController
     public function refresh(): JsonResponse
     {
         try {
-            // Para JWT, vamos usar o AuthService para gerar novo token
-            $user = auth('api')->user();
-            $result = $this->authService->login([
-                'email' => $user->email,
-                'password' => 'dummy' // Não será usado pois o usuário já está autenticado
-            ]);
-            
-            if (!$result['success']) {
-                throw new \Exception('Erro ao renovar token');
-            }
-            
-            // Criar novo cookie HttpOnly
+            $newToken = JWTAuth::refresh();
+            $expiresIn = JWTAuth::factory()->getTTL() * 60;
+
             $cookie = cookie(
                 'auth_token',
-                $result['token'],
-                24 * 60, // 24 horas
+                $newToken,
+                $expiresIn / 60,
                 '/',
                 null,
-                true, // secure
-                true  // httpOnly
+                true,
+                true,
+                false,
+                'strict'
             );
-            
+
             return ApiResponseClass::sendResponse([
-                'expires_in' => 24 * 60 * 60 // 24 horas em segundos
+                'token' => $newToken,
+                'expires_in' => $expiresIn,
             ], 'Token renovado com sucesso')->withCookie($cookie);
 
+        } catch (TokenExpiredException $e) {
+            return ApiResponseClass::unauthorized('Token expirado, realize login novamente');
+        } catch (TokenInvalidException|JWTException $e) {
+            return ApiResponseClass::unauthorized('Token inválido');
         } catch (\Exception $e) {
             Log::error('Erro ao renovar token: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao renovar token');
@@ -290,14 +366,16 @@ class AuthController extends ApiController
     /**
      * Esqueci minha senha
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
         try {
-            $request->validate(['email' => 'required|email']);
+            $result = $this->authService->sendPasswordResetLink($request->validated()['email']);
             
-            $result = $this->authService->sendPasswordResetLink($request->email);
+            if (!$result['success']) {
+                return ApiResponseClass::sendResponse('', $result['message'], 422);
+            }
             
-            return ApiResponseClass::sendResponse('', $result['message'], $result['success'] ? 200 : 422);
+            return ApiResponseClass::sendResponse('', $result['message']);
 
         } catch (\Exception $e) {
             Log::error('Erro ao enviar link de recuperação: ' . $e->getMessage());
@@ -308,22 +386,27 @@ class AuthController extends ApiController
     /**
      * Resetar senha
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         try {
-            $request->validate([
-                'token' => 'required',
-                'email' => 'required|email',
-                'password' => 'required|min:8|confirmed'
-            ]);
+            $result = $this->authService->resetPassword($request->validated());
             
-            $result = $this->authService->resetPassword($request->all());
+            if (!$result['success']) {
+                return ApiResponseClass::unauthorized($result['message']);
+            }
             
-            return ApiResponseClass::sendResponse('', $result['message'], $result['success'] ? 200 : 422);
+            return ApiResponseClass::sendResponse('', $result['message']);
 
         } catch (\Exception $e) {
             Log::error('Erro ao resetar senha: ' . $e->getMessage());
             return ApiResponseClass::throw($e, 'Erro ao resetar senha');
         }
+    }
+
+    private function authenticatedUserResource(User $user): UserResource
+    {
+        $user->setAttribute('permission_slugs', $user->getPermissionsList());
+
+        return new UserResource($user);
     }
 }

@@ -4,213 +4,123 @@ namespace Database\Seeders;
 
 use App\Models\Product;
 use App\Models\Category;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $categories = Category::all();
-        
-        if ($categories->isEmpty()) {
-            $this->call(CategorySeeder::class);
-            $categories = Category::all();
-        }
+        $tenant = \App\Models\Tenant::first();
+
+        $catMap = Category::where('tenant_id', $tenant->id)
+            ->pluck('id', 'name');
 
         $products = [
-            // Bebidas
             [
-                'name' => 'Coca-Cola 350ml',
-                'description' => 'Refrigerante Coca-Cola lata 350ml',
-                'price' => 4.50,
-                'price_cost' => 2.20,
-                'promotional_price' => 3.99,
-                'brand' => 'Coca-Cola',
-                'sku' => 'COCA-350ML',
-                'weight' => 0.350,
-                'height' => 12.3,
-                'width' => 5.3,
-                'depth' => 5.3,
-                'shipping_info' => 'Mantenha refrigerado',
-                'warehouse_location' => 'A1-B1',
-                'variations' => [
-                    ['type' => 'Tamanho', 'value' => '350ml'],
-                    ['type' => 'Tipo', 'value' => 'Original']
-                ],
-                'qtd_stock' => 100,
-                'categories' => [$categories->where('name', 'Bebidas')->first()->id],
-                'is_active' => true,
+                'name' => 'Dipirona Sódica 500mg',
+                'description' => 'Analgésico e antitérmico caixa com 20 comprimidos',
+                'price' => 8.90, 'price_cost' => 4.50,
+                'sku' => 'MED-DIP-500-20', 'brand' => 'Genérico',
+                'unit_of_measure' => 'cx', 'units_per_box' => 12,
+                'min_stock' => 50, 'reorder_point' => 30,
+                'qtd_stock' => 200, 'product_type' => 'medicamento',
+                'category' => 'Medicamentos',
             ],
             [
-                'name' => 'Suco de Laranja 300ml',
-                'description' => 'Suco natural de laranja',
-                'price' => 6.00,
-                'price_cost' => 3.50,
-                'brand' => 'Natural',
-                'sku' => 'SUCO-LAR-300',
-                'weight' => 0.300,
-                'height' => 15.0,
-                'width' => 6.0,
-                'depth' => 6.0,
-                'shipping_info' => 'Produto perecível - refrigerado',
-                'warehouse_location' => 'A1-B2',
-                'variations' => [
-                    ['type' => 'Sabor', 'value' => 'Laranja'],
-                    ['type' => 'Tipo', 'value' => 'Natural']
-                ],
-                'qtd_stock' => 50,
-                'categories' => [$categories->where('name', 'Bebidas')->first()->id],
-                'is_active' => true,
+                'name' => 'Amoxicilina 500mg',
+                'description' => 'Antibiótico caixa com 21 cápsulas',
+                'price' => 24.50, 'price_cost' => 12.00,
+                'sku' => 'MED-AMO-500-21', 'brand' => 'Genérico',
+                'unit_of_measure' => 'cx', 'units_per_box' => 10,
+                'min_stock' => 30, 'reorder_point' => 20,
+                'qtd_stock' => 150, 'product_type' => 'medicamento',
+                'requires_prescription' => true,
+                'category' => 'Medicamentos',
             ],
-            // Produto básico sem campos opcionais
+            [
+                'name' => 'Whey Protein 900g',
+                'description' => 'Suplemento proteico sabor baunilha',
+                'price' => 89.90, 'price_cost' => 55.00,
+                'sku' => 'SUP-WHE-900-BAN', 'brand' => 'MaxForce',
+                'unit_of_measure' => 'un', 'units_per_box' => 6,
+                'min_stock' => 20, 'reorder_point' => 10,
+                'qtd_stock' => 80, 'product_type' => 'suplemento',
+                'category' => 'Suplementos',
+            ],
+            [
+                'name' => 'Óleo de Cozinha Soja 900ml',
+                'description' => 'Óleo vegetal de soja garrafa PET',
+                'price' => 6.90, 'price_cost' => 4.20,
+                'sku' => 'ALI-OLE-SOJ-900', 'brand' => 'Leve',
+                'unit_of_measure' => 'un', 'units_per_box' => 12,
+                'min_stock' => 100, 'reorder_point' => 60,
+                'qtd_stock' => 500, 'product_type' => 'alimento',
+                'category' => 'Alimentos',
+            ],
+            [
+                'name' => 'Macarrão Espaguete 500g',
+                'description' => 'Massa de trigo tipo 1 pacote 500g',
+                'price' => 3.50, 'price_cost' => 1.90,
+                'sku' => 'ALI-MAC-ESP-500', 'brand' => 'Vitallia',
+                'unit_of_measure' => 'un', 'units_per_box' => 24,
+                'min_stock' => 200, 'reorder_point' => 100,
+                'qtd_stock' => 800, 'product_type' => 'alimento',
+                'category' => 'Alimentos',
+            ],
             [
                 'name' => 'Água Mineral 500ml',
-                'description' => 'Água mineral sem gás',
-                'price' => 2.50,
-                'price_cost' => 1.20,
-                'qtd_stock' => 200,
-                'categories' => [$categories->where('name', 'Bebidas')->first()->id],
-                'is_active' => true,
-            ],
-
-            // Produto básico - sem logística nem variações
-            [
-                'name' => 'Pudim de Leite Simples',
-                'description' => 'Pudim caseiro tradicional',
-                'price' => 6.50,
-                'price_cost' => 3.20,
-                'qtd_stock' => 15,
-                'categories' => [$categories->where('name', 'Sobremesas')->first()->id],
-                'is_active' => true,
-            ],
-
-            // Pratos Principais
-            [
-                'name' => 'Frango Grelhado',
-                'description' => 'Peito de frango grelhado com arroz e salada',
-                'price' => 18.90,
-                'price_cost' => 12.50,
-                'promotional_price' => 16.90,
-                'brand' => 'Chef House',
-                'sku' => 'FRAN-GREL-001',
-                'weight' => 0.450,
-                'height' => 3.0,
-                'width' => 25.0,
-                'depth' => 20.0,
-                'shipping_info' => 'Produto perecível - manter congelado',
-                'warehouse_location' => 'B1-C1',
-                'variations' => [
-                    ['type' => 'Acompanhamento', 'value' => 'Arroz e Salada'],
-                    ['type' => 'Preparo', 'value' => 'Grelhado']
-                ],
-                'qtd_stock' => 25,
-                'categories' => [$categories->where('name', 'Pratos Principais')->first()->id],
-                'is_active' => true,
+                'description' => 'Água mineral sem gás garrafa PET',
+                'price' => 1.20, 'price_cost' => 0.60,
+                'sku' => 'BEB-AGU-500', 'brand' => 'CristaLine',
+                'unit_of_measure' => 'un', 'units_per_box' => 24,
+                'min_stock' => 500, 'reorder_point' => 300,
+                'qtd_stock' => 2000, 'product_type' => 'bebida',
+                'category' => 'Bebidas',
             ],
             [
-                'name' => 'Bife à Parmegiana',
-                'description' => 'Bife empanado com molho de tomate e queijo',
-                'price' => 22.50,
-                'price_cost' => 15.80,
-                'brand' => 'Chef House',
-                'sku' => 'BIFE-PARM-001',
-                'weight' => 0.380,
-                'height' => 4.0,
-                'width' => 20.0,
-                'depth' => 15.0,
-                'shipping_info' => 'Produto perecível - manter congelado',
-                'warehouse_location' => 'B1-C2',
-                'variations' => [
-                    ['type' => 'Cobertura', 'value' => 'Queijo'],
-                    ['type' => 'Molho', 'value' => 'Tomate']
-                ],
-                'qtd_stock' => 15,
-                'categories' => [$categories->where('name', 'Pratos Principais')->first()->id],
-                'is_active' => true,
+                'name' => 'Shampoo Anticaspa 400ml',
+                'description' => 'Shampoo anticaspa uso diário',
+                'price' => 14.90, 'price_cost' => 8.00,
+                'sku' => 'HIG-SHA-400', 'brand' => 'CleanHead',
+                'unit_of_measure' => 'un', 'units_per_box' => 12,
+                'min_stock' => 50, 'reorder_point' => 30,
+                'qtd_stock' => 200, 'product_type' => 'higiene',
+                'category' => 'Higiene Pessoal',
             ],
-
-            // Sobremesas
             [
-                'name' => 'Pudim de Leite',
-                'description' => 'Pudim caseiro com calda de caramelo',
-                'price' => 8.50,
-                'price_cost' => 4.20,
-                'brand' => 'Doce Casa',
-                'sku' => 'PUDIM-LEI-001',
-                'weight' => 0.200,
-                'height' => 6.0,
-                'width' => 10.0,
-                'depth' => 10.0,
-                'shipping_info' => 'Manter refrigerado',
-                'warehouse_location' => 'C1-D1',
-                'variations' => [
-                    ['type' => 'Sabor', 'value' => 'Leite'],
-                    ['type' => 'Calda', 'value' => 'Caramelo']
-                ],
-                'qtd_stock' => 20,
-                'categories' => [$categories->where('name', 'Sobremesas')->first()->id],
-                'is_active' => true,
-            ],
-
-            // Produto inativo
-            [
-                'name' => 'Produto Descontinuado',
-                'description' => 'Este produto foi descontinuado',
-                'price' => 10.00,
-                'price_cost' => 6.00,
-                'brand' => 'Descontinuado',
-                'sku' => 'DESC-001',
-                'weight' => 0.100,
-                'qtd_stock' => 0,
-                'categories' => [$categories->first()->id],
-                'is_active' => false,
+                'name' => 'Desinfetante Pinho 1L',
+                'description' => 'Desinfetante aroma pinho embalagem 1 litro',
+                'price' => 5.50, 'price_cost' => 2.80,
+                'sku' => 'LIM-DES-PIN-1L', 'brand' => 'LimpMax',
+                'unit_of_measure' => 'un', 'units_per_box' => 12,
+                'min_stock' => 100, 'reorder_point' => 60,
+                'qtd_stock' => 400, 'product_type' => 'limpeza',
+                'category' => 'Limpeza',
             ],
         ];
 
-        foreach ($products as $productData) {
-            // Extrair variações e categorias
-            $variations = $productData['variations'] ?? [];
-            $categories = $productData['categories'] ?? [];
-            unset($productData['variations'], $productData['categories']);
+        foreach ($products as $data) {
+            $catName = $data['category'];
+            unset($data['category']);
 
-            $product = Product::create([
-                'name' => $productData['name'],
-                'description' => $productData['description'],
-                'price' => $productData['price'],
-                'price_cost' => $productData['price_cost'] ?? null,
-                'promotional_price' => $productData['promotional_price'] ?? null,
-                'brand' => $productData['brand'] ?? null,
-                'sku' => $productData['sku'] ?? null,
-                'weight' => $productData['weight'] ?? null,
-                'height' => $productData['height'] ?? null,
-                'width' => $productData['width'] ?? null,
-                'depth' => $productData['depth'] ?? null,
-                'shipping_info' => $productData['shipping_info'] ?? null,
-                'warehouse_location' => $productData['warehouse_location'] ?? null,
-                'variations' => !empty($variations) ? json_encode($variations) : null,
-                'qtd_stock' => $productData['qtd_stock'],
-                'is_active' => $productData['is_active'],
-                'uuid' => Str::uuid(),
-                'flag' => Str::kebab($productData['name']),
-                'tenant_id' => 1, // Assumindo que existe um tenant com ID 1
-            ]);
+            $product = Product::updateOrCreate(
+                [
+                    'tenant_id' => $tenant->id,
+                    'name'      => $data['name'],
+                ],
+                array_merge($data, [
+                    'tenant_id' => $tenant->id,
+                    'is_active' => true,
+                    'flag'      => Str::kebab($data['name']),
+                ])
+            );
 
-            // attach categories via pivot
-            if (!empty($categories)) {
-                $attach = [];
-                foreach ($categories as $categoryId) {
-                    $attach[] = [
-                        'product_id' => $product->id,
-                        'category_id' => $categoryId,
-                    ];
-                }
-                $product->categories()->attach($attach);
+            if (isset($catMap[$catName])) {
+                $product->categories()->syncWithoutDetaching([$catMap[$catName]]);
             }
         }
+
+        $this->command->info('✅ Produtos de distribuidora criados.');
     }
 }

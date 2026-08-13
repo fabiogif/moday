@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseController;
 use App\Services\UserService;
 use App\Classes\ApiResponseClass;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class UserStatsApiController extends BaseController
 {
@@ -22,11 +23,11 @@ class UserStatsApiController extends BaseController
     public function stats(): JsonResponse
     {
         try {
-            if (!auth()->check()) {
+            if (!Auth::check()) {
                 return ApiResponseClass::sendResponse(null, 'Usuário não autenticado', 401);
             }
 
-            $tenantId = auth()->user()->tenant_id;
+            $tenantId = Auth::user()->tenant_id;
             $stats = $this->userService->getUserStats($tenantId);
 
             return ApiResponseClass::sendResponse($stats, 'Estatísticas de usuários recuperadas com sucesso');

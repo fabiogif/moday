@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\PermissionRepositoryInterface;
+use App\Repositories\Concerns\SearchesFullText;
+use App\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Permission;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 readonly class PermissionService
 {
+    use SearchesFullText;
+
     public function __construct(
         protected PermissionRepositoryInterface $permissionRepositoryInterface,
         protected CacheService $cacheService
@@ -49,9 +52,9 @@ readonly class PermissionService
         
         // Apply filters
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
-        
+
         if (isset($filters['description'])) {
             $query->where('description', 'like', '%' . $filters['description'] . '%');
         }

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Permission;
@@ -15,6 +16,7 @@ class PermissionCreationTest extends TestCase
 
     protected $user;
     protected $tenant;
+    protected string $token;
 
     protected function setUp(): void
     {
@@ -22,8 +24,7 @@ class PermissionCreationTest extends TestCase
         
         // Criar tenant
         $this->tenant = Tenant::factory()->create([
-            'name' => 'Test Tenant',
-            'domain' => 'test.local'
+            'name' => 'Test Tenant'
         ]);
         
         // Criar usuário
@@ -32,12 +33,19 @@ class PermissionCreationTest extends TestCase
             'email' => 'test@example.com',
             'tenant_id' => $this->tenant->id
         ]);
+
+        $this->token = auth('api')->login($this->user);
     }
 
-    /** @test */
+    protected function authHeaders(): array
+    {
+        return ['Authorization' => 'Bearer ' . $this->token];
+    }
+
+    #[Test]
     public function authenticated_user_can_create_permission_with_valid_data()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $permissionData = [
             'name' => 'Test Permission',
@@ -49,7 +57,7 @@ class PermissionCreationTest extends TestCase
             'is_active' => true
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(201)
                 ->assertJsonStructure([
@@ -75,7 +83,7 @@ class PermissionCreationTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_requires_authentication()
     {
         $permissionData = [
@@ -90,12 +98,12 @@ class PermissionCreationTest extends TestCase
         $response->assertStatus(401);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_validates_required_fields()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
-        $response = $this->postJson('/api/permissions', []);
+        $response = $this->postJson('/api/permissions', [], $this->authHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors([
@@ -106,10 +114,10 @@ class PermissionCreationTest extends TestCase
                 ]);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_validates_unique_slug_per_tenant()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // Criar permissão existente
         Permission::factory()->create([
@@ -125,21 +133,20 @@ class PermissionCreationTest extends TestCase
             'resource' => 'test'
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors(['slug']);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_allows_same_slug_different_tenants()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         // Criar outro tenant
         $otherTenant = Tenant::factory()->create([
-            'name' => 'Other Tenant',
-            'domain' => 'other.local'
+            'name' => 'Other Tenant'
         ]);
 
         // Criar permissão em outro tenant
@@ -156,15 +163,15 @@ class PermissionCreationTest extends TestCase
             'resource' => 'test'
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(201);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_generates_slug_automatically_if_not_provided()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $permissionData = [
             'name' => 'Auto Slug Permission',
@@ -174,7 +181,7 @@ class PermissionCreationTest extends TestCase
             // slug não fornecido
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(201);
 
@@ -183,10 +190,10 @@ class PermissionCreationTest extends TestCase
         $this->assertEquals('auto-slug-permission', $permission->slug);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_sets_default_values()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $permissionData = [
             'name' => 'Default Values Permission',
@@ -196,7 +203,7 @@ class PermissionCreationTest extends TestCase
             // is_active não fornecido
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(201);
 
@@ -205,10 +212,10 @@ class PermissionCreationTest extends TestCase
         $this->assertEquals($this->tenant->id, $permission->tenant_id);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_validates_field_lengths()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $permissionData = [
             'name' => str_repeat('a', 256), // Muito longo
@@ -219,7 +226,7 @@ class PermissionCreationTest extends TestCase
             'resource' => str_repeat('f', 101), // Muito longo
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors([
@@ -232,10 +239,10 @@ class PermissionCreationTest extends TestCase
                 ]);
     }
 
-    /** @test */
+    #[Test]
     public function permission_creation_handles_boolean_is_active()
     {
-        $this->actingAs($this->user);
+        $this->actingAs($this->user, 'api');
 
         $permissionData = [
             'name' => 'Boolean Test Permission',
@@ -245,7 +252,7 @@ class PermissionCreationTest extends TestCase
             'is_active' => false
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->postJson('/api/permissions', $permissionData, $this->authHeaders());
 
         $response->assertStatus(201);
 

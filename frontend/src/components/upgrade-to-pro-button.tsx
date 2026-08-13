@@ -6,11 +6,9 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/h
 import { Rocket, Blocks, LayoutDashboard, ArrowRight } from "lucide-react"
 import Image from "next/image"
 
-
 const SHADCN_BLOCKS_URL = "https://shadcnstore.com/blocks"
 
 export function UpgradeToProButton() {
-
 
   return (
     <div className="fixed z-50 bottom-8 right-4 md:right-6 lg:right-8 flex flex-col items-end gap-2">

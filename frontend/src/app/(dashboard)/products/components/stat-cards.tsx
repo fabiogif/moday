@@ -3,7 +3,6 @@ import {Package, DollarSign, TrendingUp, AlertTriangle, TrendingUp as TrendingUp
 import { Badge } from "@/components/ui/badge"
 import { cn } from '@/lib/utils'
 
-
 const performanceMetrics = [
   {
     title: 'Total Produtos',

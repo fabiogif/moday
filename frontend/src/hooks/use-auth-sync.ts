@@ -11,19 +11,19 @@ export function useAuthSync() {
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('AuthSync: Sincronizando autenticação', { isAuthenticated, hasToken: !!token })
+
     }
     
     if (isAuthenticated && token) {
       // Sincronizar token do AuthContext para o ApiClient
       if (process.env.NODE_ENV === 'development') {
-        console.log('AuthSync: Definindo token no ApiClient')
+
       }
       apiClient.setToken(token)
     } else {
       // Limpar token se não estiver autenticado
       if (process.env.NODE_ENV === 'development') {
-        console.log('AuthSync: Limpando token do ApiClient')
+
       }
       apiClient.clearToken()
     }

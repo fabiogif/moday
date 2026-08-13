@@ -132,8 +132,12 @@ class CategoryTest extends TestCase
                     ],
                     'meta' => [
                         'total',
+                        'is_first_page',
+                        'is_last_page',
                         'current_page',
-                        'per_page'
+                        'per_page',
+                        'next_page',
+                        'previous_page'
                     ]
                 ])
                 ->assertJson([
@@ -243,7 +247,7 @@ class CategoryTest extends TestCase
 
         $this->assertDatabaseHas('categories', [
             'id' => $category->id,
-            'status' => 'I'
+            'status' => 'I',
         ]);
     }
 
@@ -270,7 +274,8 @@ class CategoryTest extends TestCase
         // Criar categoria existente
         Category::factory()->create([
             'name' => 'Churrasco',
-            'tenant_id' => $this->tenant->id
+            'tenant_id' => $this->tenant->id,
+            'status' => 'A',
         ]);
 
         $categoryData = [
@@ -332,5 +337,45 @@ class CategoryTest extends TestCase
             'name' => 'Churrasco',
             'tenant_id' => $otherTenant->id
         ]);
+    }
+
+    #[Test]
+    public function pode_recriar_categoria_apos_exclusao_soft()
+    {
+        $category = Category::factory()->create([
+            'name' => 'Bebidas',
+            'tenant_id' => $this->tenant->id,
+            'status' => 'I',
+            'description' => 'Antiga',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->postJson('/api/category', [
+            'name' => 'Bebidas',
+            'description' => 'Nova descri��o',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'name' => 'Bebidas',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'name' => 'Bebidas',
+            'tenant_id' => $this->tenant->id,
+            'status' => 'A',
+            'description' => 'Nova descri��o',
+        ]);
+
+        $this->assertEquals(1, Category::query()
+            ->where('tenant_id', $this->tenant->id)
+            ->where('name', 'Bebidas')
+            ->count());
     }
 }

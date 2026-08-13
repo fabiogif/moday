@@ -45,19 +45,19 @@ export function useCalendar(initialEvents: CalendarEvent[] = []): UseCalendarRet
   }, [])
 
   const handleNewCalendar = useCallback(() => {
-    console.log("Creating new calendar")
+
     // In a real app, this would open a new calendar form
   }, [])
 
   const handleSaveEvent = useCallback((eventData: Partial<CalendarEvent>) => {
-    console.log("Saving event:", eventData)
+
     // In a real app, this would save to a backend
     setShowEventForm(false)
     setEditingEvent(null)
   }, [])
 
   const handleDeleteEvent = useCallback((eventId: number) => {
-    console.log("Deleting event:", eventId)
+
     // In a real app, this would delete from backend
     setShowEventForm(false)
     setEditingEvent(null)

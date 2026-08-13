@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\Cnpj;
+use App\Rules\Cpf;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateClient extends FormRequest
@@ -22,13 +24,14 @@ class UpdateClient extends FormRequest
     public function rules(): array
     {
         $clientId = $this->route('id');
+        $tenantId = $this->user()?->tenant_id;
         
         return [
-            // Campos obrigatórios
-            'name'  => 'required|string|min:3|max:255',
-            'cpf' => 'required|string|min:11|max:14|unique:clients,cpf,' . $clientId . ',id,tenant_id,' . auth()->user()->tenant_id,
-            'email' => 'required|email|min:3|max:255|unique:clients,email,' . $clientId . ',id,tenant_id,' . auth()->user()->tenant_id,
-            'phone' => 'required|string|min:10|max:20',
+            'name'         => 'nullable|string|min:3|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'cpf'          => ['nullable', 'string', 'min:11', 'max:14', new Cpf(), 'unique:clients,cpf,' . $clientId . ',id,tenant_id,' . $tenantId],
+            'email'        => 'nullable|email|min:3|max:255|unique:clients,email,' . $clientId . ',id,tenant_id,' . $tenantId,
+            'phone'        => 'nullable|string|min:10|max:20',
             
             // Senha opcional para clientes (pode ser gerada automaticamente)
             'password' => 'nullable|string|min:6|max:60',
@@ -44,6 +47,23 @@ class UpdateClient extends FormRequest
             
             // Status do cliente
             'is_active' => 'nullable|boolean',
+
+            // Campos B2B distribuidor
+            'cnpj' => ['nullable', 'string', 'max:18', new Cnpj()],
+            'company_name' => 'nullable|string|max:255',
+            'trade_name' => 'nullable|string|max:255',
+            'state_registration' => 'nullable|string|max:50',
+            'client_type' => 'nullable|string|in:farmacia,hospital,clinica,mercado,atacado,outro',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'payment_term_days' => 'nullable|integer|min:0',
+            'price_table_id' => 'nullable|integer',
+            'is_blocked' => 'sometimes|boolean',
+            'blocked_reason' => 'nullable|string|max:500',
+            'contact_name' => 'nullable|string|max:255',
+            'contact_phone' => 'nullable|string|max:20',
+            'contact_email' => 'nullable|email|max:255',
+            'whatsapp' => 'nullable|string|max:20',
+            'notes' => 'nullable|string',
         ];
     }
 

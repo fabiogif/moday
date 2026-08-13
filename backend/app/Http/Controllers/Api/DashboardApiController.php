@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Api\Controller;
 use App\Services\DashboardService;
+use App\Services\AuthTenantService;
 use Illuminate\Http\JsonResponse;
 
 class DashboardApiController extends Controller
 {
-    public function __construct(protected DashboardService $dashboardService)
+    public function __construct(protected DashboardService $dashboardService, protected AuthTenantService $authTenantService)
     {
     }
 
@@ -74,17 +75,8 @@ class DashboardApiController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
-            }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
-            $dashboardData = $this->dashboardService->getDashboardData($user->tenant_id);
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            $dashboardData = $this->dashboardService->getDashboardData($tenantId);
             return ApiResponseClass::sendResponse($dashboardData, 'Dados do dashboard carregados com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao carregar dados do dashboard');

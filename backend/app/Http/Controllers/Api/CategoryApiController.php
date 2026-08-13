@@ -9,6 +9,8 @@ use Illuminate\Routing\Controller;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Services\CategoryService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class CategoryApiController extends Controller
 {
@@ -17,7 +19,7 @@ class CategoryApiController extends Controller
     public function index(Request $request): AnonymousResourceCollection|JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -42,7 +44,7 @@ class CategoryApiController extends Controller
     public function store(StoreCategoryRequest $request):JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -52,20 +54,13 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
-            $data = $request->all();
+            $data = $request->validated();
             $data['tenant_id'] = $user->tenant_id;
-            
-            // Debug log temporário
-            \Log::info('CategoryApiController::store - Dados recebidos:', [
-                'request_data' => $request->all(),
-                'final_data' => $data,
-                'user_tenant_id' => $user->tenant_id
-            ]);
-            
-            $category = $this->categoryService->store($data, $user->tenant_id);
+
+            $category = $this->categoryService->store($data);
             return ApiResponseClass::sendResponse(new CategoryResource($category), 'Categoria cadastrada com sucesso', 201);
         } catch (\Exception $ex) {
-            \Log::error('CategoryApiController::store - Erro:', [
+            Log::error('CategoryApiController::store - Erro:', [
                 'message' => $ex->getMessage(),
                 'trace' => $ex->getTraceAsString()
             ]);
@@ -73,20 +68,20 @@ class CategoryApiController extends Controller
         }
     }
 
-    public function update(StoreCategoryRequest $request, string $identify): JsonResponse
+    public function update(StoreCategoryRequest $request, $id): JsonResponse
     {
         try {
-            $user = auth()->user();
-
+            $user = Auth::user();
+            
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }
-
+            
             if (!$user->tenant_id) {
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
-
-            $category = $this->categoryService->update($request->all(), $identify, $user->tenant_id);
+            
+            $category = $this->categoryService->update($request->validated(), $id, $user->tenant_id);
             if (!$category) {
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }
@@ -97,7 +92,7 @@ class CategoryApiController extends Controller
     }
     public function show($identify):JsonResponse
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         if (!$user) {
             return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -117,7 +112,7 @@ class CategoryApiController extends Controller
     public function delete(string $identify): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -127,6 +122,15 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
+            // Regra: bloquear exclusão se houver produtos ativos vinculados
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $check = $guard->checkCategoryHasActiveProducts($identify, $user->tenant_id);
+            if ($check['blocked']) {
+                return ApiResponseClass::validationError([
+                    'linked_products' => $check['products']
+                ], 'Não é possível excluir: existem produtos ativos vinculados à categoria');
+            }
+
             $deleted = $this->categoryService->delete($identify, $user->tenant_id);
             if (!$deleted) {
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
@@ -140,8 +144,8 @@ class CategoryApiController extends Controller
     public function stats(): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
+            $user = Auth::user();
+
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
             }

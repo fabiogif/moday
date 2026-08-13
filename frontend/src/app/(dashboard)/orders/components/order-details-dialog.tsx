@@ -16,7 +16,11 @@ import {
   Home,
   FileText,
   X,
+  CalendarPlus,
 } from "lucide-react"
+import { getApiBaseUrl } from "@/lib/api-config"
+import { endpoints } from "@/lib/api-client"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -37,15 +41,43 @@ interface OrderDetailsDialogProps {
 }
 
 export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDialogProps) {
+  const [downloadingCalendar, setDownloadingCalendar] = useState(false)
+
+  const handleDownloadCalendar = async () => {
+    if (!order) return
+    setDownloadingCalendar(true)
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null
+      const baseUrl = getApiBaseUrl()
+      const res = await fetch(`${baseUrl}${endpoints.orders.calendarLink(order.identify)}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error("Falha ao gerar arquivo de calendário")
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `pedido-${order.identify}.ics`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error("Não foi possível gerar o arquivo de calendário")
+    } finally {
+      setDownloadingCalendar(false)
+    }
+  }
+
   if (!order) return null
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Entregue":
+      case "Concluído":
         return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
       case "Pendente":
         return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
-      case "Em Preparo":
+      case "Aceito":
+        return "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/20"
+      case "Preparo":
         return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
       case "Cancelado":
         return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
@@ -66,17 +98,12 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
   }
 
   const formatDate = (dateString: string) => {
-    // Se já está formatado (dd/mm/yyyy), usar diretamente
-    if (dateString && dateString.includes('/')) {
-      return dateString
-    }
-    // Caso contrário, formatar ISO date
-    try {
-      return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-    } catch (error) {
-      console.error('Erro ao formatar data:', dateString, error)
-      return dateString || 'Data inválida'
-    }
+    // SEMPRE usar o valor exato do banco, sem conversões de timezone
+    // Se já está formatado (dd/mm/yyyy), retornar diretamente
+    if (!dateString) return 'Data não informada'
+    
+    // Retornar exatamente como veio do banco
+    return dateString
   }
 
   const getFullDeliveryAddress = () => {
@@ -218,6 +245,40 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
               </div>
             </div>
 
+            {/* Agendamento */}
+            {order.is_scheduled && order.scheduled_at && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CalendarPlus className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-medium">Pedido Agendado</h3>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadCalendar}
+                      disabled={downloadingCalendar}
+                      className="flex items-center gap-2"
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                      {downloadingCalendar ? "Gerando..." : "Adicionar à Agenda"}
+                    </Button>
+                  </div>
+                  <div className="pl-7">
+                    <p className="text-sm text-muted-foreground">Data e hora agendada</p>
+                    <p className="font-medium text-primary">
+                      {new Date(order.scheduled_at).toLocaleString("pt-BR", {
+                        dateStyle: "full",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Endereço de Entrega */}
             {order.is_delivery && (
               <>
@@ -297,7 +358,4 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
     </Dialog>
   )
 }
-
-
-
 

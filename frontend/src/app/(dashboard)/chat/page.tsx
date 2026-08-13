@@ -24,7 +24,7 @@ export default function ChatPage() {
         setMessages(messagesData as Record<string, Message[]>)
         setUsers(usersData as User[])
       } catch (error) {
-        console.error("Failed to load chat data:", error)
+
       } finally {
         setLoading(false)
       }

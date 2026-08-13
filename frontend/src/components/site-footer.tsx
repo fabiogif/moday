@@ -1,18 +1,18 @@
-import { Utensils, Clock, Users, BarChart3 } from "lucide-react"
+import { Clock, Users, BarChart3 } from "lucide-react"
+import { AlbaTecLogo, PANEL_BRAND_ICON_SIZE } from "@/components/albatec-logo"
 
 export function SiteFooter() {
   return (
     <footer className="border-t bg-background">
       <div className="px-4 py-6 lg:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Utensils className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-foreground">Moday</span>
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+            <AlbaTecLogo variant="icon" width={PANEL_BRAND_ICON_SIZE} height={PANEL_BRAND_ICON_SIZE} className="shrink-0" />
             <span>- Sistema de Gestão de Restaurante</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted-foreground">
             <div className="flex items-center space-x-1">
-              <Utensils className="h-3 w-3" />
+              <BarChart3 className="h-3 w-3" />
               <span>Gestão de Pedidos</span>
             </div>
             <div className="flex items-center space-x-1">

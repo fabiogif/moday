@@ -7,6 +7,9 @@ use App\Http\Requests\StoreUpdatePlanRequest;
 use App\Models\Plan;
 use Illuminate\Http\Request;
 
+/**
+ * @deprecated Use a API em App\Http\Controllers\Api\PlanApiController.
+ */
 class PlanController extends Controller
 {
     public function __construct(protected  Plan $repository)

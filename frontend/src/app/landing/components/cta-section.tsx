@@ -1,92 +1,96 @@
 "use client"
 
-import { ArrowRight, TrendingUp, Package, Github } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
+import { TRIAL_CTA_LABEL, TRIAL_MICRO_COPY } from '@/lib/landing-copy'
+import { TRIAL_DAYS } from '@/lib/subscription'
+import { useLandingCTAClick } from '@/hooks/use-landing-cta-click'
+import { OperationFlowAnimation } from './operation-flow-animation'
 
 export function CTASection() {
+  const trackCTA = useLandingCTAClick('cta_final_click')
+
   return (
-    <section className='py-16 lg:py-24 bg-muted/80'>
-      <div className='container mx-auto px-4 lg:px-8'>
-        <div className='mx-auto max-w-4xl'>
-          <div className='text-center'>
-            <div className='space-y-8'>
-              {/* Badge and Stats */}
-              <div className='flex flex-col items-center gap-4'>
-                <Badge variant='outline' className='flex items-center gap-2'>
-                  <TrendingUp className='size-3' />
-                  Productivity Suite
-                </Badge>
+    <section className="py-16 lg:py-24 bg-zinc-900 border-t border-zinc-800">
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="flow-reveal-up hidden lg:block">
+            <OperationFlowAnimation />
+          </div>
 
-                <div className='text-muted-foreground flex items-center gap-4 text-sm'>
-                  <span className='flex items-center gap-1'>
-                    <div className='size-2 rounded-full bg-green-500' />
-                    150+ Blocks
-                  </span>
-                  <Separator orientation='vertical' className='!h-4' />
-                  <span>25K+ Downloads</span>
-                  <Separator orientation='vertical' className='!h-4' />
-                  <span>4.9★ Rating</span>
-                </div>
-              </div>
+          <div className="flow-reveal-up [animation-delay:150ms]">
+            <div className="mb-5 flex items-center gap-2.5">
+              <span className="w-7 h-px bg-orange-500 flex-shrink-0" />
+              <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-400 font-medium">
+                Sistema de Gestão Completo
+              </p>
+            </div>
 
-              {/* Main Content */}
-              <div className='space-y-6'>
-                <h1 className='text-4xl font-bold tracking-tight text-balance sm:text-5xl lg:text-6xl'>
-                  Supercharge your team&apos;s
-                  <span className='flex sm:inline-flex justify-center'>
-                    <span className='relative mx-2'>
-                      <span className='bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent'>
-                        performance
-                      </span>
-                      <div className='absolute start-0 -bottom-2 h-1 w-full bg-gradient-to-r from-primary/30 to-secondary/30' />
-                    </span>
-                    today
-                  </span>
-                </h1>
+            <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400 mb-6">
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                Teste grátis por 7 dias
+              </span>
+              <span className="text-zinc-700">·</span>
+              <span>Sem cartão de crédito</span>
+              <span className="text-zinc-700">·</span>
+              <span>Suporte por e-mail e WhatsApp</span>
+            </div>
 
-                <p className='text-muted-foreground mx-auto max-w-2xl text-balance lg:text-xl'>
-                  Stop building from scratch. Get production-ready components, templates and dashboards
-                  that integrate seamlessly with your shadcn/ui projects.
-                </p>
-              </div>
+            <h2 className="text-4xl font-bold tracking-tight text-balance text-zinc-50 sm:text-5xl mb-5">
+              Revolucione a gestão do seu{' '}
+              <span className="text-orange-400">restaurante</span>{' '}
+              hoje
+            </h2>
 
-              {/* CTA Buttons */}
-              <div className='flex flex-col justify-center gap-4 sm:flex-row sm:gap-6'>
-                <Button size='lg' className='cursor-pointer px-8 py-6 text-lg font-medium' asChild>
-                  <a href='https://shadcnstore.com/blocks' target='_blank' rel='noopener noreferrer'>
-                    <Package className='me-2 size-5' />
-                    Browse Components
-                  </a>
-                </Button>
-                <Button variant='outline' size='lg' className='cursor-pointer px-8 py-6 text-lg font-medium group' asChild>
-                  <a href='https://github.com/silicondeck/shadcn-dashboard-landing-template' target='_blank' rel='noopener noreferrer'>
-                    <Github className='me-2 size-5' />
-                    View on GitHub
-                    <ArrowRight className='ms-2 size-4 transition-transform group-hover:translate-x-1' />
-                  </a>
-                </Button>
-              </div>
+            <p className="max-w-2xl text-balance text-lg text-zinc-400 leading-relaxed mb-2">
+              Pare de usar planilhas e cadernos. Tenha controle total do seu negócio com relatórios
+              em tempo real, cardápio digital e gestão de pedidos profissional.
+            </p>
+            <p className="max-w-2xl font-medium text-zinc-300 mb-8">
+              Teste os planos Básico e Premium por {TRIAL_DAYS} dias grátis — ou comece no plano Grátis para sempre.
+            </p>
 
-              {/* Trust Indicators */}
-              <div className='text-muted-foreground flex flex-wrap items-center justify-center gap-6 text-sm'>
-                <div className='flex items-center gap-2'>
-                    <div className='size-2 rounded-full bg-green-600 dark:bg-green-400 me-1' />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                className="h-11 rounded-md bg-white px-7 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 transition-colors"
+                asChild
+              >
+                <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  {TRIAL_CTA_LABEL}
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="h-11 rounded-md border-zinc-700 bg-transparent px-7 text-sm text-zinc-200 hover:bg-zinc-800 hover:text-white transition-colors"
+                asChild
+              >
+                <Link href="#pricing">
+                  Ver Planos e Preços
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
 
-                  <span>Free components available</span>
-                </div>
-                <div className='flex items-center gap-2'>
-                    <div className='size-2 rounded-full bg-blue-600 dark:bg-blue-400 me-1' />
+            <p className="mt-4 text-sm text-zinc-500">{TRIAL_MICRO_COPY}</p>
 
-                  <span>Commercial license included</span>
-                </div>
-                <div className='flex items-center gap-2'>
-                    <div className='size-2 rounded-full bg-purple-600 dark:bg-purple-400 me-1' />
-
-                  <span>Regular updates & support</span>
-                </div>
-              </div>
+            <div className="mt-6 flex flex-wrap items-center gap-5 text-sm text-zinc-500">
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Teste grátis por {TRIAL_DAYS} dias nos planos pagos
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                Sem cartão de crédito
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                Suporte especializado
+              </span>
             </div>
           </div>
         </div>

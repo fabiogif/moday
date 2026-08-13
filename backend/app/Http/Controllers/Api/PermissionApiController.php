@@ -10,6 +10,7 @@ use App\Services\PermissionService;
 use App\Classes\ApiResponseClass;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PermissionApiController extends Controller
 {
@@ -23,7 +24,7 @@ class PermissionApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -49,7 +50,11 @@ class PermissionApiController extends Controller
     public function store(PermissionStoreRequest $request): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            if (!$request->bearerToken()) {
+                return ApiResponseClass::unauthorized();
+            }
+
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -82,7 +87,7 @@ class PermissionApiController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -111,7 +116,7 @@ class PermissionApiController extends Controller
     public function update(PermissionUpdateRequest $request, string $id): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -148,7 +153,7 @@ class PermissionApiController extends Controller
     public function destroy(string $id): JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
@@ -168,39 +173,6 @@ class PermissionApiController extends Controller
 
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao excluir permissão');
-        }
-    }
-
-    /**
-     * Check if a permission is being used by profiles.
-     */
-    public function checkUsage(string $id): JsonResponse
-    {
-        try {
-            $tenantId = auth()->user()?->tenant_id;
-            
-            if (!$tenantId) {
-                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
-            }
-
-            $permission = $this->permissionService->getPermissionById($id, $tenantId);
-
-            if (!$permission) {
-                return ApiResponseClass::sendResponse('', 'Permissão não encontrada', 404);
-            }
-
-            // Get the count of profiles using this permission
-            $profilesCount = $permission->profiles()->count();
-            $inUse = $profilesCount > 0;
-
-            return ApiResponseClass::sendResponse([
-                'in_use' => $inUse,
-                'profiles_count' => $profilesCount,
-                'can_delete' => !$inUse
-            ], 'Verificação de uso da permissão realizada com sucesso', 200);
-
-        } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao verificar uso da permissão');
         }
     }
 }

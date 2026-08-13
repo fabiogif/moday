@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { CardDecorator } from '@/components/ui/card-decorator'
 import { Github, Linkedin, Globe } from 'lucide-react'
 
-
 const team = [
   {
     id: 1,

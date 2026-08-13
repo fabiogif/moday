@@ -2,7 +2,7 @@
 
 import { useAuthenticatedProductStats } from "@/hooks/use-authenticated-api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, DollarSign, TrendingUp, AlertTriangle } from "lucide-react"
+import { Package, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 
 export function ProductStatCards() {
   const { data: stats, loading, error } = useAuthenticatedProductStats()
@@ -44,30 +44,31 @@ export function ProductStatCards() {
     return path.split('.').reduce((current, key) => current?.[key], obj) ?? defaultValue
   }
 
+  // API atual retorna: { total, active, inactive, out_of_stock }
   const statCards = [
     {
-      title: "Total Produtos",
-      value: getSafeValue(stats, 'total_products', 0),
+      title: "Total de Produtos",
+      value: getSafeValue(stats, 'total', 0),
       icon: Package,
       description: "Produtos cadastrados"
     },
     {
-      title: "Receita Total",
-      value: `R$ ${getSafeValue(stats, 'total_revenue', 0).toFixed(2)}`,
-      icon: DollarSign,
-      description: "Valor total em produtos"
-    },
-    {
       title: "Produtos Ativos",
-      value: getSafeValue(stats, 'active_products', 0),
-      icon: TrendingUp,
-      description: "Produtos com estoque"
+      value: getSafeValue(stats, 'active', 0),
+      icon: CheckCircle2,
+      description: "Disponíveis para venda"
     },
     {
-      title: "Estoque Baixo",
-      value: getSafeValue(stats, 'low_stock_products', 0),
+      title: "Produtos Inativos",
+      value: getSafeValue(stats, 'inactive', 0),
+      icon: XCircle,
+      description: "Indisponíveis no momento"
+    },
+    {
+      title: "Sem Estoque",
+      value: getSafeValue(stats, 'out_of_stock', 0),
       icon: AlertTriangle,
-      description: "Produtos com ≤ 3 unidades"
+      description: "Zerados no estoque"
     }
   ]
 

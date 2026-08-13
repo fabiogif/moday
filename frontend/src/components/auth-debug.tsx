@@ -14,15 +14,9 @@ export function AuthDebug() {
     const cookies = document.cookie.split(';')
     const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='))
     const localStorageToken = localStorage.getItem('auth_token')
-    
-    console.log('=== DEBUG AUTENTICAÇÃO ===')
-    console.log('AuthStore - isAuthenticated:', isAuthenticated)
-    console.log('AuthStore - user:', user)
-    console.log('AuthStore - hasToken:', !!token)
-    console.log('localStorage hasToken:', !!localStorageToken)
-    console.log('Cookie hasToken:', !!authCookie)
-    console.log('ApiClient hasToken:', !!(apiClient as any).token)
-    console.log('========================')
+
+    // .token)
+
   }
 
   if (process.env.NODE_ENV !== 'development') {

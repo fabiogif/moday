@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Reports\Exporters;
+
+use App\Reports\Contracts\ReportExporterInterface;
+
+class ExcelExporter implements ReportExporterInterface
+{
+    public function export(array $data, array $columns, string $filename): string
+    {
+        // Por enquanto, exporta como CSV (compatível com Excel)
+        // Futuramente integrar com PhpSpreadsheet ou Laravel Excel
+        
+        $filename = $this->sanitizeFilename($filename);
+        $path = storage_path('app/public/reports/' . $filename . '.' . $this->getExtension());
+        
+        // Cria o diretório se não existir
+        $dir = dirname($path);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        
+        $file = fopen($path, 'w');
+        
+        // Adiciona BOM para UTF-8
+        fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Adiciona cabeçalho
+        fputcsv($file, $columns, ';');
+        
+        // Adiciona dados
+        foreach ($data as $row) {
+            fputcsv($file, $row, ';');
+        }
+        
+        fclose($file);
+        
+        return $path;
+    }
+    
+    public function getExtension(): string
+    {
+        return 'csv'; // Mudar para 'xlsx' quando integrar biblioteca
+    }
+    
+    public function getMimeType(): string
+    {
+        return 'text/csv'; // Mudar para application/vnd.ms-excel quando integrar
+    }
+    
+    private function sanitizeFilename(string $filename): string
+    {
+        $filename = preg_replace('/[^A-Za-z0-9_\-\s]/', '_', $filename);
+        return $filename . '_' . now()->format('Y-m-d_His');
+    }
+}
+

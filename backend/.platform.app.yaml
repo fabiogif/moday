@@ -1,0 +1,58 @@
+# Digital Ocean App Platform - Laravel Configuration
+
+# Application configuration
+name: backend
+type: php:8.2
+
+# Build configuration
+build:
+  flavor: composer
+
+# Web configuration
+web:
+  locations:
+    "/":
+      root: "public"
+      passthru: "/index.php"
+      index:
+        - index.php
+      allow: false
+      rules:
+        # Allow common static files
+        '\.(css|js|map|hbs|gif|jpe?g|png|svg|ico|woff2?)$':
+          allow: true
+        '^/robots\.txt$':
+          allow: true
+        '^/sitemap\.xml$':
+          allow: true
+
+# Mounts for writable directories
+mounts:
+  "/storage":
+    source: local
+    source_path: storage
+  "/bootstrap/cache":
+    source: local
+    source_path: cache
+
+# Cron jobs (if needed)
+# crons:
+#   clear_cache:
+#     spec: "0 2 * * *"
+#     cmd: "php artisan cache:clear"
+
+# Hooks
+hooks:
+  build: |
+    set -e
+    composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+  deploy: |
+    set -e
+    php artisan migrate --force
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+
+# Relationships
+# relationships:
+#   database: "mysql:mysql"

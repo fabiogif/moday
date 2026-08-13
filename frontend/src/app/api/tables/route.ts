@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { buildApiUrl } from '@/lib/api-config'
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,8 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: 'Token não fornecido' }, { status: 401 })
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
-    const response = await fetch(`${backendUrl}/api/table`, {
+    const response = await fetch(buildApiUrl('/api/table', { server: true }), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',

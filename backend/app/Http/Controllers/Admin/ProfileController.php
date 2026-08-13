@@ -7,6 +7,9 @@ use App\Http\Requests\StoreUpdateProfile;
 use App\Models\Profile;
 use Illuminate\Http\Request;
 
+/**
+ * @deprecated Use a API em App\Http\Controllers\Api\ProfileApiController.
+ */
 class ProfileController extends Controller
 {
     public function __construct(protected Profile $repository)

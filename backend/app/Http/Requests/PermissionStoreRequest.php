@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PermissionStoreRequest extends FormRequest
 {
@@ -21,9 +22,18 @@ class PermissionStoreRequest extends FormRequest
      */
     public function rules(): array
     {
+        $tenantId = auth()->user()->tenant_id;
+
         return [
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:permissions,slug,NULL,id,tenant_id,' . auth()->user()->tenant_id,
+            'slug' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('permissions')->where(function ($query) use ($tenantId) {
+                    return $query->where('tenant_id', $tenantId);
+                }),
+            ],
             'description' => 'nullable|string|max:500',
             'module' => 'required|string|max:100',
             'action' => 'required|string|max:100',

@@ -15,7 +15,9 @@ class ApiResponseClass
     }
     public static function rollback($e, $message = "Algo deu errado! Processo não concluído"): JsonResponse
     {
+        if (!app()->runningUnitTests() && DB::transactionLevel() > 0) {
         DB::rollBack();
+        }
         Log::error("API Error: " . $e->getMessage(), [
             'exception' => $e,
             'trace' => $e->getTraceAsString()
@@ -60,10 +62,10 @@ class ApiResponseClass
            'success' => true,
            'meta' => [
                'total' => $result->total(),
-               'per_page' => $result->perPage(),
-               'current_page' => $result->currentPage(),
                'is_first_page' => $result->isFirstPage(),
                'is_last_page' => $result->isLastPage(),
+               'current_page' => $result->currentPage(),
+               'per_page' => $result->perPage(),
                'next_page'=> $result->getNumberNextPage(),
                'previous_page' => $result->getNumberPreviousPage(),
            ]
@@ -93,5 +95,14 @@ class ApiResponseClass
             'message' => $message,
             'errors' => $errors
         ], 422);
+    }
+
+    public static function conflict(string $message, array $data = []): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'data' => $data,
+        ], 409);
     }
 }

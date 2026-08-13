@@ -34,6 +34,7 @@ import {
   useBackendValidation,
   commonFieldMappings,
 } from "@/hooks/use-backend-validation";
+import { ImageDropzone } from "@/components/image-dropzone";
 
 const productFormSchema = z.object({
   name: z.string().min(2, {
@@ -67,9 +68,10 @@ const productFormSchema = z.object({
   }).optional(),
   shipping_info: z.string().optional(),
   warehouse_location: z.string().optional(),
-  variations: z.array(z.object({
-    type: z.string(),
-    value: z.string(),
+  optionals: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    price: z.number(),
   })).optional(),
   categories: z.array(z.string()).min(1, {
     message: "Por favor, selecione pelo menos uma categoria.",
@@ -77,6 +79,7 @@ const productFormSchema = z.object({
   qtd_stock: z.number().min(0, {
     message: "Estoque deve ser maior ou igual a 0.",
   }),
+  is_active: z.boolean().optional(),
   image: z.any().optional(),
 });
 
@@ -94,9 +97,10 @@ interface ProductFormValues {
   depth?: number;
   shipping_info?: string;
   warehouse_location?: string;
-  variations?: Array<{ type: string; value: string }>;
+  optionals?: Array<{ id: string; name: string; price: number }>;
   categories: string[];
   qtd_stock: number;
+  is_active?: boolean;
   image?: File;
 }
 
@@ -122,6 +126,7 @@ export function ProductFormDialog({ onAddProduct, renderAsPage = false }: Produc
       price_cost: 0,
       categories: [],
       qtd_stock: 0,
+      is_active: true,
       image: undefined,
     },
     mode: "onChange", // Validar em tempo real
@@ -141,16 +146,9 @@ export function ProductFormDialog({ onAddProduct, renderAsPage = false }: Produc
         data.price_cost < 0 ||
         data.qtd_stock < 0
       ) {
-        console.error("Dados inválidos:", {
-          name: data.name,
-          description: data.description,
-          categories: data.categories,
-          price: data.price,
-          price_cost: data.price_cost,
-          qtd_stock: data.qtd_stock,
-        });
+
         // TODO: Implementar toast ou alert dialog para validação
-        console.warn("Por favor, preencha todos os campos obrigatórios.");
+
         return;
       }
 
@@ -158,7 +156,6 @@ export function ProductFormDialog({ onAddProduct, renderAsPage = false }: Produc
       form.reset();
       setOpen(false);
     } catch (error: any) {
-      console.error("Erro ao criar produto:", error);
 
       // Tratar erros de validação do backend
       const handled = handleBackendErrors(error, commonFieldMappings as any);
@@ -374,20 +371,12 @@ export function ProductFormDialog({ onAddProduct, renderAsPage = false }: Produc
             <FormField
               control={form.control}
               name="image"
-              render={({ field: { onChange, ...field } }) => (
+              render={({ field: { onChange } }) => (
                 <FormItem>
-                  <FormLabel>Imagem do Produto (opcional)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        console.log("Arquivo selecionado:", file);
-                        onChange(file || undefined);
-                      }}
-                      {...field}
-                      value={undefined} // Input file não pode ter value controlado
+                    <ImageDropzone
+                      onFileSelect={(file) => onChange(file)}
+                      label="Imagem do Produto (opcional)"
                     />
                   </FormControl>
                   <FormMessage />

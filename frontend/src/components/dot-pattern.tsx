@@ -37,7 +37,7 @@ export function DotPattern({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#374151_1px,transparent_1px)]",
+        "absolute inset-0 bg-[radial-gradient(#DADADC_1px,transparent_1px)] dark:bg-[radial-gradient(#47474C_1px,transparent_1px)]",
         sizeMap[size],
         fadeMap[fadeStyle],
         opacityMap[opacity],
@@ -76,7 +76,7 @@ export function DotPatternLight({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-[radial-gradient(#d1d5db_1px,transparent_1px)]",
+        "absolute inset-0 bg-[radial-gradient(#BFBFC3_1px,transparent_1px)]",
         sizeMap[size],
         fadeMap[fadeStyle],
         opacityMap[opacity],
@@ -114,7 +114,7 @@ export function DotPatternDark({
   return (
     <div
       className={cn(
-        "absolute inset-0 bg-[radial-gradient(#4b5563_1px,transparent_1px)]",
+        "absolute inset-0 bg-[radial-gradient(#5C5C63_1px,transparent_1px)]",
         sizeMap[size],
         fadeMap[fadeStyle],
         opacityMap[opacity],

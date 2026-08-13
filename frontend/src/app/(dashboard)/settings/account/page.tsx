@@ -30,7 +30,9 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api-client"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Building2 } from "lucide-react"
+import Image from "next/image"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 
 const accountFormSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -68,6 +70,7 @@ interface UserData {
     id: number
     name: string
     slug: string
+    logo?: string
     is_active: boolean
   }
   created_at: string
@@ -112,7 +115,7 @@ export default function AccountSettings() {
           })
         }
       } catch (error) {
-        console.error('Erro ao carregar dados do usuário:', error)
+
         toast.error('Erro ao carregar informações da conta')
       } finally {
         setLoading(false)
@@ -150,7 +153,7 @@ export default function AccountSettings() {
         }
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar conta:', error)
+
       toast.error(error.message || 'Erro ao atualizar informações da conta')
     } finally {
       setSaving(false)
@@ -173,7 +176,7 @@ export default function AccountSettings() {
       await logout()
       
     } catch (error: any) {
-      console.error('Erro ao remover conta:', error)
+
       toast.error(error.message || 'Erro ao remover conta')
     } finally {
       setDeleting(false)
@@ -228,9 +231,25 @@ export default function AccountSettings() {
                   <p className="text-sm">{userData.is_active ? 'Ativo' : 'Inativo'}</p>
                 </div>
                 {userData.tenant && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">1Empresa</label>
-                    <p className="text-sm">{userData.tenant.name}</p>
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Empresa</label>
+                    <div className="flex items-center gap-3 mt-1">
+                      {userData.tenant.logo ? (
+                        <Image 
+                          src={resolveImageUrl(userData.tenant.logo) || ""} 
+                          alt={userData.tenant.name} 
+                          width={40} 
+                          height={40} 
+                          className="rounded-lg object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
+                      <p className="text-sm font-medium">{userData.tenant.name}</p>
+                    </div>
                   </div>
                 )}
               </div>

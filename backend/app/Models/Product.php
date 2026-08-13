@@ -2,19 +2,32 @@
 
 namespace App\Models;
 
+use App\Rules\Product\ProductCatalogVisibilityRule;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'uuid', 'name', 'flag', 'price', 'price_cost', 'promotional_price', 
-        'description', 'image', 'tenant_id', 'qtd_stock', 'is_active',
-        'brand', 'sku', 'weight', 'height', 'width', 'depth', 
-        'shipping_info', 'warehouse_location', 'variations'
+        'uuid', 'name', 'flag', 'description', 'image', 'tenant_id', 'is_active',
+        'brand', 'sku', 'barcode', 'weight', 'height', 'width', 'depth', 'volume',
+        'image_url',
+        // Pricing
+        'price', 'price_cost', 'promotional_price', 'price_minimum',
+        // Classification
+        'product_type', 'requires_prescription', 'controlled_substance', 'storage_temperature',
+        // Fiscal
+        'tax_ncm', 'tax_cst', 'tax_rate',
+        // Stock
+        'qtd_stock', 'sell_without_stock', 'unit_of_measure', 'units_per_box', 'min_stock', 'max_stock', 'safety_stock', 'reorder_point',
+        // JSON catalogs
+        'variations', 'optionals',
     ];
 
     /**
@@ -24,47 +37,70 @@ class Product extends Model
     {
         return [
             'is_active' => 'boolean',
+            'sell_without_stock' => 'boolean',
+            'requires_prescription' => 'boolean',
+            'controlled_substance' => 'boolean',
             'price' => 'decimal:2',
             'price_cost' => 'decimal:2',
             'promotional_price' => 'decimal:2',
+            'price_minimum' => 'decimal:2',
+            'tax_rate' => 'decimal:2',
             'weight' => 'decimal:3',
             'height' => 'decimal:2',
             'width' => 'decimal:2',
             'depth' => 'decimal:2',
-            'variations' => 'array',
+            'min_stock'    => 'integer',
+            'max_stock'    => 'integer',
+            'safety_stock' => 'integer',
+            'reorder_point' => 'integer',
+            'units_per_box' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
     }
 
     /**
-     * Set the variations attribute.
-     * Ensures variations are stored as valid JSON array
+     * variations/optionals: null ou JSON inválido → [] (API estável).
      */
-    public function setVariationsAttribute($value)
+    protected function variations(): Attribute
     {
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            $this->attributes['variations'] = json_encode(is_array($decoded) ? $decoded : []);
-        } elseif (is_array($value)) {
-            $this->attributes['variations'] = json_encode($value);
-        } else {
-            $this->attributes['variations'] = json_encode([]);
-        }
+        return Attribute::make(
+            get: fn ($value) => $this->decodeJsonCatalog($value),
+            set: fn ($value) => $this->encodeJsonCatalog($value),
+        );
     }
 
-    /**
-     * Get the variations attribute.
-     * Ensures variations are returned as array
-     */
-    public function getVariationsAttribute($value)
+    protected function optionals(): Attribute
     {
-        if (is_null($value)) {
+        return Attribute::make(
+            get: fn ($value) => $this->decodeJsonCatalog($value),
+            set: fn ($value) => $this->encodeJsonCatalog($value),
+        );
+    }
+
+    private function decodeJsonCatalog(mixed $value): array
+    {
+        if ($value === null || $value === '') {
             return [];
         }
-        
-        $decoded = json_decode($value, true);
+        if (is_array($value)) {
+            return $value;
+        }
+        $decoded = json_decode((string) $value, true);
+
         return is_array($decoded) ? $decoded : [];
+    }
+
+    private function encodeJsonCatalog(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_string($value)) {
+            return $value;
+        }
+
+        return json_encode(is_array($value) ? $value : []);
     }
 
     /**
@@ -82,11 +118,83 @@ class Product extends Model
                 $model->flag = Str::kebab($model->name);
             }
         });
+
+        // Libera o UNIQUE (tenant_id, barcode) para reutilização após soft delete.
+        static::deleting(function (Product $product) {
+            if ($product->isForceDeleting() || $product->barcode === null) {
+                return;
+            }
+
+            $product->newQueryWithoutScopes()
+                ->where($product->getKeyName(), $product->getKey())
+                ->update(['barcode' => null]);
+
+            $product->barcode = null;
+        });
     }
 
     public function categories()
     {
-       return $this->belongsToMany(Category::class);
+        return $this->belongsToMany(Category::class);
+    }
+
+    public function batches()
+    {
+        return $this->hasMany(Batch::class);
+    }
+
+    public function availableBatches()
+    {
+        return $this->hasMany(Batch::class)->fefo();
+    }
+
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function priceTableItems()
+    {
+        return $this->hasMany(PriceTableItem::class);
+    }
+
+    /** Stock actually available for sale (respects safety_stock reserve) */
+    public function availableStock(): int
+    {
+        return max(0, ($this->qtd_stock ?? 0) - ($this->safety_stock ?? 0));
+    }
+
+    public function isLowStock(): bool
+    {
+        return $this->availableStock() <= ($this->min_stock ?? 0);
+    }
+
+    public function needsReorder(): bool
+    {
+        return $this->availableStock() <= ($this->reorder_point ?? 0);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeInStock(Builder $query): Builder
+    {
+        return $query->where('qtd_stock', '>', 0);
+    }
+
+    /**
+     * Cardápio público, PDV e fluxos de venda.
+     */
+    public function scopeVisibleInCatalog(Builder $query): Builder
+    {
+        return ProductCatalogVisibilityRule::apply($query);
+    }
+
+    public function isVisibleInCatalog(): bool
+    {
+        return ProductCatalogVisibilityRule::passes($this);
     }
 
     /**
@@ -96,9 +204,10 @@ class Product extends Model
     {
         $categoryIds = $this->categories()->pluck('categories.id');
         
-        return self::where('id', '!=', $this->id)
+        return self::query()
+            ->where('id', '!=', $this->id)
             ->where('tenant_id', $this->tenant_id)
-            ->where('is_active', true)
+            ->visibleInCatalog()
             ->whereHas('categories', function ($query) use ($categoryIds) {
                 $query->whereIn('categories.id', $categoryIds);
             })
