@@ -10,13 +10,14 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { ShoppingCart, BarChart3, Users, Utensils, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { ShoppingCart, BarChart3, Users, Utensils, AlertCircle } from "lucide-react"
 import { AlbaTecLogo } from "@/components/albatec-logo"
 import { getRememberedEmail, setRememberedEmail } from "@/lib/auth-storage"
 
@@ -32,7 +33,6 @@ export function LoginForm3({
   ...props
 }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
   const router = useRouter()
@@ -147,30 +147,13 @@ export function LoginForm3({
                     Esqueceu a senha?
                   </Link>
                 </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Digite sua senha"
-                    autoComplete="current-password"
-                    {...register("password")}
-                    className={cn("h-11 pr-10", errors.password && "border-destructive")}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                    onClick={() => setShowPassword((visible) => !visible)}
-                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </Button>
-                </div>
+                <PasswordInput
+                  id="password"
+                  placeholder="Digite sua senha"
+                  autoComplete="current-password"
+                  {...register("password")}
+                  className={cn("h-11", errors.password && "border-destructive")}
+                />
                 {errors.password && (
                   <p className="text-sm text-destructive">{errors.password.message}</p>
                 )}

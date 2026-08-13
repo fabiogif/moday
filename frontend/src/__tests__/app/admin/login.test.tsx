@@ -35,13 +35,26 @@ describe('Admin Login Page', () => {
     renderLoginPage()
 
     expect(screen.getByText('Painel Administrativo')).toBeInTheDocument()
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/senha/i)).toBeInTheDocument()
+    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /entrar/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /mostrar senha/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /esqueceu a senha/i })).toHaveAttribute(
       'href',
       '/admin/forgot-password',
     )
+  })
+
+  it('alterna visibilidade da senha no toggle', async () => {
+    const user = userEvent.setup()
+    renderLoginPage()
+
+    const passwordInput = screen.getByLabelText('Senha') as HTMLInputElement
+    expect(passwordInput.type).toBe('password')
+
+    await user.click(screen.getByRole('button', { name: /mostrar senha/i }))
+    expect(passwordInput.type).toBe('text')
+    expect(screen.getByRole('button', { name: /ocultar senha/i })).toBeInTheDocument()
   })
 
   it('should validate required fields', async () => {
@@ -53,8 +66,8 @@ describe('Admin Login Page', () => {
     await user.click(submitButton)
 
     // Form HTML5 validation deve impedir submit
-    const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement
-    const passwordInput = screen.getByLabelText(/senha/i) as HTMLInputElement
+    const emailInput = screen.getByLabelText('Email') as HTMLInputElement
+    const passwordInput = screen.getByLabelText('Senha') as HTMLInputElement
     
     expect(emailInput.validity.valid).toBe(false)
     expect(passwordInput.validity.valid).toBe(false)
@@ -84,8 +97,8 @@ describe('Admin Login Page', () => {
 
     renderLoginPage()
 
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/senha/i)
+    const emailInput = screen.getByLabelText('Email')
+    const passwordInput = screen.getByLabelText('Senha')
     const submitButton = screen.getByRole('button', { name: /entrar/i })
 
     await user.type(emailInput, 'admin@albtec.app')
@@ -111,8 +124,8 @@ describe('Admin Login Page', () => {
 
     renderLoginPage()
 
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/senha/i)
+    const emailInput = screen.getByLabelText('Email')
+    const passwordInput = screen.getByLabelText('Senha')
     const submitButton = screen.getByRole('button', { name: /entrar/i })
 
     await user.type(emailInput, 'wrong@test.com')
@@ -143,8 +156,8 @@ describe('Admin Login Page', () => {
 
     renderLoginPage()
 
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/senha/i)
+    const emailInput = screen.getByLabelText('Email')
+    const passwordInput = screen.getByLabelText('Senha')
     const submitButton = screen.getByRole('button', { name: /entrar/i })
 
     await user.type(emailInput, 'admin@albtec.app')
@@ -164,8 +177,8 @@ describe('Admin Login Page', () => {
 
     renderLoginPage()
 
-    const emailInput = screen.getByLabelText(/email/i)
-    const passwordInput = screen.getByLabelText(/senha/i)
+    const emailInput = screen.getByLabelText('Email')
+    const passwordInput = screen.getByLabelText('Senha')
     const submitButton = screen.getByRole('button', { name: /entrar/i })
 
     await user.type(emailInput, 'admin@albtec.app')

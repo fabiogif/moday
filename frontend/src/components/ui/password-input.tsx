@@ -19,17 +19,21 @@ const PasswordInput = React.forwardRef<
         ref={ref}
         type={show ? "text" : "password"}
         disabled={disabled}
-        className={cn("pr-10", className)}
+        className={cn(
+          "pr-10 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden",
+          className,
+        )}
       />
       <Button
         type="button"
         variant="ghost"
         size="icon"
         disabled={disabled}
-        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-muted-foreground"
+        className="absolute right-0 top-0 z-10 h-full px-3 hover:bg-transparent text-muted-foreground"
         onClick={() => setShow((prev) => !prev)}
         tabIndex={-1}
-        aria-label={show ? "Ocultar senha" : "Exibir senha"}
+        aria-pressed={show}
+        aria-label={show ? "Ocultar senha" : "Mostrar senha"}
       >
         {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </Button>
