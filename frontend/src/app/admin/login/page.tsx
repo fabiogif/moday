@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAdminAuth } from '@/contexts/admin-auth-context'
@@ -19,6 +20,7 @@ export default function AdminLoginPage() {
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -35,7 +37,7 @@ export default function AdminLoginPage() {
     setIsLoading(true)
 
     try {
-      await login(email, password)
+      await login(email, password, rememberMe)
       // O redirect é feito automaticamente no contexto
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login. Verifique suas credenciais.')
@@ -102,9 +104,20 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+              />
+              <Label htmlFor="remember-me" className="text-sm font-normal cursor-pointer">
+                Lembrar-me
+              </Label>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? (

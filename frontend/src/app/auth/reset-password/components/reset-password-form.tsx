@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { AlbaTecLogo } from "@/components/albatec-logo"
 import { resetPassword } from "@/lib/auth-password"
@@ -129,9 +130,8 @@ export function ResetPasswordForm({
 
                   <div className="grid gap-2">
                     <Label htmlFor="password">Nova senha</Label>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       placeholder="Mínimo de 8 caracteres"
                       autoComplete="new-password"
                       {...register("password")}
@@ -144,9 +144,8 @@ export function ResetPasswordForm({
 
                   <div className="grid gap-2">
                     <Label htmlFor="password_confirmation">Confirmar nova senha</Label>
-                    <Input
+                    <PasswordInput
                       id="password_confirmation"
-                      type="password"
                       placeholder="Repita a nova senha"
                       autoComplete="new-password"
                       {...register("password_confirmation")}

@@ -3,6 +3,7 @@
  */
 
 import { buildApiUrl, getApiBaseUrl } from '@/lib/api-config'
+import { getAdminToken, updateAdminToken, clearAdminSession } from '@/lib/admin-auth-storage'
 
 const API_BASE_URL = getApiBaseUrl()
 
@@ -44,27 +45,23 @@ class AdminApiClient {
 
   private loadToken() {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('admin-token')
+      this.token = getAdminToken()
     }
   }
 
   setToken(token: string) {
     this.token = token
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('admin-token', token)
-    }
+    updateAdminToken(token)
   }
 
-  // Método público para recarregar token do localStorage
+  // Método público para recarregar token do localStorage/sessionStorage
   reloadToken() {
     this.loadToken()
   }
 
   clearToken() {
     this.token = null
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin-token')
-    }
+    clearAdminSession()
   }
 
   private async requestAbsolute<T = any>(

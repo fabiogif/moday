@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlbaTecLogo } from '@/components/albatec-logo'
@@ -110,9 +111,8 @@ export function AdminResetPasswordForm({ token, email }: AdminResetPasswordFormP
 
             <div className="space-y-2">
               <Label htmlFor="password">Nova senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder={`Mínimo de ${PASSWORD_MIN_LENGTH} caracteres`}
                 autoComplete="new-password"
                 disabled={isLoading}
@@ -125,9 +125,8 @@ export function AdminResetPasswordForm({ token, email }: AdminResetPasswordFormP
 
             <div className="space-y-2">
               <Label htmlFor="password_confirmation">Confirmar nova senha</Label>
-              <Input
+              <PasswordInput
                 id="password_confirmation"
-                type="password"
                 placeholder="Repita a nova senha"
                 autoComplete="new-password"
                 disabled={isLoading}

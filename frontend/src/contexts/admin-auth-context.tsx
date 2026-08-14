@@ -4,6 +4,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import adminApi from '@/lib/admin-api-client'
 import { buildApiUrl } from '@/lib/api-config'
+import {
+  getAdminToken,
+  getAdminUserJson,
+  persistAdminSession,
+  updateAdminToken,
+  updateAdminUser,
+  clearAdminSession,
+} from '@/lib/admin-auth-storage'
 
 interface AdminUser {
   id: number
@@ -19,7 +27,7 @@ interface AdminAuthContextType {
   admin: AdminUser | null
   token: string | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember?: boolean) => Promise<void>
   logout: () => void
   refreshToken: () => Promise<void>
   updateAdmin: (data: Partial<AdminUser>) => void
@@ -42,8 +50,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadAdminData = () => {
       try {
-        const storedToken = localStorage.getItem('admin-token')
-        const storedAdmin = localStorage.getItem('admin-user')
+        const storedToken = getAdminToken()
+        const storedAdmin = getAdminUserJson()
 
         if (storedToken && storedAdmin) {
           // IMPORTANTE: Configurar o token no adminApi quando carregar do localStorage
@@ -62,7 +70,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Login
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, remember = true) => {
     try {
       const response = await fetch(buildApiUrl('/api/admin/auth/login'), {
         method: 'POST',
@@ -150,9 +158,12 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
       const { admin: adminData, token: authToken } = result.data
 
-      // Salva no localStorage
-      localStorage.setItem('admin-token', authToken)
-      localStorage.setItem('admin-user', JSON.stringify(adminData))
+      // Salva a sessão (localStorage se "lembrar-me", sessionStorage caso contrário)
+      persistAdminSession({
+        token: authToken,
+        userJson: JSON.stringify(adminData),
+        remember,
+      })
 
       // IMPORTANTE: Atualizar o adminApi com o token antes de fazer outras requisições
       adminApi.setToken(authToken)
@@ -190,7 +201,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         const adminData = data.data
         
         setAdmin(adminData)
-        localStorage.setItem('admin-user', JSON.stringify(adminData))
+        updateAdminUser(JSON.stringify(adminData))
       }
     } catch (error) {
 
@@ -213,8 +224,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     } finally {
       // Limpa dados locais
-      localStorage.removeItem('admin-token')
-      localStorage.removeItem('admin-user')
+      clearAdminSession()
       // IMPORTANTE: Limpar token do adminApi também
       adminApi.clearToken()
       setToken(null)
@@ -240,7 +250,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json()
         const newToken = data.data.token
 
-        localStorage.setItem('admin-token', newToken)
+        updateAdminToken(newToken)
         setToken(newToken)
       } else {
         // Token inválido, faz logout
@@ -256,7 +266,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     setAdmin(prev => {
       if (!prev) return prev
       const updated = { ...prev, ...data }
-      localStorage.setItem('admin-user', JSON.stringify(updated))
+      updateAdminUser(JSON.stringify(updated))
       return updated
     })
   }

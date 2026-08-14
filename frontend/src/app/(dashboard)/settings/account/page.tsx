@@ -6,6 +6,7 @@ import { z } from "zod"
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import {
   Form,
   FormControl,
@@ -312,7 +313,7 @@ export default function AccountSettings() {
                     <FormItem>
                       <FormLabel>Senha atual</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Digite sua senha atual" {...field} />
+                        <PasswordInput placeholder="Digite sua senha atual" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -325,7 +326,7 @@ export default function AccountSettings() {
                     <FormItem>
                       <FormLabel>Nova senha</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Digite sua nova senha" {...field} />
+                        <PasswordInput placeholder="Digite sua nova senha" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -338,7 +339,7 @@ export default function AccountSettings() {
                     <FormItem>
                       <FormLabel>Confirme nova senha</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="Confirme nova senha" {...field} />
+                        <PasswordInput placeholder="Confirme nova senha" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -175,9 +176,8 @@ export function OwnerAccessCard({ tenantId, owner, canManage, onUpdated }: Owner
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="owner-password">Nova senha (opcional)</Label>
-              <Input
+              <PasswordInput
                 id="owner-password"
-                type="password"
                 value={password}
                 disabled={!canManage || resetting}
                 onChange={(e) => setPassword(e.target.value)}
@@ -187,9 +187,8 @@ export function OwnerAccessCard({ tenantId, owner, canManage, onUpdated }: Owner
             </div>
             <div className="space-y-2">
               <Label htmlFor="owner-password-confirmation">Confirmar senha</Label>
-              <Input
+              <PasswordInput
                 id="owner-password-confirmation"
-                type="password"
                 value={passwordConfirmation}
                 disabled={!canManage || resetting}
                 onChange={(e) => setPasswordConfirmation(e.target.value)}

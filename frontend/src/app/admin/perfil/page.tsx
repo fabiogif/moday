@@ -5,6 +5,7 @@ import { useAdminAuth } from '@/contexts/admin-auth-context'
 import adminApi from '@/lib/admin-api-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -199,9 +200,8 @@ export default function AdminPerfilPage() {
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current_password">Senha atual</Label>
-              <Input
+              <PasswordInput
                 id="current_password"
-                type="password"
                 value={passwordForm.current_password}
                 onChange={e => setPasswordForm(p => ({ ...p, current_password: e.target.value }))}
                 placeholder="••••••••"
@@ -215,9 +215,8 @@ export default function AdminPerfilPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password">Nova senha</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={passwordForm.password}
                 onChange={e => setPasswordForm(p => ({ ...p, password: e.target.value }))}
                 placeholder="••••••••"
@@ -229,9 +228,8 @@ export default function AdminPerfilPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password_confirmation">Confirmar nova senha</Label>
-              <Input
+              <PasswordInput
                 id="password_confirmation"
-                type="password"
                 value={passwordForm.password_confirmation}
                 onChange={e => setPasswordForm(p => ({ ...p, password_confirmation: e.target.value }))}
                 placeholder="••••••••"

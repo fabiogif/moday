@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAdminAuth } from '@/contexts/admin-auth-context'
 import adminApi from '@/lib/admin-api-client'
+import { getAdminToken } from '@/lib/admin-auth-storage'
 import { StatCard } from '@/components/admin/stat-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -71,7 +72,7 @@ export default function AdminDashboardPage() {
     // Aguardar que a autenticação esteja completa e o token esteja disponível
     if (!authLoading && isAuthenticated) {
       // Garantir que o adminApi tenha o token antes de carregar dados
-      const token = localStorage.getItem('admin-token')
+      const token = getAdminToken()
       if (token) {
         adminApi.setToken(token)
       }
@@ -84,7 +85,7 @@ export default function AdminDashboardPage() {
       setIsLoading(true)
 
       // Garantir que o token está configurado antes de fazer requisições
-      const token = localStorage.getItem('admin-token')
+      const token = getAdminToken()
       if (token) {
         adminApi.setToken(token)
       }

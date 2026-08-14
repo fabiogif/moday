@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useClientAuth } from '@/contexts/client-auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -204,10 +205,9 @@ export default function ClientRegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Senha *</Label>
-                <Input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   placeholder="Mínimo 6 caracteres"
                   value={formData.password}
                   onChange={handleChange}
@@ -219,10 +219,9 @@ export default function ClientRegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password_confirmation">Confirmar Senha *</Label>
-                <Input
+                <PasswordInput
                   id="password_confirmation"
                   name="password_confirmation"
-                  type="password"
                   placeholder="Digite a senha novamente"
                   value={formData.password_confirmation}
                   onChange={handleChange}

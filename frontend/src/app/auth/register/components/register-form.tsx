@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import {
   Form,
   FormControl,
@@ -364,7 +365,7 @@ export function RegisterForm({
                           <FormItem>
                             <FormLabel>Senha *</FormLabel>
                             <FormControl>
-                              <Input type="password" {...field} />
+                              <PasswordInput {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -377,7 +378,7 @@ export function RegisterForm({
                           <FormItem>
                             <FormLabel>Confirmar Senha *</FormLabel>
                             <FormControl>
-                              <Input type="password" {...field} />
+                              <PasswordInput {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

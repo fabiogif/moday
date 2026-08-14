@@ -28,6 +28,7 @@ describe('Admin Login Page', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    sessionStorage.clear()
     ;(global.fetch as jest.Mock).mockClear()
   })
 
@@ -43,6 +44,62 @@ describe('Admin Login Page', () => {
       'href',
       '/admin/forgot-password',
     )
+    expect(screen.getByLabelText('Lembrar-me')).toBeInTheDocument()
+  })
+
+  it('lembrar-me marcado (padrão) persiste sessão em localStorage', async () => {
+    const user = userEvent.setup()
+
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({
+        success: true,
+        data: {
+          admin: { id: 1, name: 'Admin Test', email: 'admin@albtec.app', role: 'super_admin' },
+          token: 'test-token-123',
+        },
+      }),
+    })
+
+    renderLoginPage()
+
+    await user.type(screen.getByLabelText('Email'), 'admin@albtec.app')
+    await user.type(screen.getByLabelText('Senha'), 'admin123')
+    await user.click(screen.getByRole('button', { name: /entrar/i }))
+
+    await waitFor(() => {
+      expect(localStorage.getItem('admin-token')).toBe('test-token-123')
+    })
+    expect(sessionStorage.getItem('admin-token')).toBeNull()
+  })
+
+  it('lembrar-me desmarcado persiste sessão apenas em sessionStorage', async () => {
+    const user = userEvent.setup()
+
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ({
+        success: true,
+        data: {
+          admin: { id: 1, name: 'Admin Test', email: 'admin@albtec.app', role: 'super_admin' },
+          token: 'test-token-456',
+        },
+      }),
+    })
+
+    renderLoginPage()
+
+    await user.click(screen.getByLabelText('Lembrar-me'))
+    await user.type(screen.getByLabelText('Email'), 'admin@albtec.app')
+    await user.type(screen.getByLabelText('Senha'), 'admin123')
+    await user.click(screen.getByRole('button', { name: /entrar/i }))
+
+    await waitFor(() => {
+      expect(sessionStorage.getItem('admin-token')).toBe('test-token-456')
+    })
+    expect(localStorage.getItem('admin-token')).toBeNull()
   })
 
   it('alterna visibilidade da senha no toggle', async () => {
