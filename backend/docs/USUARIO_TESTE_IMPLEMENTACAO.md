@@ -15,7 +15,7 @@ Foi implementado um sistema completo para criar um usuário de teste com **todas
 ```
 Nome: Teste
 Email: teste@example.com
-Senha: $Duda0793
+Senha: TEST_USER_PASSWORD (definida via env, opcional --password)
 ```
 
 ### **Características**
@@ -124,7 +124,7 @@ O usuário de teste recebe **todas as permissões** do sistema:
 ## 🔐 Segurança
 
 ### **Características de Segurança**
-- ✅ **Senha forte**: `$Duda0793`
+- ✅ **Senha**: definida via `TEST_USER_PASSWORD` (ou aleatória, impressa no terminal)
 - ✅ **Email verificado**: `teste@example.com`
 - ✅ **Tenant isolado**: Restaurante Teste
 - ✅ **Role de nível 1**: Super Admin
@@ -160,7 +160,7 @@ permissions (id, name, slug, module, action, tenant_id, ...)
 # Testar login via API
 curl -X POST http://localhost/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"teste@example.com","password":"$Duda0793"}'
+  -d '{"email":"teste@example.com","password":"TEST_USER_PASSWORD"}'
 ```
 
 ### **Teste de Permissões**

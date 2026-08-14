@@ -11,6 +11,12 @@
 .env.*
 !.env.example
 !.env.production.example
+env
+id_*
+*.pem
+*.key
+*.p12
+*.jks
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml

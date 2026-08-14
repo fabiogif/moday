@@ -87,7 +87,7 @@ class SeedDatabase extends Command
                 [
                     ['Nome', 'Teste'],
                     ['Email', 'teste@example.com'],
-                    ['Senha', '$Duda0793'],
+                    ['Senha', '(TEST_USER_PASSWORD ou aleatória)'],
                     ['Status', 'Pronto para uso'],
                 ]
             );

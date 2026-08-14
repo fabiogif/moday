@@ -8,6 +8,7 @@ use App\Models\Permission;
 use App\Models\Tenant;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class CreateTestUser extends Command
 {
@@ -18,7 +19,7 @@ class CreateTestUser extends Command
      */
     protected $signature = 'user:create-test 
                             {--email=teste@example.com : Email do usuário de teste}
-                            {--password=$Duda0793 : Senha do usuário de teste}
+                            {--password= : Senha do usuário de teste (opcional — usa TEST_USER_PASSWORD ou aleatória)}
                             {--name=Teste : Nome do usuário de teste}';
 
     /**
@@ -34,7 +35,7 @@ class CreateTestUser extends Command
     public function handle()
     {
         $email = $this->option('email');
-        $password = $this->option('password');
+        $password = $this->option('password') ?: env('TEST_USER_PASSWORD', Str::random(16));
         $name = $this->option('name');
 
         $this->info('🚀 Criando usuário de teste...');

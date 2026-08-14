@@ -1,7 +1,7 @@
 {
     "name": "Alba Santana",
     "email": "alba@example.com",
-    "password": "$Duda0793",
-    "password_confirmation": "$Duda0793",
+    "password": "<TEST_USER_PASSWORD>",
+    "password_confirmation": "<TEST_USER_PASSWORD>",
     "tenant_id": 1
 }

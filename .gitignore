@@ -3,6 +3,17 @@
 .env
 .env.local
 .env.production
+.env.*
+!.env.example
+!.env.production.example
+env
+id_*
+id_*.pub
+*.pem
+*.key
+*.p12
+*.jks
+*.env.bak
 .idea/
 .vscode/
 *.swp
