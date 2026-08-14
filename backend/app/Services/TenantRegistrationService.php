@@ -21,10 +21,11 @@ class TenantRegistrationService
         private readonly UserRepositoryInterface $userRepository,
         private readonly TenantAclProvisioner $tenantAclProvisioner,
         private readonly TenantFinancialCategoryProvisioner $financialCategoryProvisioner,
+        private readonly EmailVerificationService $emailVerification,
     ) {}
 
     /**
-     * @return array{tenant: Tenant, user: User, plan: Plan, token: string, trial_status: array}
+     * @return array{tenant: Tenant, user: User, plan: Plan, token: string, trial_status: array, email_verified: bool}
      * @throws \Throwable
      */
     public function register(array $data): array
@@ -47,6 +48,7 @@ class TenantRegistrationService
                 'phone' => $data['phone'] ?? null,
                 'tenant_id' => $tenant->id,
                 'is_active' => true,
+                'email_verified_at' => null,
             ]);
 
             $this->tenantAclProvisioner->provisionAndAssignOwner($tenant, $user);
@@ -65,12 +67,22 @@ class TenantRegistrationService
 
             event(new CompanyRegistered($tenant, $user, $plan));
 
+            try {
+                $this->emailVerification->send($user);
+            } catch (\Throwable $e) {
+                Log::error('Falha ao enviar verificação de e-mail no registro', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             return [
                 'tenant' => $tenant,
                 'user' => $user,
                 'plan' => $plan,
                 'token' => $token,
                 'trial_status' => $tenant->toTrialStatusArray(),
+                'email_verified' => false,
             ];
         } catch (\Throwable $e) {
             DB::rollBack();

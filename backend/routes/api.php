@@ -49,6 +49,7 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\RegisterController,
     Api\ReviewApiController,
     Api\SubscriptionApiController,
+    Api\EmailVerificationApiController,
     Api\CouponApiController,
     Api\PDVFeedbackController,
     Api\PlanLimitApiController,
@@ -187,10 +188,14 @@ Route::prefix('auth')->middleware([
     Route::put('/profile', [AuthController::class, 'updateProfile'])->middleware('throttle:critical');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
+    Route::post('/email/verification-notification', [EmailVerificationApiController::class, 'send'])
+        ->middleware('throttle:email-verification');
+    Route::post('/email/verify', [EmailVerificationApiController::class, 'verify'])
+        ->middleware('throttle:email-verification');
 });
 
 // Rotas protegidas por JWT
-Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'verified.email'])->group(function () {
     // Trial e Subscription
     Route::prefix('subscription')->group(function () {
         Route::get('/trial-status', [SubscriptionApiController::class, 'trialStatus'])->middleware('throttle:read');
@@ -226,7 +231,7 @@ Route::get('/store/{slug}/promotions', [\App\Http\Controllers\Api\PublicStoreCon
 Route::get('/service-type/menu', [ServiceTypeApiController::class, 'menu'])->middleware('throttle:read');
 
 // Rotas protegidas por JWT e tenant
-Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check'])->group(function () {
+Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'verified.email'])->group(function () {
     // Produtos
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);

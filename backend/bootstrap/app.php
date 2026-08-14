@@ -49,6 +49,17 @@ return Application::configure(basePath: dirname(__DIR__))
                     });
             });
 
+            RateLimiter::for('email-verification', function (Request $request) {
+                return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip())
+                    ->response(function () {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'resend_cooldown',
+                            'message' => 'Muitas tentativas de verificação. Aguarde um momento.',
+                        ], 429);
+                    });
+            });
+
             RateLimiter::for('critical', function (Request $request) {
                 return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip())
                     ->response(function () {
@@ -117,6 +128,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'plan.user_limit' => \App\Http\Middleware\CheckUserLimit::class,
             'plan.product_limit' => \App\Http\Middleware\CheckProductLimit::class,
             'inject.token.cookie' => \App\Http\Middleware\InjectBearerTokenFromCookie::class,
+            'verified.email' => \App\Http\Middleware\EnsureTenantEmailIsVerified::class,
+            'mp.signature' => \App\Http\Middleware\VerifyMercadoPagoSignature::class,
         ]);
 
         // O Laravel força middlewares de auth (via AuthenticatesRequests) a
