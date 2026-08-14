@@ -118,8 +118,8 @@ return [
     |
     */
     'brand' => [
-        'name' => env('MAIL_BRAND_NAME', 'DistribTec'),
-        'tagline' => env('MAIL_BRAND_TAGLINE', 'Sistema de Gestão para Distribuidoras'),
+        'name' => env('MAIL_BRAND_NAME', 'Alba Tec'),
+        'tagline' => env('MAIL_BRAND_TAGLINE', 'Sistema de Gestão para Restaurantes'),
         'logo_path' => '/brand/iconfundotranparente.png',
         // oklch(0.489 0.108 230.6) → primary
         'primary' => '#006A91',

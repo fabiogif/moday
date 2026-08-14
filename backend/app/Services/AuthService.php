@@ -197,27 +197,17 @@ class AuthService
     public function sendPasswordResetLink(string $email): array
     {
         try {
-            $user = User::where('email', $email)->first();
-
-            if (!$user) {
-                return [
-                    'success' => false,
-                    'message' => 'Usuário não encontrado'
-                ];
-            }
-
             $status = Password::sendResetLink(['email' => $email]);
 
-            if ($status === Password::RESET_LINK_SENT) {
-                return [
-                    'success' => true,
-                    'message' => 'Link de recuperação enviado para seu email'
-                ];
+            if ($status !== Password::RESET_LINK_SENT) {
+                // Não expõe ao cliente se o e-mail existe, está sem throttle etc.
+                // (evita enumeração de usuário) — só registra para diagnóstico interno.
+                Log::info('Password reset link não enviado', ['email' => $email, 'status' => $status]);
             }
 
             return [
-                'success' => false,
-                'message' => 'Erro ao enviar link de recuperação'
+                'success' => true,
+                'message' => 'Se este e-mail estiver cadastrado, enviamos um link de recuperação.'
             ];
 
         } catch (\Exception $e) {

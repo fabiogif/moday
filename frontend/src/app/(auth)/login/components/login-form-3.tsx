@@ -43,6 +43,7 @@ export function LoginForm3({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -51,6 +52,11 @@ export function LoginForm3({
       password: "",
     },
   })
+
+  const emailValue = watch("email")
+  const forgotPasswordHref = emailValue
+    ? `/auth/forgot-password?email=${encodeURIComponent(emailValue)}`
+    : "/auth/forgot-password"
 
   useEffect(() => {
     const remembered = getRememberedEmail()
@@ -146,7 +152,7 @@ export function LoginForm3({
                 <div className="flex items-center">
                   <Label htmlFor="password">Senha</Label>
                   <Link
-                    href="/auth/forgot-password"
+                    href={forgotPasswordHref}
                     className="ml-auto text-sm text-primary underline-offset-2 hover:underline"
                   >
                     Esqueceu a senha?
