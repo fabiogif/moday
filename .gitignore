@@ -2,6 +2,7 @@
 *.log
 .env
 .env.local
+.env.production
 .idea/
 .vscode/
 *.swp
@@ -9,3 +10,13 @@
 # Local analysis cache
 backend/graphify-out/
 frontend/graphify-out/
+/graphify-out/
+docs/specs/graphify-out/
+
+# Checkouts próprios de outros repos (backend_moday, moday_frontend,
+# moday_mobile, mobile) aninhados por engano dentro deste working tree —
+# cada um tem seu próprio histórico git, não fazem parte deste monorepo.
+/backend_moday/
+/moday_frontend/
+/moday_mobile/
+/mobile/
