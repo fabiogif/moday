@@ -20,6 +20,29 @@ jest.mock('sonner', () => ({
   toast: { success: jest.fn(), error: jest.fn() },
 }))
 
+describe('LoginForm3 — mostrar/ocultar senha', () => {
+  it('renderiza o botão de ícone para exibir a senha', () => {
+    render(<LoginForm3 />)
+
+    const toggle = screen.getByRole('button', { name: /mostrar senha/i })
+    const field = screen.getByPlaceholderText('Digite sua senha')
+
+    expect(toggle).toBeInTheDocument()
+    expect(field).toHaveAttribute('type', 'password')
+  })
+
+  it('alterna o campo entre password e text ao clicar no ícone', async () => {
+    const user = userEvent.setup()
+    render(<LoginForm3 />)
+
+    const field = screen.getByPlaceholderText('Digite sua senha')
+    await user.click(screen.getByRole('button', { name: /mostrar senha/i }))
+
+    expect(field).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: /ocultar senha/i })).toBeInTheDocument()
+  })
+})
+
 describe('LoginForm3 — link "Esqueceu a senha?"', () => {
   it('aponta para /auth/forgot-password sem query quando o e-mail ainda não foi digitado', () => {
     render(<LoginForm3 />)
