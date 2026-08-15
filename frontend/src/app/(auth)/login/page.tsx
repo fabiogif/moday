@@ -1,5 +1,7 @@
 import { LoginForm3 } from "./components/login-form-3"
 
+export const dynamic = "force-dynamic"
+
 export default function LoginPage() {
   return (
     <div className="bg-gradient-to-b from-muted/80 via-background to-muted flex min-h-svh flex-col items-center justify-center p-6 md:p-10">

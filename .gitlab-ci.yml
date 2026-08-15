@@ -350,6 +350,7 @@ frontend:deploy:
       else
         npm install --no-audit --no-fund
       fi
+      rm -rf .next
       npm run build:deploy
 
       # Restart via systemd: requer albatecrest-frontend.service instalada/enabled
@@ -359,3 +360,9 @@ frontend:deploy:
       "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
       code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
       echo "Frontend local :${FRONTEND_PORT} -> HTTP ${code}"
+      login_html=$(curl -s "http://127.0.0.1:${FRONTEND_PORT}/auth/login" || true)
+      if ! printf '%s' "$login_html" | grep -q 'Mostrar senha'; then
+        echo "Falha: /auth/login nao contem o botao Mostrar senha apos o deploy" >&2
+        exit 1
+      fi
+      echo "Login :${FRONTEND_PORT}/auth/login contem o icone de senha"
