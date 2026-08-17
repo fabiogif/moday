@@ -38,6 +38,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import { SiteFooter } from '@/components/site-footer'
 import { maskPhone, maskCPF, maskZipCode } from '@/lib/masks'
+import { CategoryFilterChips } from '@/app/store/[slug]/components/category-filter-chips'
 
 interface DemoProduct {
   id: string
@@ -1046,31 +1047,11 @@ export default function DemoMenuPage() {
             <section className="container mx-auto space-y-10 overflow-x-hidden px-4 py-6 sm:py-10">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
               <div className="min-w-0 flex-1 space-y-6">
-                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                  <button
-                    onClick={() => setSelectedCategory("all")}
-                    className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                      selectedCategory === "all"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    }`}
-                  >
-                    Todos
-                  </button>
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                        selectedCategory === category
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
+                <CategoryFilterChips
+                  categories={categories}
+                  selected={selectedCategory}
+                  onSelect={setSelectedCategory}
+                />
 
                 <div className="mt-0">
                   {filteredProducts.length === 0 ? (

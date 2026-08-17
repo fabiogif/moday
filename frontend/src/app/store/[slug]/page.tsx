@@ -29,6 +29,7 @@ import { ReviewsSection } from './components/reviews-section'
 import { apiClient, endpoints } from '@/lib/api-client'
 import { buildApiUrl } from '@/lib/api-config'
 import { ProductRecommendations } from './components/product-recommendations'
+import { CategoryFilterChips } from './components/category-filter-chips'
 
 interface ProductVariation {
   id: string
@@ -1406,7 +1407,6 @@ export default function PublicStorePage() {
                           width={48}
                           height={48}
                           className="h-12 w-12 rounded-full object-cover"
-                          unoptimized
                         />
                       ) : (
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
@@ -1475,7 +1475,6 @@ export default function PublicStorePage() {
                   width={48}
                   height={48}
                   className="hidden h-12 w-12 rounded-full object-cover sm:block"
-                  unoptimized
                 />
               ) : (
                 <div className="hidden h-12 w-12 items-center justify-center rounded-full bg-muted sm:flex">
@@ -1557,31 +1556,11 @@ export default function PublicStorePage() {
                 <div className="min-w-0 flex-1 space-y-6">
                   {/* Category filter chips */}
                   {categories.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                      <button
-                        onClick={() => setSelectedCategory("all")}
-                        className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                          selectedCategory === "all"
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        }`}
-                      >
-                        Todos
-                      </button>
-                      {categories.map((cat) => (
-                        <button
-                          key={cat}
-                          onClick={() => setSelectedCategory(cat)}
-                          className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                            selectedCategory === cat
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }`}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
+                    <CategoryFilterChips
+                      categories={categories}
+                      selected={selectedCategory}
+                      onSelect={setSelectedCategory}
+                    />
                   )}
 
                   <div className="mt-0">
@@ -1616,7 +1595,6 @@ export default function PublicStorePage() {
                                     fill
                                     className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
                                     sizes="112px"
-                                    unoptimized
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center">
@@ -2596,7 +2574,6 @@ export default function PublicStorePage() {
                       fill
                       className="object-cover"
                       sizes="(max-width: 640px) 100vw, 512px"
-                      unoptimized
                       priority
                     />
                   ) : (
