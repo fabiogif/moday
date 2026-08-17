@@ -39,7 +39,7 @@ describe("CancelDialog", () => {
     )
 
     expect(screen.getByText(/Tem certeza que deseja cancelar/i)).toBeInTheDocument()
-    expect(screen.getByText(/até o fim do ciclo|até 20\/09\/2026/i)).toBeInTheDocument()
+    expect(screen.getByText("20/09/2026")).toBeInTheDocument()
 
     await user.click(screen.getByLabelText(/Está caro demais/i))
     await user.click(screen.getByRole("button", { name: /Confirmar cancelamento/i }))

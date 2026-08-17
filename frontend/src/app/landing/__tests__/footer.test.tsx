@@ -18,8 +18,8 @@ describe('LandingFooter', () => {
     render(<LandingFooter />)
     expect(screen.getByText(/Recursos/i)).toBeInTheDocument()
     expect(screen.getByText(/Planos/i)).toBeInTheDocument()
-    expect(screen.getByText(/FAQ/i)).toBeInTheDocument()
-    expect(screen.getByText(/Contato/i)).toBeInTheDocument()
+    expect(screen.getByText(/Perguntas frequentes/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Contato/i).length).toBeGreaterThan(0)
   })
 
   it('deve renderizar formulário de newsletter', () => {

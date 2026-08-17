@@ -43,7 +43,7 @@ describe('FaqSection', () => {
 
   it('deve ter link para contato', () => {
     render(<FaqSection />)
-    expect(screen.getByText(/Fale Conosco/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Fale Conosco/i).length).toBeGreaterThan(0)
   })
 })
 

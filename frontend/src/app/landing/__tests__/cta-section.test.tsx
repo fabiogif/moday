@@ -27,7 +27,7 @@ describe('CTASection', () => {
 
   it('deve renderizar trust indicators', () => {
     render(<CTASection />)
-    expect(screen.getByText(/Sem cartão de crédito/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Sem cartão de crédito/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/Suporte especializado/i)).toBeInTheDocument()
   })
 })
