@@ -27,6 +27,7 @@ Rodar de qualquer lugar (entram em `backend/` automaticamente):
 ./backend/scripts/reverb.sh
 ./backend/scripts/test-cache.sh
 ./backend/scripts/rotate-credentials.sh
+./backend/scripts/setup-cron.sh      # instala a cron do Laravel Scheduler (job das 23:00)
 ```
 
 ## Segurança (`scripts/test/`)
