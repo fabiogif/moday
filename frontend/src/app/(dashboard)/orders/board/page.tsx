@@ -195,11 +195,11 @@ function OrderCard({
       style={style}
       className={cn(
         "group relative rounded-lg border bg-card transition-all duration-200",
-        "hover:shadow-lg hover:scale-[1.02] active:scale-100",
-        isDragging && "shadow-2xl border-primary ring-2 ring-primary/50 ring-offset-2 scale-105",
+        "hover:shadow-lg",
+        isDragging && "shadow-2xl border-primary ring-2 ring-primary/50 ring-offset-2",
         isDragOverlay && "shadow-2xl rotate-2",
         "cursor-grab active:cursor-grabbing",
-        "w-full max-w-full"
+        "w-full min-w-0 max-w-full overflow-hidden"
       )}
       {...attributes}
       {...listeners}
@@ -214,9 +214,9 @@ function OrderCard({
         order.status === "Cancelado" && "bg-gradient-to-r from-rose-400 to-rose-600"
       )} />
       
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 min-w-0">
         {/* Header */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {columnInfo?.icon && <span className="shrink-0">{columnInfo.icon}</span>}
             <span className="font-semibold text-sm tracking-tight truncate">#{order.identify}</span>
@@ -249,7 +249,7 @@ function OrderCard({
         
         {/* Botões de navegação para touch - Mover entre colunas */}
         {!isDragOverlay && (canMoveLeft || canMoveRight) && (
-          <div className="flex items-center justify-center gap-1.5 py-1.5 border-y">
+          <div className="flex items-stretch gap-1.5 py-1.5 border-y min-w-0">
             {canMoveLeft && onMoveLeft && (
               <Button
                 variant="outline"
@@ -260,11 +260,11 @@ function OrderCard({
                 }}
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => event.stopPropagation()}
-                className="h-7 px-2 flex-1 text-xs"
+                className="h-8 min-w-0 flex-1 shrink gap-0.5 overflow-hidden px-1.5 text-xs"
                 title="Mover para coluna anterior"
               >
-                <ChevronLeft className="h-3.5 w-3.5 mr-0.5" />
-                <span className="text-[10px]">Anterior</span>
+                <ChevronLeft className="size-3.5 shrink-0" />
+                <span className="truncate">Anterior</span>
               </Button>
             )}
             {canMoveRight && onMoveRight && (
@@ -277,11 +277,11 @@ function OrderCard({
                 }}
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => event.stopPropagation()}
-                className="h-7 px-2 flex-1 text-xs"
+                className="h-8 min-w-0 flex-1 shrink gap-0.5 overflow-hidden px-1.5 text-xs"
                 title="Mover para próxima coluna"
               >
-                <span className="text-[10px]">Próxima</span>
-                <ChevronRight className="h-3.5 w-3.5 ml-0.5" />
+                <span className="truncate">Próxima</span>
+                <ChevronRight className="size-3.5 shrink-0" />
               </Button>
             )}
           </div>
@@ -307,7 +307,7 @@ function OrderCard({
             <div className="space-y-1">
               <div className="flex items-start gap-1.5 text-xs min-w-0">
                 <MapPin className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
-                <span className="text-[10px] leading-relaxed line-clamp-2 break-words">{deliveryAddress}</span>
+                <span className="min-w-0 flex-1 break-words leading-relaxed">{deliveryAddress}</span>
               </div>
               {order.delivery_notes && (
                 <div className="text-[10px] text-muted-foreground italic pl-4 line-clamp-1">
@@ -329,7 +329,7 @@ function OrderCard({
                     <Badge variant="secondary" className="h-4 px-1 text-[9px] font-medium shrink-0">
                       {product.quantity || 1}x
                     </Badge>
-                    <span className="truncate leading-4">{product.name}</span>
+                    <span className="min-w-0 flex-1 break-words leading-4">{product.name}</span>
                   </div>
                 ))}
                 {order.products.length > 2 && (
@@ -343,10 +343,10 @@ function OrderCard({
         </div>
         
         {/* Footer - Total */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Total</span>
-          <span className="text-base font-bold bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
-            R$ {total.toFixed(2)}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t min-w-0">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide shrink-0">Total</span>
+          <span className="text-sm font-bold tabular-nums text-primary truncate">
+            R$ {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
           </span>
         </div>
       </div>
@@ -418,11 +418,11 @@ function BoardColumn({ column, orders, isUpdating, onArchive, onMoveOrder, allCo
     <Card
       className={cn(
         "border-2 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col h-full",
-        "w-full min-w-[260px] sm:min-w-[280px] md:min-w-[300px]"
+        "w-full min-w-0 overflow-hidden py-0 gap-0 max-xl:min-w-[260px]"
       )}
     >
       <CardHeader className={cn(
-        "flex flex-row items-center justify-between space-y-0 pb-4 rounded-t-lg bg-gradient-to-br",
+        "flex flex-row items-center justify-between space-y-0 px-3 py-3 min-w-0 rounded-t-lg bg-gradient-to-br",
         column.headerGradient
       )}>
         <CardTitle className="flex items-center gap-2.5">
@@ -439,8 +439,8 @@ function BoardColumn({ column, orders, isUpdating, onArchive, onMoveOrder, allCo
           {orders.length}
         </Badge>
       </CardHeader>
-      <CardContent className="p-0 flex-1 flex flex-col">
-        <ScrollArea className="flex-1">
+      <CardContent className="p-0 flex-1 flex flex-col min-w-0 overflow-hidden">
+        <ScrollArea className="flex-1 min-w-0">
           <DroppableColumnArea columnId={column.id}>
             {orders.length === 0 && !isUpdating && (
               <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
@@ -783,7 +783,7 @@ export default function OrdersBoardPage() {
   const pendingOrders = groupedOrders["Preparo"]?.length || 0
 
   return (
-    <div className="flex flex-col gap-6 p-4 lg:p-6 h-full">
+    <div className="flex min-w-0 flex-col gap-6 p-4 lg:p-6 h-full">
       {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-1">
@@ -846,9 +846,9 @@ export default function OrdersBoardPage() {
       >
         <div
           className={cn(
-            "grid gap-4 auto-cols-[minmax(260px,_1fr)] grid-flow-col overflow-x-auto overflow-y-hidden pb-4 pr-4",
-            "sm:auto-cols-[minmax(280px,_1fr)] md:auto-cols-[minmax(300px,_1fr)] lg:pr-6",
-            "xl:grid-flow-row xl:auto-cols-auto xl:grid-cols-5 xl:overflow-x-hidden xl:pr-0"
+            "grid w-full min-w-0 gap-4 pb-4",
+            "grid-flow-col auto-cols-[minmax(260px,1fr)] overflow-x-auto",
+            "xl:grid-flow-row xl:grid-cols-5 xl:auto-cols-fr xl:overflow-x-visible"
           )}
         >
           {dynamicColumns.map((column) => (
