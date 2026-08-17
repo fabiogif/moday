@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react'
 import { useAuth } from './auth-context'
 import { useRealtimeOrders } from '@/hooks/use-realtime'
-import { playNotificationSound } from '@/lib/notification-sound'
+import { playUrgentSound } from '@/lib/notification-sound'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -98,7 +98,7 @@ export function OrderNotificationsProvider({ children }: OrderNotificationsProvi
     
     // Reproduzir som se habilitado
     if (soundEnabled) {
-      playNotificationSound()
+      playUrgentSound()
     }
 
     // Exibir toast com ação

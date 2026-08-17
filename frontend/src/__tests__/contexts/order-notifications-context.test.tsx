@@ -22,7 +22,7 @@ jest.mock('@/hooks/use-realtime', () => ({
 }))
 
 jest.mock('@/lib/notification-sound', () => ({
-  playNotificationSound: jest.fn(),
+  playUrgentSound: jest.fn(),
   initAudioContext: jest.fn(),
 }))
 

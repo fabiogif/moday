@@ -97,11 +97,11 @@ export const playUrgentSound = async () => {
       gainNode.connect(context.destination)
       
       oscillator.frequency.value = 1000 // 1kHz
-      oscillator.type = 'sine'
-      
+      oscillator.type = 'square'
+
       gainNode.gain.setValueAtTime(0, now + delay)
-      gainNode.gain.linearRampToValueAtTime(0.2, now + delay + 0.02)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.1)
+      gainNode.gain.linearRampToValueAtTime(0.6, now + delay + 0.02)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.15)
       
       oscillator.start(now + delay)
       oscillator.stop(now + delay + 0.1)
