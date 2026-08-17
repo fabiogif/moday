@@ -11,7 +11,7 @@ import billingHistoryData from "./data/billing-history.json"
 
 export default function BillingSettings() {
   const handlePlanSelect = (planId: string) => {
-    console.log('Plan selected:', planId)
+
     // Handle plan selection logic here
   }
 

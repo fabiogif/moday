@@ -18,13 +18,22 @@ class Client extends Authenticatable implements JWTSubject
      * @var array<int, string>
      */
     protected $fillable = [
-        'name', 
+        'name',
         'cpf',
-        'email', 
-        'password', 
-        'uuid', 
+        'cnpj',
+        'company_name',
+        'trade_name',
+        'state_registration',
+        'email',
+        'password',
+        'uuid',
+        'client_request_id',
         'url',
         'phone',
+        'contact_name',
+        'contact_phone',
+        'contact_email',
+        'whatsapp',
         'address',
         'city',
         'state',
@@ -32,9 +41,37 @@ class Client extends Authenticatable implements JWTSubject
         'neighborhood',
         'number',
         'complement',
+        'client_type',
+        'credit_limit',
+        'payment_term_days',
+        'price_table_id',
+        'is_blocked',
+        'blocked_reason',
+        'notes',
         'is_active',
-        'tenant_id'
+        'tenant_id',
+        'latitude',
+        'longitude',
+        'abc_classification',
+        'is_vip',
+        'business_hours_start',
+        'business_hours_end',
+        'last_visit_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+            'is_blocked' => 'boolean',
+            'credit_limit' => 'decimal:2',
+            'payment_term_days' => 'integer',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
+            'is_vip' => 'boolean',
+            'last_visit_at' => 'datetime',
+        ];
+    }
 
     protected $hidden = [
         'password',
@@ -64,10 +101,30 @@ class Client extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(Order::class);
     }
+
+    public function saleOrders()
+    {
+        return $this->hasMany(SaleOrder::class);
+    }
+
+    public function priceTable()
+    {
+        return $this->belongsTo(PriceTable::class);
+    }
     
     public function OrderEvaluation()
     {
         return $this->hasMany(OrderEvaluation::class);
+    }
+
+    public function visits()
+    {
+        return $this->hasMany(Visit::class);
+    }
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
     }
 
     /**

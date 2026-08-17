@@ -2,24 +2,26 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\Schema;
-use App\Models\Product;
-use App\Models\Plan;
 use App\Models\Category;
 use App\Models\Client;
+use App\Models\Order;
+use App\Models\PaymentMethod;
+use App\Models\Plan;
+use App\Models\Product;
 use App\Models\Table;
 use App\Models\Tenant;
-use App\Models\PaymentMethod;
-use App\Models\Order;
-use App\Observers\ProductObserver;
-use App\Observers\PlanObserver;
 use App\Observers\CategoryObserver;
 use App\Observers\ClientObserver;
+use App\Observers\OrderObserver;
+use App\Observers\PaymentMethodObserver;
+use App\Observers\PlanObserver;
+use App\Observers\ProductObserver;
 use App\Observers\TableObserver;
 use App\Observers\TenantObserver;
-use App\Observers\PaymentMethodObserver;
-use App\Observers\OrderObserver;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,9 +30,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Registra os serviços da aplicação
         $this->app->bind(\App\Services\AuthService::class);
         $this->app->singleton(\App\Services\CacheService::class);
+
+        $this->app->singleton(\App\Services\EmailService::class, function ($app) {
+            return new \App\Services\EmailService();
+        });
+
+        $this->app->singleton('session.handler', function ($app) {
+            return new \App\Session\HybridSessionHandler(
+                config('session.lifetime') * 60
+            );
+        });
+
+        $this->app->singleton(\App\RateLimiting\HybridRateLimiter::class);
     }
 
     /**
@@ -38,10 +51,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Define o comprimento padrão das strings para MySQL
         Schema::defaultStringLength(191);
 
-        // Registra os Observers
         Product::observe(ProductObserver::class);
         Plan::observe(PlanObserver::class);
         Category::observe(CategoryObserver::class);
@@ -51,9 +62,51 @@ class AppServiceProvider extends ServiceProvider
         PaymentMethod::observe(PaymentMethodObserver::class);
         Order::observe(OrderObserver::class);
 
-        // Configurações para ambiente de produção
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::connection()->getPdo()->sqliteCreateFunction('DATE_FORMAT', function ($date, $format) {
+                $formatMap = [
+                    '%Y' => 'Y',
+                    '%y' => 'y',
+                    '%m' => 'm',
+                    '%d' => 'd',
+                    '%H' => 'H',
+                    '%i' => 'i',
+                    '%s' => 's',
+                    '%b' => 'M',
+                    '%M' => 'F',
+                ];
+                $phpFormat = str_replace(array_keys($formatMap), array_values($formatMap), $format);
+                $dt = new \DateTimeImmutable($date);
+                return $dt->format($phpFormat);
+            });
+        }
+
         if ($this->app->environment('production')) {
             \URL::forceScheme('https');
         }
+
+        ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
+            $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+
+            return "{$frontend}/auth/reset-password?token={$token}&email={$email}";
+        });
+
+        ResetPassword::toMailUsing(function (object $notifiable, string $token) {
+            $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
+            $email = urlencode($notifiable->getEmailForPasswordReset());
+            $url = "{$frontend}/auth/reset-password?token={$token}&email={$email}";
+            $brand = config('mail.brand.name', 'DistribTec');
+            $expire = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject("Redefinição de senha — {$brand}")
+                ->greeting('Olá!')
+                ->line("Você solicitou a redefinição de senha da sua conta {$brand}.")
+                ->action('Redefinir senha', $url)
+                ->line("Este link expira em {$expire} minutos.")
+                ->line('Se você não solicitou esta alteração, ignore este e-mail.')
+                ->salutation('Equipe '.$brand);
+        });
     }
 }

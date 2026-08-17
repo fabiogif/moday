@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Tenant;
@@ -19,12 +20,16 @@ class AuthenticationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Criar profile padrão para testes
         Profile::factory()->create([
             'name' => 'user',
             'description' => 'Usuário padrão'
         ]);
+
+        // AuthService::register precisa de um plano ativo para criar o tenant
+        // do registro self-service (não gera mais um plano fake automaticamente).
+        Plan::factory()->create(['is_active' => true, 'price' => 0]);
     }
 
     #[Test]
@@ -62,6 +67,45 @@ class AuthenticationTest extends TestCase
             ]);
 
         $this->assertNotEmpty($response->json('data.token'));
+    }
+
+    #[Test]
+    public function login_seta_cookie_httponly_e_autentica_sem_header_authorization()
+    {
+        $user = User::factory()->create([
+            'email' => 'cookie@example.com',
+            'password' => Hash::make('password123'),
+            'is_active' => true,
+        ]);
+
+        $loginResponse = $this->postJson('/api/auth/login', [
+            'email' => 'cookie@example.com',
+            'password' => 'password123',
+        ]);
+
+        $loginResponse->assertStatus(200);
+        $cookie = $loginResponse->headers->getCookies()[0] ?? null;
+
+        $this->assertNotNull($cookie, 'Login deveria retornar um Set-Cookie');
+        $this->assertSame('auth_token', $cookie->getName());
+        $this->assertTrue($cookie->isHttpOnly());
+        $this->assertSame('strict', strtolower((string) $cookie->getSameSite()));
+
+        // Sem header Authorization, só o cookie retornado no login.
+        // withCredentials() é necessário porque getJson() não envia cookies por
+        // padrão (simula fetch sem credentials:'include'). Rotas de API deste
+        // projeto não passam por EncryptCookies, então o cookie chega cru (mesmo
+        // comportamento de produção) — withUnencryptedCookies evita que o client
+        // de teste criptografe o valor como faria para rotas 'web'.
+        $meResponse = $this->withCredentials()
+            ->withUnencryptedCookies(['auth_token' => $cookie->getValue()])
+            ->getJson('/api/auth/me');
+
+        $meResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => ['id' => $user->id, 'email' => $user->email],
+            ]);
     }
 
     #[Test]

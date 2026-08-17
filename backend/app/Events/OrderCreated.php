@@ -22,7 +22,7 @@ class OrderCreated implements ShouldBroadcast
      */
     public function __construct(Order $order)
     {
-        $this->order = $order->load(['client', 'table', 'products']);
+        $this->order = $order->load(['client', 'table', 'products', 'orderStatus']);
     }
 
     /**
@@ -50,8 +50,16 @@ class OrderCreated implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
+        $order = $this->order;
+        $orderArray = $order->toArray();
+        $orderArray['source'] = 'order';
+        $orderArray['href'] = '/orders?view=' . ($order->identify ?? $order->id);
+        $orderArray['customer_name'] = $order->client?->name
+            ?? $orderArray['customer_name']
+            ?? 'Cliente';
+
         return [
-            'order' => $this->order,
+            'order' => $orderArray,
             'timestamp' => now()->toISOString(),
         ];
     }

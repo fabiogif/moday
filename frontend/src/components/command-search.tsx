@@ -5,26 +5,28 @@ import { useRouter } from "next/navigation"
 import { Command as CommandPrimitive } from "cmdk"
 import {
   Search,
-  LayoutPanelLeft,
   LayoutDashboard,
-  Mail,
-  CheckSquare,
-  MessageCircle,
-  Calendar,
-  Shield,
-  AlertTriangle,
+  ShoppingCart,
+  Plus,
+  UserPlus,
+  Users,
+  MonitorSmartphone,
+  Wallet,
+  FileBarChart,
+  Megaphone,
+  UtensilsCrossed,
+  Star,
   Settings,
   HelpCircle,
   CreditCard,
-  User,
-  Bell,
-  Link2,
-  Palette,
+  UserCog,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -125,43 +127,35 @@ interface CommandSearchProps {
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const router = useRouter()
   const commandRef = React.useRef<HTMLDivElement>(null)
+  const { user } = useAuth()
+  const tenantSlug = (user as any)?.tenant?.slug || "empresa-dev"
 
   const searchItems: SearchItem[] = [
-    // Dashboards
-    { title: "Dashboard", url: "/dashboard", group: "Dashboards", icon: LayoutDashboard },
+    // Painéis
+    { title: "Painel de Controle", url: "/dashboard", group: "Painéis", icon: LayoutDashboard },
 
-    // Apps
-    { title: "Mail", url: "/mail", group: "Apps", icon: Mail },
-    { title: "Tasks", url: "/tasks", group: "Apps", icon: CheckSquare },
-    { title: "Chat", url: "/chat", group: "Apps", icon: MessageCircle },
-    { title: "Calendar", url: "/calendar", group: "Apps", icon: Calendar },
+    // Ações rápidas
+    { title: "Novo Pedido", url: "/orders/new", group: "Ações rápidas", icon: Plus },
+    { title: "Novo Cliente", url: "/clients", group: "Ações rápidas", icon: UserPlus },
+    { title: "Abrir PDV", url: "/pdv", group: "Ações rápidas", icon: MonitorSmartphone },
+    { title: "Financeiro", url: "/financial/dashboard", group: "Ações rápidas", icon: Wallet },
+    { title: "Gerar Relatório", url: "/reports", group: "Ações rápidas", icon: FileBarChart },
+    { title: "Cardápio (loja pública)", url: `/store/${tenantSlug}`, group: "Ações rápidas", icon: UtensilsCrossed },
+    { title: "Marketing / Cupons", url: "/marketing/coupons", group: "Ações rápidas", icon: Megaphone },
 
-    // Auth Pages
-    { title: "Sign In 1", url: "/auth/sign-in", group: "Auth Pages", icon: Shield },
-    { title: "Sign In 2", url: "/auth/sign-in-2", group: "Auth Pages", icon: Shield },
-    { title: "Sign Up 1", url: "/auth/sign-up", group: "Auth Pages", icon: Shield },
-    { title: "Sign Up 2", url: "/auth/sign-up-2", group: "Auth Pages", icon: Shield },
-    { title: "Forgot Password 1", url: "/auth/forgot-password", group: "Auth Pages", icon: Shield },
-    { title: "Forgot Password 2", url: "/auth/forgot-password-2", group: "Auth Pages", icon: Shield },
+    // Gestão
+    { title: "Pedidos", url: "/orders", group: "Gestão", icon: ShoppingCart },
+    { title: "Clientes", url: "/clients", group: "Gestão", icon: Users },
+    { title: "Cardápio", url: "/products", group: "Gestão", icon: UtensilsCrossed },
+    { title: "Avaliações", url: "/reviews", group: "Gestão", icon: Star },
+    { title: "Desempenho de Vendas", url: "/sales-performance", group: "Gestão", icon: FileBarChart },
 
-    // Errors
-    { title: "Unauthorized", url: "/errors/unauthorized", group: "Errors", icon: AlertTriangle },
-    { title: "Forbidden", url: "/errors/forbidden", group: "Errors", icon: AlertTriangle },
-    { title: "Not Found", url: "/errors/not-found", group: "Errors", icon: AlertTriangle },
-    { title: "Internal Server Error", url: "/errors/internal-server-error", group: "Errors", icon: AlertTriangle },
-    { title: "Under Maintenance", url: "/errors/under-maintenance", group: "Errors", icon: AlertTriangle },
-
-    // Settings
-    { title: "User Settings", url: "/settings/user", group: "Settings", icon: User },
-    { title: "Configurações de Conta", url: "/settings/account", group: "Settings", icon: Settings },
-    { title: "Plans & Billing", url: "/settings/billing", group: "Settings", icon: CreditCard },
-    { title: "Appearance", url: "/settings/appearance", group: "Settings", icon: Palette },
-    { title: "Notifications", url: "/settings/notifications", group: "Settings", icon: Bell },
-    { title: "Connections", url: "/settings/connections", group: "Settings", icon: Link2 },
-
-    // Pages
-    { title: "FAQs", url: "/faqs", group: "Pages", icon: HelpCircle },
-    { title: "Pricing", url: "/pricing", group: "Pages", icon: CreditCard },
+    // Sistema
+    { title: "Usuários", url: "/users", group: "Sistema", icon: UserCog },
+    { title: "Perfis e Permissões", url: "/permissions", group: "Sistema", icon: ShieldCheck },
+    { title: "Configurações", url: "/settings", group: "Sistema", icon: Settings },
+    { title: "Planos", url: "/subscribe", group: "Sistema", icon: CreditCard },
+    { title: "FAQs", url: "/faqs", group: "Sistema", icon: HelpCircle },
   ]
 
   const groupedItems = searchItems.reduce((acc, item) => {
@@ -173,7 +167,11 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   }, {} as Record<string, SearchItem[]>)
 
   const handleSelect = (url: string) => {
-    router.push(url)
+    if (url.startsWith("/store/")) {
+      window.open(url, "_blank")
+    } else {
+      router.push(url)
+    }
     onOpenChange(false)
     // Bounce effect like Vercel
     if (commandRef.current) {
@@ -196,7 +194,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
         >
           <CommandInput placeholder="O que você precisa?" autoFocus />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
             {Object.entries(groupedItems).map(([group, items]) => (
               <CommandGroup key={group} heading={group}>
                 {items.map((item) => {
@@ -222,17 +220,18 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
 }
 
 export function SearchTrigger({ onClick }: { onClick: () => void }) {
-  return (<div></div>
-  //   <button
-  //     onClick={onClick}
-  //     className="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 py-1 relative w-full justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
-  //   >
-  //     {/* <Search className="mr-2 h-3.5 w-3.5" />
-  //     <span className="hidden lg:inline-flex">Buscar...</span>
-  //     <span className="inline-flex lg:hidden">Search...</span>
-  //     <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-  //       <span className="text-xs">⌘</span>K
-  //     </kbd> */}
-  //   </button>
-   )
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 py-1 relative w-full justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
+    >
+      <Search className="mr-2 h-3.5 w-3.5" />
+      <span className="hidden lg:inline-flex">Buscar...</span>
+      <span className="inline-flex lg:hidden">Buscar</span>
+      <kbd className="pointer-events-none absolute right-1.5 top-1.5 hidden h-4 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+        <span className="text-xs">⌘</span>K
+      </kbd>
+    </button>
+  )
 }

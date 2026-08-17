@@ -4,16 +4,22 @@ namespace App\Http\Controllers\Api;
 
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Api\Controller;
+use App\Http\Controllers\Concerns\ResolvesListPagination;
 use App\Http\Requests\StoreClient;
 use App\Http\Requests\UpdateClient;
+use App\Http\Requests\Api\CheckCpfRequest;
 use App\Http\Resources\ClientResource;
 use App\Services\ClientService;
+use App\Services\AuthTenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ClientApiController extends Controller
 {
-    public function __construct(protected ClientService $clientService)
+    use ResolvesListPagination;
+
+    public function __construct(protected ClientService $clientService, protected AuthTenantService $authTenantService)
     {
     }
 
@@ -37,21 +43,32 @@ class ClientApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+            $sort = $request->get('sort');
+            $sort = $sort === 'recent_orders' ? 'recent_orders' : null;
+
+            $filter = $request->query('filter');
+            $filter = is_string($filter) ? trim($filter) : null;
+            if ($filter !== null && !in_array($filter, ['active', 'inactive', 'blocked'], true)) {
+                $filter = null;
             }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
-            // Get query parameters for cache key
-            $params = $request->only(['page', 'per_page', 'search', 'sort', 'filter']);
-            
-            $clients = $this->clientService->getClientsByTenant($user->tenant_id);
-            return ApiResponseClass::sendResponse(ClientResource::collection($clients), 'Clientes listados com sucesso', 200);
+
+            $paginated = $this->clientService->paginateClientsByTenant(
+                $tenantId,
+                $this->listPage($request),
+                $this->listPerPage($request),
+                $this->listSearch($request),
+                $sort,
+                $filter
+            );
+
+            return response()->json([
+                'success' => true,
+                'data'    => ClientResource::collection($paginated->items()),
+                'meta'    => $this->listMeta($paginated),
+                'message' => 'Clientes listados com sucesso',
+            ], 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar clientes');
         }
@@ -81,21 +98,17 @@ class ClientApiController extends Controller
     public function store(StoreClient $request): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            $data = $request->validated();
+            $data['tenant_id'] = $tenantId;
+
+            // For B2B clients: derive name from company_name if name is absent
+            if (empty($data['name']) && !empty($data['company_name'])) {
+                $data['name'] = $data['company_name'];
             }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
-            $data = $request->all();
-            $data['tenant_id'] = $user->tenant_id;
-            
-            $client = $this->clientService->createClient($data);
-            return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente cadastrado com sucesso', 201);
+
+            $result = $this->clientService->findOrCreateByRequestId($data, $tenantId);
+            return ApiResponseClass::sendResponse(new ClientResource($result['client']), 'Cliente cadastrado com sucesso', 201);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }
@@ -132,24 +145,14 @@ class ClientApiController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
-            }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
             $client = $this->clientService->getClientById($id);
             
             if (!$client) {
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
             
-            // Verificar se o cliente pertence ao tenant do usuário
-            if ($client->tenant_id !== $user->tenant_id) {
+            if ($client->tenant_id !== $tenantId) {
                 return ApiResponseClass::forbidden('Acesso negado ao cliente');
             }
             
@@ -194,16 +197,7 @@ class ClientApiController extends Controller
     public function update(UpdateClient $request, $id): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
-            }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
             // Verificar se o cliente existe e pertence ao tenant do usuário
             $existingClient = $this->clientService->getClientById($id);
             
@@ -211,11 +205,11 @@ class ClientApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
             
-            if ($existingClient->tenant_id !== $user->tenant_id) {
+            if ($existingClient->tenant_id !== $tenantId) {
                 return ApiResponseClass::forbidden('Acesso negado ao cliente');
             }
             
-            $client = $this->clientService->updateClient($id, $request->all());
+            $client = $this->clientService->updateClient($id, $request->validated());
             
             return ApiResponseClass::sendResponse(new ClientResource($client), 'Cliente atualizado com sucesso', 200);
         } catch (\Exception $ex) {
@@ -253,16 +247,7 @@ class ClientApiController extends Controller
     public function destroy($id): JsonResponse
     {
         try {
-            $user = auth()->user();
-            
-            if (!$user) {
-                return ApiResponseClass::unauthorized('Usuário não autenticado');
-            }
-            
-            if (!$user->tenant_id) {
-                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
-            }
-            
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
             // Verificar se o cliente existe e pertence ao tenant do usuário
             $existingClient = $this->clientService->getClientById($id);
             
@@ -270,10 +255,19 @@ class ClientApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
             }
             
-            if ($existingClient->tenant_id !== $user->tenant_id) {
+            if ($existingClient->tenant_id !== $tenantId) {
                 return ApiResponseClass::forbidden('Acesso negado ao cliente');
             }
             
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $check = $guard->verificarVinculoPedidoAtivo($id, 'cliente', $tenantId);
+            if ($check['blocked']) {
+                return ApiResponseClass::conflict(
+                    'Cliente não pode ser excluído, existe um pedido ativo ou não arquivado vinculado.',
+                    ['orders' => $check['orders']]
+                );
+            }
+
             $result = $this->clientService->deleteClient($id);
             
             return ApiResponseClass::sendResponse(null, 'Cliente excluído com sucesso', 200);
@@ -323,7 +317,7 @@ class ClientApiController extends Controller
     public function stats(): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();;
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -337,6 +331,35 @@ class ClientApiController extends Controller
             return ApiResponseClass::sendResponse($stats, 'Estatísticas carregadas com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao carregar estatísticas');
+        }
+    }
+
+    /**
+     * Check if CPF exists for tenant
+     * GET /api/client/check-cpf?cpf={cpf}
+     */
+    public function checkCpf(CheckCpfRequest $request): JsonResponse
+    {
+        try {
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+            
+            $cpf = $request->input('cpf');
+            $existingClient = $this->clientService->findByCpfAndTenant($cpf, $tenantId);
+            
+            if ($existingClient) {
+                return ApiResponseClass::sendResponse([
+                    'exists' => true,
+                    'client' => new ClientResource($existingClient),
+                ], 'Cliente encontrado com este CPF', 200);
+            }
+            
+            return ApiResponseClass::sendResponse([
+                'exists' => false,
+                'client' => null,
+            ], 'CPF não encontrado', 200);
+            
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao verificar CPF');
         }
     }
 }

@@ -6,6 +6,7 @@ use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Api\Controller;
 use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Auth;
 
 class OrderStatsApiController extends Controller
 {
@@ -75,7 +76,7 @@ class OrderStatsApiController extends Controller
     public function stats(): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();;
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');

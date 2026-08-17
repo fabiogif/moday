@@ -32,7 +32,6 @@ export function useRealtimeOrders({
     const echo = initializeEcho()
     
     if (!echo) {
-      console.warn('useRealtimeOrders: WebSocket not available (optional feature)')
       setIsConnected(false)
       return
     }
@@ -41,7 +40,6 @@ export function useRealtimeOrders({
 
     // Subscribe to private channel for tenant orders
     const channelName = `tenant.${tenantId}.orders`
-    console.log(`useRealtimeOrders: Subscribing to channel: ${channelName}`)
 
     const channel = echo.private(channelName)
     channelRef.current = channel
@@ -49,7 +47,7 @@ export function useRealtimeOrders({
     // Listen for order created event
     if (onOrderCreated) {
       channel.listen('.order.created', (data: { order: any; timestamp: string }) => {
-        console.log('useRealtimeOrders: Order created event received', data)
+
         onOrderCreated(data.order)
       })
     }
@@ -57,7 +55,7 @@ export function useRealtimeOrders({
     // Listen for order updated event
     if (onOrderUpdated) {
       channel.listen('.order.updated', (data: { order: any; timestamp: string }) => {
-        console.log('useRealtimeOrders: Order updated event received', data)
+
         onOrderUpdated(data.order)
       })
     }
@@ -65,7 +63,7 @@ export function useRealtimeOrders({
     // Listen for order status updated event
     if (onOrderStatusUpdated) {
       channel.listen('.order.status.updated', (data: { order: any; oldStatus: string; newStatus: string; timestamp: string }) => {
-        console.log('useRealtimeOrders: Order status updated event received', data)
+
         onOrderStatusUpdated({
           order: data.order,
           oldStatus: data.oldStatus,
@@ -76,19 +74,18 @@ export function useRealtimeOrders({
 
     // Handle connection status
     channel.subscribed(() => {
-      console.log(`useRealtimeOrders: Successfully subscribed to ${channelName}`)
+
       setIsConnected(true)
     })
 
     channel.error((error: any) => {
-      console.error(`useRealtimeOrders: Channel error on ${channelName}`, error)
+
       setIsConnected(false)
     })
 
     // Cleanup function
     return () => {
-      console.log(`useRealtimeOrders: Cleaning up channel ${channelName}`)
-      
+
       if (channelRef.current) {
         echo.leave(channelName)
         channelRef.current = null
@@ -136,7 +133,6 @@ export function usePresence({
     const echo = initializeEcho()
     
     if (!echo) {
-      console.warn('usePresence: WebSocket not available (optional feature)')
       setIsConnected(false)
       return
     }
@@ -145,14 +141,13 @@ export function usePresence({
 
     // Subscribe to presence channel
     const channelName = `tenant.${tenantId}.presence`
-    console.log(`usePresence: Joining presence channel: ${channelName}`)
 
     const channel = echo.join(channelName)
     channelRef.current = channel
 
     // Handle who's already in the channel
     channel.here((presentUsers: any[]) => {
-      console.log('usePresence: Users already present', presentUsers)
+
       setUsers(presentUsers)
       setIsConnected(true)
       if (onHere) {
@@ -162,7 +157,7 @@ export function usePresence({
 
     // Handle someone joining
     channel.joining((user: any) => {
-      console.log('usePresence: User joined', user)
+
       setUsers((prev) => [...prev, user])
       if (onJoin) {
         onJoin(user)
@@ -171,7 +166,7 @@ export function usePresence({
 
     // Handle someone leaving
     channel.leaving((user: any) => {
-      console.log('usePresence: User left', user)
+
       setUsers((prev) => prev.filter((u) => u.id !== user.id))
       if (onLeave) {
         onLeave(user)
@@ -179,14 +174,13 @@ export function usePresence({
     })
 
     channel.error((error: any) => {
-      console.error(`usePresence: Channel error on ${channelName}`, error)
+
       setIsConnected(false)
     })
 
     // Cleanup function
     return () => {
-      console.log(`usePresence: Leaving presence channel ${channelName}`)
-      
+
       if (channelRef.current) {
         echo.leave(channelName)
         channelRef.current = null

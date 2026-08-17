@@ -5,11 +5,23 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Permission;
+use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PermissionEndpointTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function authHeadersFor(User $user): array
+    {
+        $token = JWTAuth::fromUser($user);
+
+        return [
+            'Authorization' => 'Bearer ' . $token,
+            'Accept' => 'application/json',
+        ];
+    }
 
     public function test_permission_creation_endpoint_exists()
     {
@@ -36,17 +48,11 @@ class PermissionEndpointTest extends TestCase
 
     public function test_permission_creation_validates_required_fields()
     {
-        // Criar usuário simples sem tenant
-        $user = User::create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'),
-            'tenant_id' => 1
-        ]);
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $headers = $this->authHeadersFor($user);
 
-        $this->actingAs($user);
-
-        $response = $this->postJson('/api/permissions', []);
+        $response = $this->withHeaders($headers)->postJson('/api/permissions', []);
 
         $response->assertStatus(422)
                 ->assertJsonValidationErrors([
@@ -59,15 +65,9 @@ class PermissionEndpointTest extends TestCase
 
     public function test_permission_creation_with_valid_data_structure()
     {
-        // Criar usuário simples sem tenant
-        $user = User::create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'),
-            'tenant_id' => 1
-        ]);
-
-        $this->actingAs($user);
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $headers = $this->authHeadersFor($user);
 
         $permissionData = [
             'name' => 'Test Permission',
@@ -79,9 +79,14 @@ class PermissionEndpointTest extends TestCase
             'is_active' => true
         ];
 
-        $response = $this->postJson('/api/permissions', $permissionData);
+        $response = $this->withHeaders($headers)->postJson('/api/permissions', $permissionData);
 
-        // Pode falhar por falta de tenant, mas deve processar os dados
-        $this->assertTrue(in_array($response->status(), [201, 400, 422]));
+        $response->assertStatus(201)
+                 ->assertJsonFragment(['slug' => 'test.permission']);
+
+        $this->assertDatabaseHas('permissions', [
+            'slug' => 'test.permission',
+            'tenant_id' => $tenant->id,
+        ]);
     }
 }

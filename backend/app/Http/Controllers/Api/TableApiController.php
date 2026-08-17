@@ -9,6 +9,7 @@ use App\Http\Resources\TableResource;
 use App\Services\TableService;
 use Illuminate\Http\{Request, Response, JsonResponse};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class TableApiController extends Controller
@@ -18,7 +19,7 @@ class TableApiController extends Controller
     public function index(Request $request): AnonymousResourceCollection|JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -43,7 +44,7 @@ class TableApiController extends Controller
     public function store(StoreUpdateTableRequest $request):JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -53,7 +54,7 @@ class TableApiController extends Controller
                 return ApiResponseClass::forbidden('Usuário não possui tenant associado');
             }
             
-            $data = $request->all();
+            $data = $request->validated();
             $data['tenant_id'] = $user->tenant_id;
             
             $table = $this->tableService->store($data);
@@ -64,7 +65,7 @@ class TableApiController extends Controller
     }
     public function show($identify):JsonResponse
     {
-        $user = auth()->user();
+        $user = Auth::user();
         
         if (!$user) {
             return ApiResponseClass::unauthorized('Usuário não autenticado');
@@ -84,7 +85,7 @@ class TableApiController extends Controller
     public function update(StoreUpdateTableRequest $request, int $id): JsonResponse
     {
         try {
-            $updated = $this->tableService->update($request->all(), $id);
+            $updated = $this->tableService->update($request->validated(), $id);
             return ApiResponseClass::sendResponse(['updated' => (bool) $updated], 'Mesa atualizada com sucesso', 200);
         } catch (\Exception $ex) {
             Log::error('Erro ao atualizar mesa: '.$ex->getMessage());
@@ -95,6 +96,16 @@ class TableApiController extends Controller
     public function delete(string $identify): JsonResponse
     {
         try {
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $tenantId = Auth::user()?->tenant_id;
+            $check = $guard->verificarVinculoPedidoAtivo($identify, 'mesa', $tenantId);
+            if ($check['blocked']) {
+                return ApiResponseClass::conflict(
+                    'Mesa não pode ser excluída, existe um pedido ativo ou não arquivado vinculado.',
+                    ['orders' => $check['orders']]
+                );
+            }
+
             $deleted = $this->tableService->delete($identify);
             return ApiResponseClass::sendResponse(['deleted' => (bool) $deleted], 'Mesa removida com sucesso', 200);
         } catch (\Exception $ex) {
@@ -106,7 +117,7 @@ class TableApiController extends Controller
     public function stats(): JsonResponse
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             
             if (!$user) {
                 return ApiResponseClass::unauthorized('Usuário não autenticado');

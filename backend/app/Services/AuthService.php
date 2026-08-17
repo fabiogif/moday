@@ -4,16 +4,27 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\Profile;
+use App\Models\Tenant;
+use App\Models\Plan;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Str;
 
 class AuthService
 {
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly TenantRepositoryInterface $tenantRepository,
+        private readonly TenantAclProvisioner $tenantAclProvisioner,
+        private readonly TenantFinancialCategoryProvisioner $financialCategoryProvisioner,
+    ) {}
     /**
      * Realiza o login do usuário
      */
@@ -22,10 +33,14 @@ class AuthService
         try {
             Log::info('AuthService login called', ['email' => $credentials['email']]);
             
-            // Busca o usuário pelo email
-            $user = User::where('email', $credentials['email'])
-                       ->with(['tenant', 'profile.permissions'])
-                       ->first();
+            // Busca o usuário pelo email via repositório
+            /** @var User|null $user */
+            $user = $this->userRepository->getUserByEmail($credentials['email']);
+
+            if ($user) {
+                // Garantir que os relacionamentos necessários estejam carregados
+                $user->loadMissing(['tenant', 'profile.permissions']);
+            }
 
             Log::info('User search result', ['found' => $user ? true : false, 'user_id' => $user?->id]);
 
@@ -37,12 +52,6 @@ class AuthService
                     'message' => 'Credenciais inválidas'
                 ];
             }
-            
-            Log::info('Password comparison', [
-                'provided_password' => $credentials['password'],
-                'stored_hash' => substr($user->password, 0, 30) . '...',
-                'hash_check' => Hash::check($credentials['password'], $user->password)
-            ]);
             
             if (!Hash::check($credentials['password'], $user->password)) {
                 Log::warning('Login failed: Password mismatch');
@@ -61,7 +70,29 @@ class AuthService
                 ];
             }
 
+            // Verifica se o tenant está bloqueado
+            if ($user->tenant && $user->tenant->is_blocked) {
+                Log::warning('Login failed: Tenant blocked', [
+                    'user_id' => $user->id,
+                    'tenant_id' => $user->tenant->id,
+                    'blocked_reason' => $user->tenant->blocked_reason
+                ]);
+                
+                $message = 'Acesso temporariamente bloqueado.';
+                if ($user->tenant->blocked_reason) {
+                    $message .= ' Motivo: ' . $user->tenant->blocked_reason;
+                }
+                
+                return [
+                    'success' => false,
+                    'message' => $message
+                ];
+            }
+
             Log::info('Login successful', ['user_id' => $user->id]);
+
+            // Verifica e ativa trial se necessário
+            $trialStatus = $this->checkAndActivateTrial($user);
 
             // Gera o token JWT
             $token = JWTAuth::fromUser($user);
@@ -69,13 +100,17 @@ class AuthService
             // Atualiza o último login
             $user->updateLastLogin();
 
-            // Cache dos dados do usuário por 1 hora
-            Cache::put("user_data_{$user->id}", $user, 3600);
+            // Carrega perfis para que o frontend possa checar permissões
+            $user->loadMissing('profiles');
+
+            // Cache dos dados do usuário pelo período do token
+            Cache::put("user_data_{$user->id}", $user, config('jwt.ttl', 120) * 60);
 
             return [
                 'success' => true,
                 'user' => $user,
                 'token' => $token,
+                'trial_status' => $trialStatus,
                 'message' => 'Login realizado com sucesso'
             ];
 
@@ -90,22 +125,47 @@ class AuthService
      */
     public function register(array $data): array
     {
+        DB::beginTransaction();
+
         try {
             // Define como ativo por padrão
             $data['is_active'] = $data['is_active'] ?? true;
 
-            // Cria o usuário
-            $user = User::create([
+            $tenant = null;
+            $isNewTenant = empty($data['tenant_id']);
+
+            if ($isNewTenant) {
+                $tenant = $this->createTenantForRegistration($data);
+                $data['tenant_id'] = $tenant->id;
+            } else {
+                /** @var Tenant $tenant */
+                $tenant = $this->tenantRepository->getById((int) $data['tenant_id']);
+                if (!$tenant) {
+                    throw new \RuntimeException('Tenant não encontrado para registro');
+                }
+            }
+
+            // Cria o usuário via repositório (já faz hash da senha se necessário)
+            /** @var User $user */
+            $user = $this->userRepository->createUser([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                'password' => $data['password'],
                 'phone' => $data['phone'] ?? null,
-                'tenant_id' => $data['tenant_id'] ?? null,
+                'tenant_id' => $data['tenant_id'],
                 'is_active' => $data['is_active'],
             ]);
 
-            // Por enquanto, não atribui perfis automaticamente
-            // TODO: Implementar sistema de perfis quando necessário
+            if ($isNewTenant) {
+                // Mesmo provisionamento de ACL/categorias financeiras que
+                // TenantRegistrationService::register() faz — sem isso, o
+                // usuário fica sem nenhuma permissão e cai em 403 em toda
+                // rota protegida por acl.permission.
+                $this->tenantAclProvisioner->provisionAndAssignOwner($tenant, $user);
+                $this->financialCategoryProvisioner->provision($tenant);
+            }
+
+            DB::commit();
 
             // Carrega os relacionamentos
             $user->load(['tenant', 'profiles.permissions']);
@@ -114,16 +174,18 @@ class AuthService
             $token = JWTAuth::fromUser($user);
 
             // Cache dos dados do usuário
-            Cache::put("user_data_{$user->id}", $user, 3600);
+            Cache::put("user_data_{$user->id}", $user, config('jwt.ttl', 120) * 60);
 
             return [
                 'success' => true,
                 'user' => $user,
+                'tenant' => $user->tenant,
                 'token' => $token,
                 'message' => 'Usuário registrado com sucesso'
             ];
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Erro no serviço de registro: ' . $e->getMessage());
             throw $e;
         }
@@ -135,27 +197,17 @@ class AuthService
     public function sendPasswordResetLink(string $email): array
     {
         try {
-            $user = User::where('email', $email)->first();
-
-            if (!$user) {
-                return [
-                    'success' => false,
-                    'message' => 'Usuário não encontrado'
-                ];
-            }
-
             $status = Password::sendResetLink(['email' => $email]);
 
-            if ($status === Password::RESET_LINK_SENT) {
-                return [
-                    'success' => true,
-                    'message' => 'Link de recuperação enviado para seu email'
-                ];
+            if ($status !== Password::RESET_LINK_SENT) {
+                // Não expõe ao cliente se o e-mail existe, está sem throttle etc.
+                // (evita enumeração de usuário) — só registra para diagnóstico interno.
+                Log::info('Password reset link não enviado', ['email' => $email, 'status' => $status]);
             }
 
             return [
-                'success' => false,
-                'message' => 'Erro ao enviar link de recuperação'
+                'success' => true,
+                'message' => 'Se este e-mail estiver cadastrado, enviamos um link de recuperação.'
             ];
 
         } catch (\Exception $e) {
@@ -233,6 +285,70 @@ class AuthService
     }
 
     /**
+     * Verifica e ativa trial se necessário
+     */
+    private function checkAndActivateTrial(User $user): array
+    {
+        try {
+            if (!$user->tenant_id) {
+                return [
+                    'is_trial' => false,
+                    'is_active' => true,
+                    'days_remaining' => 0,
+                    'expires_at' => null,
+                    'needs_payment' => false,
+                ];
+            }
+
+            /** @var Tenant|null $tenant */
+            $tenant = $this->tenantRepository->getById((int) $user->tenant_id);
+
+            if (!$tenant) {
+                return [
+                    'is_trial' => false,
+                    'is_active' => false,
+                    'days_remaining' => 0,
+                    'expires_at' => null,
+                    'needs_payment' => true,
+                ];
+            }
+
+            $tenant->loadMissing('plan');
+
+            // Normaliza tenants legados no plano Grátis
+            if ($tenant->isOnFreePlan() && $tenant->account_status === 'trial') {
+                $planName = $tenant->plan?->name ?? $tenant->subscription_plan ?? 'Grátis';
+                Log::info('Normalizando tenant Grátis legado para active', ['tenant_id' => $tenant->id]);
+                $tenant->activateFreePlan($planName);
+                $tenant->refresh();
+            }
+
+            // Fallback: inicia trial apenas para planos pagos sem data de início
+            if (
+                $tenant->plan?->requiresTrial()
+                && !$tenant->trial_started_at
+                && $tenant->account_status === 'trial'
+            ) {
+                Log::info('Ativando trial para tenant', ['tenant_id' => $tenant->id]);
+                $tenant->startTrial();
+                $tenant->refresh();
+            }
+
+            return $tenant->toTrialStatusArray();
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao verificar trial: ' . $e->getMessage());
+            return [
+                'is_trial' => false,
+                'is_active' => true,
+                'days_remaining' => 0,
+                'expires_at' => null,
+                'needs_payment' => false,
+            ];
+        }
+    }
+
+    /**
      * Invalida o cache do usuário
      */
     public function invalidateUserCache(int $userId): void
@@ -268,5 +384,55 @@ class AuthService
             Log::error('Erro ao atualizar perfil: ' . $e->getMessage());
             throw $e;
         }
+    }
+
+    private function createTenantForRegistration(array $data): Tenant
+    {
+        $plan = Plan::query()->where('is_active', true)->orderBy('price')->first();
+
+        if (!$plan) {
+            // Nunca fabricar um plano fake em produção (Model::factory() é
+            // ferramenta de teste/seed): sem plano ativo configurado, isso é
+            // um erro de configuração que precisa de atenção operacional.
+            Log::error('Registro de tenant sem CNPJ falhou: nenhum plano ativo configurado no sistema');
+            throw new \RuntimeException('Nenhum plano ativo disponível para registro. Contate o suporte.');
+        }
+
+        $slug = $this->generateUniqueTenantSlug($data['name']);
+
+        return Tenant::create([
+            'plan_id' => $plan->id,
+            'uuid' => (string) Str::uuid(),
+            // Este fluxo (registro rápido sem dados de empresa) não coleta CNPJ;
+            // não inventamos um valor — o dado fica nulo até o tenant completar
+            // o cadastro em Configurações > Empresa.
+            'cnpj' => null,
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'url' => $slug,
+            'slug' => $slug,
+            'active' => 'Y',
+            'is_active' => true,
+            'account_status' => 'trial',
+            'trial_started_at' => now(),
+            'trial_expires_at' => now()->addDays((int) config('subscription.trial_days', 7)),
+        ]);
+    }
+
+    private function generateUniqueTenantSlug(string $name): string
+    {
+        $baseSlug = Str::slug($name);
+
+        if (empty($baseSlug)) {
+            $baseSlug = 'conta';
+        }
+
+        $slug = $baseSlug;
+
+        while (Tenant::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . Str::lower(Str::random(5));
+        }
+
+        return $slug;
     }
 }

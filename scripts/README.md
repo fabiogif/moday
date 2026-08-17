@@ -26,4 +26,14 @@ Rodar de qualquer lugar (entram em `backend/` automaticamente):
 ./backend/scripts/run-tests.sh
 ./backend/scripts/reverb.sh
 ./backend/scripts/test-cache.sh
+./backend/scripts/rotate-credentials.sh
+```
+
+## Segurança (`scripts/test/`)
+
+Purga de segredos do histórico do git (chaves SSH, `.env`, senhas) — cria um
+clone purgado, não altera o repo original nem faz push:
+
+```bash
+./scripts/test/purge-secrets-history.sh
 ```

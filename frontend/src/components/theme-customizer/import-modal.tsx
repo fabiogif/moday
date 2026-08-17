@@ -18,7 +18,7 @@ export function ImportModal({ open, onOpenChange, onImport }: ImportModalProps) 
   const processImport = () => {
     try {
       if (!importText.trim()) {
-        console.error("No CSS content provided")
+
         return
       }
 
@@ -58,7 +58,7 @@ export function ImportModal({ open, onOpenChange, onImport }: ImportModalProps) 
       onOpenChange(false)
       setImportText("")
     } catch (error) {
-      console.error("Error importing theme:", error)
+
     }
   }
 

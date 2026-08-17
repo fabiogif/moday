@@ -11,6 +11,8 @@ import {
 } from "@/hooks/use-authenticated-api";
 import { endpoints } from "@/lib/api-client";
 import { PageLoading } from "@/components/ui/loading-progress";
+import { showErrorToast, showSuccessToast } from "@/components/ui/error-toast";
+import { useAuth } from "@/contexts/auth-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +71,7 @@ export default function ClientsPage() {
     refetch,
     isAuthenticated,
   } = useAuthenticatedClients();
+  const { isLoading: authLoading } = useAuth();
   const { mutate: createClient, loading: creating } = useMutation();
   const { mutate: updateClient, loading: updating } = useMutation();
   const { mutate: deleteClient, loading: deleting } = useMutation();
@@ -86,6 +89,9 @@ export default function ClientsPage() {
     message: "",
   });
 
+  // Estado local para gerenciar clientes (atualização otimista)
+  const [localClients, setLocalClients] = useState<Client[]>([]);
+
   // Transformar dados da API
   const getArrayFromData = (data: any) => {
     if (!data) return [];
@@ -94,7 +100,16 @@ export default function ClientsPage() {
     return [];
   };
 
-  const clients: Client[] = getArrayFromData(clientsData);
+  const clientsFromApi: Client[] = getArrayFromData(clientsData);
+
+  // Sincronizar com dados da API
+  useEffect(() => {
+    if (clientsFromApi.length > 0) {
+      setLocalClients(clientsFromApi);
+    }
+  }, [clientsData]);
+
+  const clients: Client[] = localClients.length > 0 ? localClients : clientsFromApi;
 
   const handleAddClient = async (clientData: ClientFormValues) => {
     try {
@@ -105,45 +120,74 @@ export default function ClientsPage() {
       );
 
       if (result) {
-        // Mostrar sucesso primeiro
-        setSuccessAlert({
-          open: true,
-          title: "Sucesso!",
-          message: "Cliente cadastrado com sucesso!",
-        });
-        // Recarregar dados após mostrar o alert
+        // Extrair mensagem de sucesso do backend
+        const successMessage = (result as any)?.message || "Cliente cadastrado com sucesso!";
+        showSuccessToast(successMessage, "Sucesso");
+        
+        // Adicionar cliente à lista local (atualização otimista)
+        if ((result as any)?.data) {
+          const newClient = (result as any).data;
+          setLocalClients(prev => [newClient, ...prev]);
+        }
+        
+        // Recarregar dados para garantir sincronização
         setTimeout(async () => {
           await refetch();
         }, 100);
       }
-    } catch (error) {
-      console.error("Erro ao criar cliente:", error);
-      setSuccessAlert({
-        open: true,
-        title: "Erro!",
-        message: "Erro ao cadastrar cliente. Tente novamente."
-      });
+    } catch (error: any) {
+      // Log organizado em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+
+      }
+      
+      // Mostrar erro formatado
+      showErrorToast(error, "Erro ao Cadastrar Cliente");
+      
+      // Re-lançar erro para o ClientFormDialog capturar e marcar campos
+      throw error;
     }
   };
 
   const handleDeleteClient = async (id: number) => {
+    // Salvar estado anterior para rollback em caso de erro
+    const previousClients = [...localClients];
+    
     try {
+      // Atualização otimista: remover da lista imediatamente
+      setLocalClients(prev => prev.filter(client => client.id !== id));
+      
       const result = await deleteClient(
         endpoints.clients.delete(id.toString()),
         "DELETE"
       );
 
-      if (result) {
-        // Recarregar dados após exclusão
-        await refetch();
+      // Para exclusão, o backend retorna success: true mesmo com data vazia
+      if (result !== null) {
+        // Extrair mensagem de sucesso do backend
+        const successMessage = (result as any)?.message || "Cliente excluído com sucesso!";
+        showSuccessToast(successMessage, "Sucesso");
+        
+        // Recarregar dados para garantir sincronização
+        setTimeout(async () => {
+          await refetch();
+        }, 100);
       }
-    } catch (error) {
-      console.error("Erro ao excluir cliente:", error);
-      setSuccessAlert({
-        open: true,
-        title: "Erro!",
-        message: "Erro ao excluir cliente. Tente novamente."
-      });
+    } catch (error: any) {
+      // Rollback: restaurar cliente removido
+      setLocalClients(previousClients);
+      
+      if (error?.status === 409) {
+        showErrorToast(error, "Ação não permitida");
+        throw error;
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+
+      }
+      
+      showErrorToast(error, "Erro ao Excluir Cliente");
+      throw error;
     }
   };
 
@@ -171,25 +215,33 @@ export default function ClientsPage() {
       );
 
       if (result) {
-        // Mostrar sucesso primeiro
-        setSuccessAlert({
-          open: true,
-          title: "Sucesso!",
-          message: "Cliente alterado com sucesso!",
-        });
+        // Extrair mensagem de sucesso do backend
+        const successMessage = (result as any)?.message || "Cliente atualizado com sucesso!";
+        showSuccessToast(successMessage, "Sucesso");
         setEditingClient(null);
-        // Recarregar dados após mostrar o alert
+        
+        // Atualizar cliente na lista local
+        if ((result as any)?.data) {
+          const updatedClient = (result as any).data;
+          setLocalClients(prev => prev.map(client => 
+            client.id === id ? updatedClient : client
+          ));
+        }
+        
+        // Recarregar dados para garantir sincronização
         setTimeout(async () => {
           await refetch();
         }, 100);
       }
-    } catch (error) {
-      console.error("Erro ao atualizar cliente:", error);
-      setSuccessAlert({
-        open: true,
-        title: "Erro!",
-        message: "Erro ao atualizar cliente. Tente novamente."
-      });
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+
+      }
+      
+      showErrorToast(error, "Erro ao Atualizar Cliente");
+      
+      // Re-lançar erro para o ClientFormDialog capturar
+      throw error;
     }
   };
 
@@ -198,7 +250,8 @@ export default function ClientsPage() {
     setIsDialogOpen(true);
   };
 
-  if (!isAuthenticated) {
+  // Só mostrar mensagem de não autenticado se não estiver carregando E não estiver autenticado
+  if (!authLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-destructive">

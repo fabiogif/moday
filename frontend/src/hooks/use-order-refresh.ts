@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * Hook para gerenciar atualização de pedidos
  * Permite notificar a lista de pedidos quando houver mudanças

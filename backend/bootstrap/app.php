@@ -19,11 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         then: function () {
             // Configurar rate limiting
             RateLimiter::for('api', function (Request $request) {
-                return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+                return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
             });
 
             RateLimiter::for('login', function (Request $request) {
-                return Limit::perMinute(5)->by($request->ip())
+                return Limit::perMinute(10)->by($request->ip())
                     ->response(function () {
                         return response()->json([
                             'message' => 'Muitas tentativas de login. Tente novamente em alguns minutos.'
@@ -32,7 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
             RateLimiter::for('register', function (Request $request) {
-                return Limit::perHour(3)->by($request->ip())
+                return Limit::perHour(100)->by($request->ip())
                     ->response(function () {
                         return response()->json([
                             'message' => 'Limite de registros atingido. Tente novamente mais tarde.'
@@ -41,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             });
 
             RateLimiter::for('password-reset', function (Request $request) {
-                return Limit::perHour(3)->by($request->ip())
+                return Limit::perHour(100)->by($request->ip())
                     ->response(function () {
                         return response()->json([
                             'message' => 'Muitas tentativas de redefinição de senha. Tente novamente mais tarde.'
@@ -49,8 +49,19 @@ return Application::configure(basePath: dirname(__DIR__))
                     });
             });
 
+            RateLimiter::for('email-verification', function (Request $request) {
+                return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip())
+                    ->response(function () {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'resend_cooldown',
+                            'message' => 'Muitas tentativas de verificação. Aguarde um momento.',
+                        ], 429);
+                    });
+            });
+
             RateLimiter::for('critical', function (Request $request) {
-                return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip())
+                return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip())
                     ->response(function () {
                         return response()->json([
                             'message' => 'Muitas requisições. Por favor, aguarde um momento.'
@@ -61,18 +72,74 @@ return Application::configure(basePath: dirname(__DIR__))
             RateLimiter::for('read', function (Request $request) {
                 return Limit::perMinute(100)->by($request->user()?->id ?: $request->ip());
             });
+
+            // Listagens de sincronização em lote (app de campo baixando o catálogo
+            // completo de clientes/produtos para uso offline, paginado). O limite
+            // de 'read' (100/min) é adequado para navegação interativa, mas um
+            // tenant com milhares de registros pagina em dezenas de requisições
+            // num único ciclo de sync e estourava esse teto. Ver
+            // distribtec_mobile/src/lib/field-prefetch.ts.
+            RateLimiter::for('sync', function (Request $request) {
+                return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());
+            });
+
+            // Rate limiter específico para eventos
+            RateLimiter::for('events', function (Request $request) {
+                $key = $request->user()?->id ?? $request->ip();
+                
+                // Limites diferentes por operação
+                if ($request->isMethod('GET')) {
+                    return Limit::perMinute(60)->by($key);
+                }
+                
+                if ($request->isMethod('POST') || $request->isMethod('PUT') || $request->isMethod('PATCH')) {
+                    return Limit::perMinute(30)->by($key);
+                }
+                
+                if ($request->isMethod('DELETE')) {
+                    return Limit::perMinute(10)->by($key);
+                }
+                
+                return Limit::perMinute(60)->by($key);
+            });
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Enable CORS for API routes
-        $middleware->api(prepend: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
+        // Add CORS middleware FIRST - before everything else
+        $middleware->prepend(\App\Http\Middleware\GlobalCorsMiddleware::class);
+        
+        // Add Request ID middleware para rastreabilidade
+        $middleware->prepend(\App\Http\Middleware\RequestIdMiddleware::class);
+        
+        // Add Security Headers middleware
+        $middleware->append(\App\Http\Middleware\SecurityHeadersMiddleware::class);
         
         $middleware->alias([
+            'auth' => \App\Http\Middleware\Authenticate::class,
             'acl.permission' => \App\Http\Middleware\PermissionMiddleware::class,
             'csrf.api' => \App\Http\Middleware\VerifyCsrfTokenApi::class,
+            'trial.check' => \App\Http\Middleware\CheckTrialStatus::class,
+            'tenant.blocked' => \App\Http\Middleware\CheckTenantBlocked::class,
+            'admin.auth' => \App\Http\Middleware\AdminAuth::class,
+            'admin.permission' => \App\Http\Middleware\AdminPermission::class,
+            'admin.log' => \App\Http\Middleware\LogAdminAction::class,
+            'plan.feature' => \App\Http\Middleware\CheckPlanFeatures::class,
+            'plan.order_limit' => \App\Http\Middleware\CheckOrderLimit::class,
+            'plan.user_limit' => \App\Http\Middleware\CheckUserLimit::class,
+            'plan.product_limit' => \App\Http\Middleware\CheckProductLimit::class,
+            'inject.token.cookie' => \App\Http\Middleware\InjectBearerTokenFromCookie::class,
+            'verified.email' => \App\Http\Middleware\EnsureTenantEmailIsVerified::class,
+            'mp.signature' => \App\Http\Middleware\VerifyMercadoPagoSignature::class,
         ]);
+
+        // O Laravel força middlewares de auth (via AuthenticatesRequests) a
+        // rodar antes de middlewares customizados, independente da ordem
+        // declarada na rota. Sem isso, InjectBearerTokenFromCookie nunca
+        // roda a tempo de o guard enxergar o token vindo do cookie.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\InjectBearerTokenFromCookie::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

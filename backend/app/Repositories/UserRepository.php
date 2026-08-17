@@ -2,8 +2,10 @@
 
 namespace App\Repositories;
 
+use App\Models\Profile;
 use App\Models\User;
-use App\Repositories\contracts\UserRepositoryInterface;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 
 class UserRepository extends BaseRepository implements UserRepositoryInterface
@@ -14,9 +16,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     public function createUser(array $data)
     {
-        if (isset($data['password'])) {
-            $data['password'] = bcrypt($data['password']);
-        }
         return $this->entity->create($data);
     }
 
@@ -26,7 +25,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         
         // Apply filters
         if (isset($filters['name'])) {
-            $query->where('name', 'like', '%' . $filters['name'] . '%');
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
         }
         
         if (isset($filters['email'])) {
@@ -57,10 +56,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     public function updateUser($id, array $data)
     {
-        if (isset($data['password'])) {
-            $data['password'] = bcrypt($data['password']);
-        }
-        
         $user = $this->entity->find($id);
         if (!$user) {
             return null;
@@ -78,5 +73,89 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         }
         
         return $user->delete();
+    }
+
+    public function countActiveUsersByTenant(int $tenantId): int
+    {
+        return $this->entity->newQuery()
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->count();
+    }
+
+    public function paginateForTenant(int $tenantId, array $params): LengthAwarePaginator
+    {
+        $perPage = min($params['per_page'] ?? 15, 100);
+        $filters = $params['filters'] ?? [];
+        $search = $params['search'] ?? null;
+        $sortBy = $params['sort_by'] ?? 'created_at';
+        $sortDirection = $params['sort_direction'] ?? 'desc';
+
+        $query = $this->entity->with(['profiles', 'tenant', 'jobPosition:id,name'])
+            ->where('tenant_id', $tenantId);
+
+        if ($search) {
+            $this->applyFullTextSearch($query, ['name'], $search, ['email']);
+        }
+
+        if (!empty($filters['name'])) {
+            $this->applyFullTextSearch($query, ['name'], $filters['name']);
+        }
+
+        if (!empty($filters['email'])) {
+            $query->where('email', 'like', '%' . $filters['email'] . '%');
+        }
+
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->orderBy($sortBy, $sortDirection)->paginate($perPage);
+    }
+
+    public function getStatsForTenant(int $tenantId): array
+    {
+        return [
+            'total_users' => $this->entity->where('tenant_id', $tenantId)->count(),
+            'active_users' => $this->entity->where('tenant_id', $tenantId)->where('is_active', true)->count(),
+            'pending_users' => $this->entity->where('tenant_id', $tenantId)->whereNull('email_verified_at')->count(),
+            'inactive_users' => $this->entity->where('tenant_id', $tenantId)->where('is_active', false)->count(),
+            'last_updated' => now()->toISOString(),
+        ];
+    }
+
+    public function findProfileByIdAndTenant(int $profileId, int $tenantId): ?Profile
+    {
+        return Profile::where('id', $profileId)->where('tenant_id', $tenantId)->first();
+    }
+
+    public function syncProfiles(User $user, array $profileIds): void
+    {
+        $user->profiles()->sync($profileIds);
+    }
+
+    public function attachProfile(User $user, int $profileId): void
+    {
+        $user->profiles()->syncWithoutDetaching([$profileId]);
+    }
+
+    public function detachProfile(User $user, int $profileId): void
+    {
+        $user->profiles()->detach($profileId);
+    }
+
+    public function getUserPermissions(User $user): mixed
+    {
+        return $user->profiles()
+            ->with('permissions')
+            ->get()
+            ->pluck('permissions')
+            ->flatten()
+            ->unique('id');
+    }
+
+    public function loadRelations(User $user, array $relations): User
+    {
+        return $user->load($relations);
     }
 }

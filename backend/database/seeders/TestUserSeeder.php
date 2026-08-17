@@ -10,6 +10,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TestUserSeeder extends Seeder
 {
@@ -18,6 +19,8 @@ class TestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $password = env('TEST_USER_PASSWORD') ?: Str::random(12);
+
         // Buscar ou criar tenant padrão
         $tenant = Tenant::first();
         if (!$tenant) {
@@ -50,7 +53,7 @@ class TestUserSeeder extends Seeder
             [
                 'name' => 'Teste',
                 'email' => 'teste@example.com',
-                'password' => Hash::make('$Duda0793'),
+                'password' => Hash::make($password),
                 'tenant_id' => $tenant->id,
                 'email_verified_at' => now(),
             ]
@@ -75,7 +78,7 @@ class TestUserSeeder extends Seeder
 
         $this->command->info("✅ Usuário de teste criado com sucesso!");
         $this->command->info("📧 Email: teste@example.com");
-        $this->command->info("🔑 Senha: \$Duda0793");
+        $this->command->info("🔑 Senha: {$password}");
         $this->command->info("👤 Nome: Teste");
         $this->command->info("🏢 Tenant: {$tenant->name}");
         $this->command->info("🎭 Role: {$superAdminRole->name}");

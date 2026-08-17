@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class SimpleTestUserSeeder extends Seeder
 {
@@ -17,6 +18,8 @@ class SimpleTestUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $password = env('TEST_USER_PASSWORD') ?: Str::random(12);
+
         $this->command->info('🚀 Criando usuário de teste simples...');
 
         // Buscar tenant existente
@@ -50,7 +53,7 @@ class SimpleTestUserSeeder extends Seeder
             [
                 'name' => 'Teste',
                 'email' => 'teste@example.com',
-                'password' => Hash::make('$Duda0793'),
+                'password' => Hash::make($password),
                 'tenant_id' => $tenant->id,
                 'email_verified_at' => now(),
                 'is_active' => true,
@@ -88,7 +91,7 @@ class SimpleTestUserSeeder extends Seeder
             [
                 ['Nome', $testUser->name],
                 ['Email', $testUser->email],
-                ['Senha', '$Duda0793'],
+                ['Senha', $password],
                 ['Tenant', $tenant->name],
                 ['Role', $superAdminRole->name],
                 ['Permissões Diretas', $testUser->permissions()->count()],

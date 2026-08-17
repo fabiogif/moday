@@ -107,7 +107,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
               </div>
             </div>
             <SheetDescription className="text-sm text-muted-foreground sr-only">
-              Customize the them and layout of your dashboard.
+              Personalize o tema e o layout do seu painel de controle.
             </SheetDescription>
           </SheetHeader>
 

@@ -51,7 +51,7 @@ export default function PaymentMethodsPage() {
         await refetch()
       }
     } catch (error: any) {
-      console.error('Erro ao criar forma de pagamento:', error)
+
       toast.error(error.message || 'Erro ao criar forma de pagamento')
     }
   }
@@ -69,7 +69,7 @@ export default function PaymentMethodsPage() {
         await refetch()
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar forma de pagamento:', error)
+
       toast.error(error.message || 'Erro ao atualizar forma de pagamento')
     }
   }
@@ -81,13 +81,19 @@ export default function PaymentMethodsPage() {
         'DELETE'
       )
       
-      if (result) {
+      // Para exclusão, o backend retorna success: true mesmo com data vazia
+      // Verificar se não houve erro (result !== null)
+      if (result !== null) {
         toast.success('Forma de pagamento excluída com sucesso!')
         await refetch()
       }
     } catch (error: any) {
-      console.error('Erro ao excluir forma de pagamento:', error)
-      toast.error(error.message || 'Erro ao excluir forma de pagamento')
+
+      if (error?.status === 409) {
+        toast.error(error?.message || 'Forma de pagamento não pode ser excluída, existe um pedido ativo ou não arquivado vinculado.')
+        return
+      }
+      toast.error(error?.message || 'Erro ao excluir forma de pagamento')
     }
   }
 
@@ -119,7 +125,7 @@ export default function PaymentMethodsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 py-2 px-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Formas de Pagamento</h1>

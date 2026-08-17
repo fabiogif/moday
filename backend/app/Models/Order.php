@@ -4,10 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Coupon;
 
+/**
+ * Pedido do quadro Kanban operacional (preparo de cozinha/balcão), distinto de
+ * `SaleOrder` (pedido de venda B2B/faturamento). Ver docblock de
+ * `App\Services\PublicOrderService` para a explicação completa de por que os
+ * dois modelos coexistem para o mesmo pedido vindo da loja pública.
+ */
 class Order extends Model
 {
     use HasFactory;
+
+    public const STATUS_ARCHIVED = 'Arquivado';
 
     protected $fillable = [
         'tenant_id', 
@@ -15,7 +24,14 @@ class Order extends Model
         'client_id', 
         'table_id', 
         'total', 
+        'subtotal',
+        'discount_amount',
+        'coupon_id',
+        'coupon_code',
+        'coupon_name',
+        'coupon_snapshot',
         'status',
+        'order_status_id',
         'origin',
         'comment',
         'is_delivery',
@@ -29,13 +45,27 @@ class Order extends Model
         'delivery_complement',
         'delivery_notes',
         'payment_method',
-        'shipping_method'
+        'payment_method_id',
+        'split_payments',
+        'precisa_troco',
+        'valor_recebido',
+        'shipping_method',
+        'archived_at',
     ];
+
+    protected $with = ['orderStatus'];
 
     protected $casts = [
         'is_delivery' => 'boolean',
         'use_client_address' => 'boolean',
+        'precisa_troco' => 'boolean',
         'total' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'valor_recebido' => 'decimal:2',
+        'coupon_snapshot' => 'array',
+        'split_payments' => 'array',
+        'archived_at' => 'datetime',
     ];
 
     public function tenant()
@@ -51,6 +81,21 @@ class Order extends Model
     public function table()
     {
         return $this->belongsTo(Table::class);
+    }
+
+    public function orderStatus()
+    {
+        return $this->belongsTo(OrderStatus::class, 'order_status_id');
+    }
+
+    public function paymentMethod()
+    {
+        return $this->belongsTo(PaymentMethod::class, 'payment_method_id', 'uuid');
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function products() 

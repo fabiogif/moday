@@ -14,6 +14,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Eye, EyeOff } from "lucide-react"
+import { buildApiUrl } from "@/lib/api-config"
+import { endpoints } from "@/lib/api-client"
+import { getAuthToken } from "@/lib/auth-storage"
 
 interface ChangePasswordDialogProps {
   userId: number
@@ -62,12 +65,12 @@ export function ChangePasswordDialog({
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}/change-password`,
+        buildApiUrl(endpoints.users.changePassword(String(userId))),
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+            Authorization: `Bearer ${getAuthToken()}`,
           },
           body: JSON.stringify({ password }),
         }

@@ -96,20 +96,16 @@ class UserIntegrationTest extends TestCase
                     ]
                 ]
             ])
-            ->assertJsonFragment([
-                'tenant' => [
-                    'id' => $this->user->tenant->id,
-                    'name' => $this->user->tenant->name,
-                    'slug' => $this->user->tenant->slug,
-                    'is_active' => $this->user->tenant->is_active,
-                ]
-            ]);
+            ->assertJsonPath('data.tenant.id', $this->user->tenant->id)
+            ->assertJsonPath('data.tenant.name', $this->user->tenant->name)
+            ->assertJsonPath('data.tenant.slug', $this->user->tenant->slug)
+            ->assertJsonPath('data.tenant.is_active', $this->user->tenant->is_active);
     }
 
     #[Test]
     public function usuario_com_permissoes_acessa_dados_corretos()
     {
-        $this->user->load('profile.permissions');
+        $this->user->profiles()->sync([$this->user->profile_id]);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
@@ -118,24 +114,19 @@ class UserIntegrationTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure([
                 'data' => [
-                    'profile' => [
-                        'id',
-                        'name',
-                        'description',
-                        'permissions' => [
-                            '*' => [
-                                'id',
-                                'name',
-                                'description'
-                            ]
+                    'profiles' => [
+                        '*' => [
+                            'id',
+                            'name',
+                            'description',
                         ]
                     ]
                 ]
             ]);
 
-        $permissions = $response->json('data.profile.permissions');
-        $this->assertCount(1, $permissions);
-        $this->assertEquals('read_users', $permissions[0]['name']);
+        $profiles = $response->json('data.profiles');
+        $this->assertNotEmpty($profiles);
+        $this->assertEquals($this->user->profile_id, $profiles[0]['id']);
     }
 
     #[Test]
@@ -216,22 +207,14 @@ class UserIntegrationTest extends TestCase
             'is_active' => true
         ]);
 
-        $token2 = JWTAuth::fromUser($user2);
+        $response1 = $this->actingAsUser($this->user)->getJson('/api/auth/me');
+        $response2 = $this->actingAsUser($user2)->getJson('/api/auth/me');
 
-        // Ambos usuários devem conseguir acessar seus dados
-        $response1 = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $this->token,
-        ])->getJson('/api/auth/me');
+        $response1->assertStatus(200);
+        $response2->assertStatus(200);
 
-        $response2 = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token2,
-        ])->getJson('/api/auth/me');
-
-        $response1->assertStatus(200)
-            ->assertJsonFragment(['id' => $this->user->id]);
-
-        $response2->assertStatus(200)
-            ->assertJsonFragment(['id' => $user2->id]);
+        $this->assertEquals($this->user->id, $response1->json('data.id'));
+        $this->assertEquals($user2->id, $response2->json('data.id'));
 
         // Ambos devem ter o mesmo tenant
         $this->assertEquals(

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\PaymentMethodRepositoryInterface;
-use App\Repositories\contracts\TenantRepositoryInterface;
+use App\Repositories\Contracts\PaymentMethodRepositoryInterface;
+use App\Repositories\Contracts\TenantRepositoryInterface;
 
 readonly class PaymentMethodService
 {

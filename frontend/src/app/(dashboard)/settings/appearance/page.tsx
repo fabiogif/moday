@@ -38,7 +38,7 @@ export default function AppearanceSettings() {
   })
 
   function onSubmit(data: AppearanceFormValues) {
-    console.log("Form submitted:", data)
+
     // Here you would typically save the data
   }
 

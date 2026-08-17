@@ -1,18 +1,18 @@
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.3
+            context: ./docker/8.3
             dockerfile: Dockerfile
             args:
-                WWWGROUP: '${WWWGROUP}'
+                WWWGROUP: '${WWWGROUP:-1000}'
         image: sail-8.3/app
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
-            - '${APP_PORT:-80}:80'
+            - '8000:80'
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
         environment:
-            WWWUSER: '${WWWUSER}'
+            WWWUSER: '${WWWUSER:-1000}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
@@ -40,7 +40,7 @@ services:
             MYSQL_ALLOW_EMPTY_PASSWORD: 1
         volumes:
             - 'sail-mysql:/var/lib/mysql'
-            - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+            - './docker/mysql/20-create-evolution-database.sh:/docker-entrypoint-initdb.d/20-create-evolution-database.sh'
         networks:
             - sail
         healthcheck:
@@ -49,8 +49,10 @@ services:
                 - mysqladmin
                 - ping
                 - '-p${DB_PASSWORD:-password}'
-            retries: 3
+            retries: 10
+            interval: 5s
             timeout: 5s
+            start_period: 20s
         command: --default-authentication-plugin=mysql_native_password
     redis:
         image: 'redis:alpine'
@@ -83,7 +85,7 @@ services:
                 - wget
                 - '--no-verbose'
                 - '--spider'
-                - 'http://localhost:7700/health'
+                - 'http://127.0.0.1:7700/health'
             retries: 3
             timeout: 5s
     mailpit:
@@ -101,17 +103,17 @@ services:
             - sail
     reverb:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.3
+            context: ./docker/8.3
             dockerfile: Dockerfile
             args:
-                WWWGROUP: '${WWWGROUP}'
+                WWWGROUP: '${WWWGROUP:-1000}'
         image: sail-8.3/app
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
             - '${REVERB_PORT:-8080}:8080'
         environment:
-            WWWUSER: '${WWWUSER}'
+            WWWUSER: '${WWWUSER:-1000}'
             LARAVEL_SAIL: 1
         volumes:
             - '.:/var/www/html'
@@ -121,6 +123,58 @@ services:
             - mysql
             - redis
         command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    queue:
+        build:
+            context: ./docker/8.3
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP:-1000}'
+        image: sail-8.3/app
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
+        environment:
+            WWWUSER: '${WWWUSER:-1000}'
+            LARAVEL_SAIL: 1
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+            - redis
+            - mailpit
+        command: php artisan queue:work redis --queue=whatsapp,emails,default --sleep=3 --tries=3 --timeout=90
+    evolution:
+        image: 'evoapicloud/evolution-api:v2.2.3'
+        ports:
+            - '8181:8080'
+        environment:
+            SERVER_URL: 'http://localhost:8181'
+            AUTHENTICATION_API_KEY: '${EVOLUTION_API_KEY:-distribtec-local-key}'
+            DATABASE_ENABLED: 'true'
+            DATABASE_PROVIDER: 'mysql'
+            DATABASE_CONNECTION_URI: 'mysql://${DB_USERNAME:-sail}:${DB_PASSWORD:-password}@mysql:3306/evolution_api'
+            DATABASE_CONNECTION_CLIENT_NAME: 'evolution_api'
+            CACHE_REDIS_ENABLED: 'true'
+            CACHE_REDIS_URI: 'redis://redis:6379/4'
+            CACHE_REDIS_PREFIX_KEY: 'evolution'
+            CACHE_LOCAL_ENABLED: 'false'
+            DATABASE_SAVE_DATA_INSTANCES: 'true'
+            DATABASE_SAVE_DATA_NEW_MESSAGE: 'true'
+            DATABASE_SAVE_MESSAGE_UPDATE: 'true'
+            DATABASE_SAVE_DATA_CONTACTS: 'true'
+            DATABASE_SAVE_DATA_CHATS: 'true'
+            DATABASE_SAVE_DATA_HISTORIC: 'true'
+        volumes:
+            - 'sail-evolution:/evolution/instances'
+        networks:
+            - sail
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        restart: unless-stopped
 networks:
     sail:
         driver: bridge
@@ -132,4 +186,6 @@ volumes:
     sail-redis:
         driver: local
     sail-meilisearch:
+        driver: local
+    sail-evolution:
         driver: local

@@ -2,62 +2,52 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\PublicStoreOrderRequest;
-use App\Models\Tenant;
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\Client;
-use Illuminate\Http\Request;
+use App\Http\Resources\{PublicProductResource, PublicStoreInfoResource, PublicPaymentMethodResource, CouponResource};
+use App\Services\{PublicOrderService, PublicStoreService, StoreHourService, OrderService, CouponService, LoyaltyProgramService, PublicOrderCalculationService, PublicClientService};
+use DomainException;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PublicStoreController extends Controller
 {
+    public function __construct(
+        private readonly PublicStoreService $publicStoreService,
+        private readonly PublicOrderService $publicOrderService,
+        private readonly StoreHourService $storeHourService,
+        private readonly OrderService $orderService,
+        private readonly CouponService $couponService,
+        private readonly LoyaltyProgramService $loyaltyProgramService,
+        private readonly PublicOrderCalculationService $publicOrderCalculationService,
+        private readonly PublicClientService $publicClientService,
+    ) {}
+
     /**
      * Get store info by tenant slug
      */
     public function getStoreInfo(string $slug): JsonResponse
     {
         try {
-            $tenant = Tenant::where('slug', $slug)
-                ->where('is_active', true)
-                ->first();
+            $storeInfo = $this->publicStoreService->getStoreInfo($slug);
 
-            if (!$tenant) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Loja não encontrada ou inativa'
-                ], 404);
+            if (!$storeInfo) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada ou inativa',
+                    404
+                );
             }
 
-            $storeInfo = [
-                'id' => $tenant->id,
-                'uuid' => $tenant->uuid,
-                'name' => $tenant->name,
-                'slug' => $tenant->slug,
-                'email' => $tenant->email,
-                'phone' => $tenant->phone,
-                'address' => $tenant->address,
-                'city' => $tenant->city,
-                'state' => $tenant->state,
-                'zipcode' => $tenant->zipcode,
-                'logo' => $tenant->logo,
-                'whatsapp' => $this->formatWhatsApp($tenant->phone),
-                'settings' => $tenant->settings ?? [],
-            ];
-
-            return response()->json([
-                'success' => true,
-                'data' => $storeInfo
-            ]);
+            return ApiResponseClass::sendResponse(
+                new PublicStoreInfoResource($storeInfo),
+                'Informações da loja carregadas com sucesso',
+                200
+            );
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar informações da loja',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao buscar informações da loja');
         }
     }
 
@@ -67,51 +57,49 @@ class PublicStoreController extends Controller
     public function getProducts(string $slug): JsonResponse
     {
         try {
-            $tenant = Tenant::where('slug', $slug)
-                ->where('is_active', true)
-                ->first();
+            $products = $this->publicStoreService->getStoreProducts($slug);
 
-            if (!$tenant) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Loja não encontrada'
-                ], 404);
+            if ($products === null) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada',
+                    404
+                );
             }
 
-            $products = Product::where('tenant_id', $tenant->id)
-                ->where('is_active', true)
-                ->where('qtd_stock', '>', 0)
-                ->with('categories')
-                ->get()
-                ->map(function ($product) {
-                    return [
-                        'uuid' => $product->uuid,
-                        'name' => $product->name,
-                        'description' => $product->description,
-                        'price' => $product->price,
-                        'promotional_price' => $product->promotional_price,
-                        'image' => $product->image,
-                        'qtd_stock' => $product->qtd_stock,
-                        'brand' => $product->brand,
-                        'sku' => $product->sku,
-                        'variations' => $product->variations ?? [],
-                        'categories' => $product->categories->map(fn($cat) => [
-                            'uuid' => $cat->uuid ?? $cat->identify,
-                            'name' => $cat->name
-                        ]),
-                    ];
-                });
-
-            return response()->json([
-                'success' => true,
-                'data' => $products
-            ]);
+            return ApiResponseClass::sendResponse(
+                PublicProductResource::collection($products),
+                'Produtos carregados com sucesso',
+                200
+            );
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar produtos',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao buscar produtos');
+        }
+    }
+
+    /**
+     * Get payment methods by tenant slug
+     */
+    public function getPaymentMethods(string $slug): JsonResponse
+    {
+        try {
+            $paymentMethods = $this->publicStoreService->getStorePaymentMethods($slug);
+
+            if ($paymentMethods === null) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada',
+                    404
+                );
+            }
+
+            return ApiResponseClass::sendResponse(
+                PublicPaymentMethodResource::collection($paymentMethods),
+                'Formas de pagamento carregadas com sucesso',
+                200
+            );
+        } catch (\Exception $e) {
+            return ApiResponseClass::rollback($e, 'Erro ao buscar formas de pagamento');
         }
     }
 
@@ -121,228 +109,379 @@ class PublicStoreController extends Controller
     public function createOrder(PublicStoreOrderRequest $request, string $slug): JsonResponse
     {
         try {
-            $tenant = Tenant::where('slug', $slug)
-                ->where('is_active', true)
-                ->first();
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
 
             if (!$tenant) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Loja não encontrada'
-                ], 404);
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada',
+                    404
+                );
             }
 
-            // Get validated data from Form Request
             $validated = $request->validated();
+            $result = $this->publicOrderService->createOrder($validated, $tenant);
 
-            // Prepare client data for public store (no password required)
-            $clientData = [
-                'uuid' => Str::uuid(),
-                'name' => $validated['client']['name'],
-                'email' => $validated['client']['email'],
-                'phone' => $validated['client']['phone'],
-                'cpf' => $validated['client']['cpf'] ?? null,
-                'is_active' => true,
+            $responseData = [
+                'order_id' => $result['order']->identify,
+                'subtotal' => number_format((float) $result['subtotal'], 2, ',', '.'),
+                'discount_amount' => number_format((float) $result['discount_amount'], 2, ',', '.'),
+                'total' => number_format((float)$result['total'], 2, ',', '.'),
+                'coupon_code' => $result['coupon_code'],
+                'whatsapp_message' => $result['whatsapp_message'],
+                'whatsapp_link' => $result['whatsapp_link'],
             ];
 
-            // Create or update client
-            $client = Client::updateOrCreate(
-                [
-                    'email' => $validated['client']['email'],
-                    'tenant_id' => $tenant->id,
-                ],
-                $clientData
+            return ApiResponseClass::sendResponse(
+                $responseData,
+                'Pedido criado com sucesso',
+                201
             );
 
-            // Calculate total
-            $total = 0;
-            $orderProducts = [];
-
-            foreach ($validated['products'] as $item) {
-                $product = Product::where('uuid', $item['uuid'])
-                    ->where('tenant_id', $tenant->id)
-                    ->first();
-
-                // Product validation is now handled in Form Request
-                $price = $product->promotional_price ?? $product->price;
-                $total += $price * $item['quantity'];
-
-                $orderProducts[] = [
-                    'product_id' => $product->id,
-                    'quantity' => $item['quantity'],
-                    'price' => $price,
-                ];
-            }
-
-            // Prepare order data
-            $orderData = [
-                'identify' => $this->generateOrderIdentify(),
-                'tenant_id' => $tenant->id,
-                'client_id' => $client->id,
-                'total' => $total,
-                'status' => 'Em Preparo',
-                'origin' => 'public_store',
-                'is_delivery' => $validated['delivery']['is_delivery'],
-                'payment_method' => $validated['payment_method'],
-                'shipping_method' => $validated['shipping_method'],
-            ];
-
-            // Only add delivery fields if delivery is selected
-            if ($validated['delivery']['is_delivery']) {
-                $orderData = array_merge($orderData, [
-                    'delivery_address' => $validated['delivery']['address'],
-                    'delivery_number' => $validated['delivery']['number'],
-                    'delivery_neighborhood' => $validated['delivery']['neighborhood'],
-                    'delivery_city' => $validated['delivery']['city'],
-                    'delivery_state' => $validated['delivery']['state'],
-                    'delivery_zip_code' => $validated['delivery']['zip_code'],
-                    'delivery_complement' => $validated['delivery']['complement'] ?? null,
-                    'delivery_notes' => $validated['delivery']['notes'] ?? null,
-                ]);
-            }
-
-            // Create order
-            $order = Order::create($orderData);
-
-            // Attach products to order
-            foreach ($orderProducts as $product) {
-                $order->products()->attach($product['product_id'], [
-                    'qty' => $product['quantity'],
-                    'price' => $product['price'],
-                ]);
-
-                // Update stock
-                Product::where('id', $product['product_id'])
-                    ->decrement('qtd_stock', $product['quantity']);
-            }
-
-            // Generate WhatsApp message
-            $whatsappMessage = $this->generateWhatsAppMessage($order, $client, $tenant);
-            $whatsappLink = $this->generateWhatsAppLink($tenant->phone, $whatsappMessage);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Pedido criado com sucesso',
-                'data' => [
-                    'order_id' => $order->identify,
-                    'total' => number_format((float)$total, 2, ',', '.'),
-                    'whatsapp_link' => $whatsappLink,
-                    'whatsapp_message' => $whatsappMessage,
-                ]
-            ], 201);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
+            return ApiResponseClass::sendResponse(
+                $e->errors(),
+                'Dados inválidos',
+                422
+            );
+        } catch (DomainException $e) {
+            return ApiResponseClass::sendResponse(
+                '',
+                $e->getMessage(),
+                422
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Tratar erros específicos de banco de dados
+            if (strpos($e->getMessage(), 'duplicate key') !== false || 
+                strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                
+                $message = 'Já existe um cadastro com estes dados. ';
+                
+                if (strpos($e->getMessage(), 'email') !== false) {
+                    $message .= 'O email informado já está cadastrado.';
+                } elseif (strpos($e->getMessage(), 'cpf') !== false) {
+                    $message .= 'O CPF informado já está cadastrado.';
+                } else {
+                    $message .= 'Por favor, verifique seus dados e tente novamente.';
+                }
+                
+                return ApiResponseClass::sendResponse(
+                    ['field' => 'client'],
+                    $message,
+                    422
+                );
+            }
+            
+            Log::error('Database error creating public order', [
+                'error' => $e->getMessage(),
+                'slug' => $slug
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Dados inválidos',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao criar pedido',
-                'error' => $e->getMessage()
+                'data' => '',
+                'message' => 'Erro ao processar seu pedido. Por favor, tente novamente.',
             ], 500);
+        } catch (\Exception $e) {
+            Log::error('Error creating public order', [
+                'error' => $e->getMessage(),
+                'slug' => $slug
+            ]);
+            
+            return ApiResponseClass::rollback($e, 'Erro ao criar pedido');
         }
     }
 
     /**
-     * Generate unique order identify
+     * Validate coupon for the public store checkout.
      */
-    private function generateOrderIdentify(): string
+    public function validateCoupon(Request $request, string $slug): JsonResponse
     {
-        do {
-            $identify = strtoupper(Str::random(8));
-        } while (Order::where('identify', $identify)->exists());
+        try {
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
 
-        return $identify;
-    }
-
-    /**
-     * Format phone to WhatsApp format
-     */
-    private function formatWhatsApp(?string $phone): ?string
-    {
-        if (!$phone) return null;
-
-        // Remove all non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
-        // Add country code if not present
-        if (strlen($phone) === 11) {
-            $phone = '55' . $phone;
-        } elseif (strlen($phone) === 10) {
-            $phone = '55' . $phone;
-        }
-
-        return $phone;
-    }
-
-    /**
-     * Generate WhatsApp message
-     */
-    private function generateWhatsAppMessage(Order $order, Client $client, Tenant $tenant): string
-    {
-        $products = $order->products->map(function ($product) {
-            $qty = $product->pivot->quantity;
-            $price = number_format($product->pivot->price, 2, ',', '.');
-            return "• {$qty}x {$product->name} - R$ {$price}";
-        })->implode("\n");
-
-        $total = number_format((float)$order->total, 2, ',', '.');
-
-        $message = "*Novo Pedido #{$order->identify}*\n\n";
-        $message .= "*Cliente:* {$client->name}\n";
-        $message .= "*Telefone:* {$client->phone}\n";
-        $message .= "*Email:* {$client->email}\n\n";
-        $message .= "*Produtos:*\n{$products}\n\n";
-        $message .= "*Total:* R$ {$total}\n\n";
-
-        if ($order->is_delivery) {
-            $address = "{$order->delivery_address}, {$order->delivery_number}";
-            if ($order->delivery_complement) {
-                $address .= " - {$order->delivery_complement}";
+            if (!$tenant) {
+                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
             }
-            $address .= "\n{$order->delivery_neighborhood}, {$order->delivery_city}/{$order->delivery_state}";
-            $address .= "\nCEP: {$order->delivery_zip_code}";
 
-            $message .= "*Endereço de Entrega:*\n{$address}\n\n";
+            $code = strtoupper(trim((string) ($request->input('code') ?? $request->input('coupon_code'))));
 
-            if ($order->delivery_notes) {
-                $message .= "*Observações:* {$order->delivery_notes}\n\n";
+            if (empty($code)) {
+                return ApiResponseClass::sendResponse('', 'Informe o código do cupom.', 422);
             }
-        } else {
-            $message .= "*Retirada no Local*\n\n";
+
+            $products = $request->input('products');
+            $subtotal = $request->input('subtotal');
+
+            if (is_array($products) && count($products) > 0) {
+                $calculation = $this->publicOrderCalculationService->calculateOrder($products, $tenant);
+                $subtotal = $calculation['total'];
+            }
+
+            if ($subtotal === null) {
+                return ApiResponseClass::sendResponse('', 'Informe o subtotal ou os produtos para validar o cupom.', 422);
+            }
+
+            $clientIdentifier = $request->input('client_identifier');
+
+            $result = $this->couponService->validateForPreview(
+                $tenant,
+                $code,
+                (float) $subtotal,
+                null,
+                $clientIdentifier
+            );
+
+            return ApiResponseClass::sendResponse([
+                'coupon' => new CouponResource($result['coupon']),
+                'discount_amount' => number_format($result['discount_amount'], 2, '.', ''),
+                'final_total' => number_format($result['final_total'], 2, '.', ''),
+            ], 'Cupom aplicado com sucesso', 200);
+        } catch (DomainException $e) {
+            return ApiResponseClass::sendResponse('', $e->getMessage(), 422);
+        } catch (\Exception $e) {
+            Log::error('Error validating coupon', [
+                'error' => $e->getMessage(),
+                'slug' => $slug,
+            ]);
+
+            return ApiResponseClass::rollback($e, 'Erro ao validar cupom');
         }
-
-        $message .= "*Forma de Pagamento:* " . $this->translatePaymentMethod($order->payment_method);
-
-        return $message;
     }
 
     /**
-     * Generate WhatsApp link
+     * Get featured promotions and loyalty highlights for the store front.
      */
-    private function generateWhatsAppLink(string $phone, string $message): string
+    public function getPromotions(string $slug): JsonResponse
     {
-        $whatsapp = $this->formatWhatsApp($phone);
-        $encodedMessage = urlencode($message);
-        return "https://wa.me/{$whatsapp}?text={$encodedMessage}";
+        try {
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
+
+            if (!$tenant) {
+                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
+            }
+
+            $featuredCoupons = $this->couponService->featuredCoupons($tenant->id, 6);
+
+            $slides = $featuredCoupons->map(function (CouponResource|\App\Models\Coupon $coupon) {
+                $model = $coupon instanceof \App\Models\Coupon ? $coupon : $coupon->resource;
+
+                $highlight = $model->discount_type === 'percentage'
+                    ? number_format((float) $model->discount_value, 0) . '% OFF'
+                    : 'R$ ' . number_format((float) $model->discount_value, 2, ',', '.');
+
+                return [
+                    'type' => 'coupon',
+                    'title' => $model->name,
+                    'description' => $model->description,
+                    'badge' => 'Cupom: ' . $model->code,
+                    'highlight' => $highlight,
+                    'expires_at' => optional($model->end_at)->toIso8601String(),
+                    'is_featured' => (bool) $model->is_featured,
+                    'code' => $model->code,
+                ];
+            })->values();
+
+            $program = $this->loyaltyProgramService->getActiveProgramByTenant($tenant->id);
+
+            if ($program) {
+                $slides->push([
+                    'type' => 'loyalty',
+                    'title' => $program->name ?? 'Programa de Fidelidade',
+                    'description' => $program->description ?? 'Acumule pontos e troque por recompensas exclusivas.',
+                    'badge' => 'Fidelidade',
+                    'highlight' => sprintf('%.0f pts a cada R$ 1', $program->points_per_currency ?? 1),
+                    'cta' => 'Participe do programa',
+                ]);
+            }
+
+            return ApiResponseClass::sendResponse([
+                'slides' => $slides->toArray(),
+            ], 'Promoções carregadas com sucesso', 200);
+        } catch (\Exception $e) {
+            Log::error('Error loading promotions', [
+                'error' => $e->getMessage(),
+                'slug' => $slug,
+            ]);
+
+            return ApiResponseClass::rollback($e, 'Erro ao carregar promoções');
+        }
     }
 
     /**
-     * Translate payment method
+     * Busca cliente existente por CPF ou telefone (autofill no checkout público).
      */
-    private function translatePaymentMethod(string $method): string
+    public function lookupClient(Request $request, string $slug): JsonResponse
     {
-        $methods = [
-            'pix' => 'PIX',
-            'credit_card' => 'Cartão de Crédito',
-            'debit_card' => 'Cartão de Débito',
-            'money' => 'Dinheiro',
-            'bank_transfer' => 'Transferência Bancária',
-        ];
+        try {
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
 
-        return $methods[$method] ?? $method;
+            if (!$tenant) {
+                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
+            }
+
+            $cpf = $request->query('cpf');
+            $phone = $request->query('phone');
+
+            if (!$cpf && !$phone) {
+                return ApiResponseClass::sendResponse('', 'Informe CPF ou telefone', 422);
+            }
+
+            $result = $this->publicClientService->lookupClient($tenant, $cpf, $phone);
+
+            if (!$result) {
+                return ApiResponseClass::sendResponse([
+                    'exists' => false,
+                    'client' => null,
+                    'address' => null,
+                ], 'Cliente não encontrado', 200);
+            }
+
+            return ApiResponseClass::sendResponse([
+                'exists' => true,
+                'client' => $result['client'],
+                'address' => $result['address'],
+            ], 'Cliente encontrado', 200);
+        } catch (\Exception $e) {
+            Log::error('Error looking up client', [
+                'error' => $e->getMessage(),
+                'slug' => $slug,
+            ]);
+
+            return ApiResponseClass::rollback($e, 'Erro ao buscar cliente');
+        }
     }
+
+    /**
+     * Verifica se a loja está aberta
+     */
+    public function checkStoreHours(string $slug): JsonResponse
+    {
+        try {
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
+
+            if (!$tenant) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada',
+                    404
+                );
+            }
+
+            $isOpen = $this->storeHourService->isStoreOpen($tenant->id);
+            $storeHours = $this->storeHourService->getAllStoreHours($tenant->id, ['is_active' => true]);
+            
+            // Formatar horários para exibição
+            $formattedHours = [];
+            $isAlwaysOpen = false;
+
+            foreach ($storeHours as $hour) {
+                if ($hour->is_always_open) {
+                    $isAlwaysOpen = true;
+                    break;
+                }
+
+                $dayName = $hour->day_name;
+                if (!isset($formattedHours[$dayName])) {
+                    $formattedHours[$dayName] = [];
+                }
+
+                // Adicionar primeiro período
+                $formattedHours[$dayName][] = [
+                    'start' => $hour->start_time?->format('H:i'),
+                    'end' => $hour->end_time?->format('H:i'),
+                    'delivery_type' => $hour->delivery_type,
+                ];
+
+                // Adicionar segundo período se existir (intervalo)
+                if ($hour->start_time_2 && $hour->end_time_2) {
+                    $formattedHours[$dayName][] = [
+                        'start' => $hour->start_time_2->format('H:i'),
+                        'end' => $hour->end_time_2->format('H:i'),
+                        'delivery_type' => $hour->delivery_type,
+                    ];
+                }
+            }
+
+            return ApiResponseClass::sendResponse([
+                'is_open' => $isOpen,
+                'is_always_open' => $isAlwaysOpen,
+                'current_time' => now()->format('H:i'),
+                'current_day' => now()->locale('pt_BR')->dayName,
+                'store_hours' => $formattedHours,
+            ], 'Status da loja verificado', 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error checking store hours', [
+                'error' => $e->getMessage(),
+                'slug' => $slug
+            ]);
+            
+            return ApiResponseClass::rollback($e, 'Erro ao verificar horário da loja');
+        }
+    }
+
+    /**
+     * Consulta pública de pedido por telefone
+     */
+    public function trackOrder(string $slug): JsonResponse
+    {
+        try {
+            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
+
+            if (!$tenant) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Loja não encontrada',
+                    404
+                );
+            }
+
+            $phone = request('phone');
+
+            // Validar que o telefone foi fornecido
+            if (!$phone) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Informe o telefone para consultar o pedido',
+                    422
+                );
+            }
+
+            // Validar formato de telefone
+            $phoneClean = preg_replace('/[^0-9]/', '', $phone);
+            if (strlen($phoneClean) < 10 || strlen($phoneClean) > 11) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Telefone inválido. Informe DDD + número.',
+                    422
+                );
+            }
+
+            $orderData = $this->orderService->findOrderByClientInfo($tenant->id, null, $phone);
+
+            if (!$orderData) {
+                return ApiResponseClass::sendResponse(
+                    '',
+                    'Nenhum pedido em andamento foi encontrado para este telefone.',
+                    404
+                );
+            }
+
+            return ApiResponseClass::sendResponse(
+                $orderData,
+                'Pedido encontrado',
+                200
+            );
+
+        } catch (\Exception $e) {
+            Log::error('Error tracking order', [
+                'error' => $e->getMessage(),
+                'slug' => $slug
+            ]);
+            
+            return ApiResponseClass::rollback($e, 'Erro ao consultar pedido');
+        }
+    }
+
 }

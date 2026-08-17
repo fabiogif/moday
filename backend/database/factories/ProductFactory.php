@@ -18,11 +18,14 @@ class ProductFactory extends Factory
     public function definition(): array
     {
         return [
-           'tenant_id' => Tenant::factory(),
-            'title' => $this->faker->unique()->word(),
+            'tenant_id' => Tenant::factory(),
+            'name' => $this->faker->unique()->words(2, true), // Gera pelo menos 2 palavras juntas
             'description' => $this->faker->sentence(),
             'image' => 'teste_factory.png',
             'price' => $this->faker->randomFloat(2, 10, 100),
+            'price_cost' => $this->faker->randomFloat(2, 5, 80),
+            'qtd_stock' => $this->faker->numberBetween(0, 100),
+            'is_active' => true,
         ];
     }
 }

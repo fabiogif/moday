@@ -386,7 +386,7 @@ export function DataTable({
                       );
                     }
                   } catch (error) {
-                    console.error("Erro ao excluir mesa:", error);
+
                   }
                 }
               }}

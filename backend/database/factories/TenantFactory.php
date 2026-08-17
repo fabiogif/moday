@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Plan;
 use App\Models\Tenant;
+use App\Models\Plan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -27,28 +27,39 @@ class TenantFactory extends Factory
     public function definition(): array
     {
         $name = fake()->company();
+        $suffix = Str::random(6);
+        $slug = Str::slug($name . '-' . $suffix);
+        $subdomain = Str::slug($name . '-' . Str::random(4));
         
         return [
+            'plan_id' => Plan::factory(), // Create plan automatically
             'uuid' => Str::uuid(),
-            'plan_id' => Plan::factory(),
+            'cnpj' => fake()->numerify('##.###.###/0001-##'),
             'name' => $name,
-            'slug' => Str::slug($name),
-            'cnpj' => fake()->unique()->numerify('##.###.###/0001-##'),
             'email' => fake()->companyEmail(),
-            'phone' => fake()->phoneNumber(),
-            'document' => fake()->numerify('##.###.###/0001-##'),
-            'address' => fake()->address(),
-            'city' => fake()->city(),
-            'state' => fake()->stateAbbr(),
-            'zipcode' => fake()->postcode(),
-            'country' => 'BR',
-            'is_active' => true,
-            'settings' => [
-                'timezone' => 'America/Sao_Paulo',
-                'currency' => 'BRL',
-                'language' => 'pt-BR'
-            ],
+            'slug' => $slug,
+            'subdomain' => $subdomain,
+            'url' => "{$subdomain}.example.test",
+            'logo' => null,
+            'active' => 'Y',
+            'account_status' => 'active',
+            'activated_at' => now(),
+            'trial_started_at' => now()->subDay(),
+            'trial_expires_at' => now()->addDays(30),
         ];
+    }
+
+    /**
+     * Tenant em período de trial (sem acesso garantido se trial_expires_at não definido).
+     */
+    public function trial(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_status' => 'trial',
+            'trial_started_at' => now(),
+            'trial_expires_at' => now()->addDays(7),
+            'activated_at' => null,
+        ]);
     }
 
     /**
@@ -57,17 +68,20 @@ class TenantFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [
-            'is_active' => false,
+            'active' => 'N',
         ]);
     }
 
     /**
-     * Indicate that the tenant has custom settings.
+     * Tenant com acesso liberado (passa trial.check nos testes e middleware).
      */
-    public function withSettings(array $settings): static
+    public function accessible(): static
     {
         return $this->state(fn (array $attributes) => [
-            'settings' => array_merge($attributes['settings'] ?? [], $settings),
+            'account_status' => 'active',
+            'activated_at' => now(),
+            'trial_started_at' => now()->subDay(),
+            'trial_expires_at' => now()->addDays(30),
         ]);
     }
 }

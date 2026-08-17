@@ -2,11 +2,12 @@
 
 namespace Tests\Feature\Api;
 
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class HealthCheckTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function health_check_endpoint_retorna_status_ok()
     {
         $response = $this->getJson('/api/health');
@@ -25,7 +26,7 @@ class HealthCheckTest extends TestCase
         $this->assertNotEmpty($response->json('version'));
     }
 
-    /** @test */
+    #[Test]
     public function health_check_endpoint_e_publico()
     {
         // Não deve requerer autenticação
@@ -34,7 +35,7 @@ class HealthCheckTest extends TestCase
         $response->assertStatus(200);
     }
 
-    /** @test */
+    #[Test]
     public function health_check_retorna_timestamp_valido()
     {
         $response = $this->getJson('/api/health');

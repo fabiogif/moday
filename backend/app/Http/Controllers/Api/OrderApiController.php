@@ -7,23 +7,31 @@ use Illuminate\Routing\Controller;
 use App\Http\Requests\Api\StoreOrderRequest;
 use App\Http\Requests\Api\TenantFormRequest;
 use App\Http\Requests\Api\UpdateOrderRequest;
+use App\Http\Requests\Api\BulkDeleteOrdersRequest;
+use App\Http\Requests\Api\BulkUpdateOrdersStatusRequest;
 use App\Http\Resources\OrderResource;
 use App\Services\OrderService;
+use App\Services\ProductRecommendationService;
+use App\Services\OrderEmailService;
 use Illuminate\Http\{JsonResponse, Request, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Auth;
 
 
 class OrderApiController extends Controller
 {
-    public function __construct(protected OrderService $orderService)
-    {
+    public function __construct(
+        protected OrderService $orderService,
+        protected ProductRecommendationService $recommendationService,
+        protected OrderEmailService $orderEmailService,
+    ) {
 
     }
 
     public function store(StoreOrderRequest  $request):JsonResponse
     {
         try {
-            $order = $this->orderService->createNewOrder($request->all());
+            $order = $this->orderService->createNewOrder($request->validated());
             return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido cadastrado com sucesso', Response::HTTP_CREATED);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
@@ -39,7 +47,7 @@ class OrderApiController extends Controller
             }
             
             // Ensure relationships are loaded
-            $order->load(['client', 'table', 'products', 'tenant']);
+            $order->load(['client', 'table', 'products', 'tenant', 'paymentMethod']);
             
             return ApiResponseClass::sendResponse(new OrderResource($order), '', 200);
         } catch (\Exception $ex) {
@@ -66,7 +74,7 @@ class OrderApiController extends Controller
     public function index(Request $request): AnonymousResourceCollection|JsonResponse
     {
         try {
-            $tenantId = auth()->user()?->tenant_id;
+            $tenantId = Auth::user()?->tenant_id;
             if (!$tenantId) {
                 return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
             }
@@ -84,33 +92,6 @@ class OrderApiController extends Controller
     }
 
     /**
-     * Lista pedidos para o quadro Kanban (sem pagina��o estreita).
-     * Inclui Em Preparo/Pronto e Entregue/Cancelado dos �ltimos N dias.
-     */
-    public function board(Request $request): JsonResponse
-    {
-        try {
-            $tenantId = auth()->user()?->tenant_id;
-            if (!$tenantId) {
-                return ApiResponseClass::sendResponse('', 'Usu�rio n�o possui tenant associado', 400);
-            }
-
-            $terminalDays = (int) $request->get('terminal_days', 7);
-            $terminalDays = max(1, min($terminalDays, 30));
-
-            $orders = $this->orderService->getBoardByTenant($tenantId, $terminalDays);
-
-            return ApiResponseClass::sendResponse(
-                OrderResource::collection($orders),
-                '',
-                200
-            );
-        } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao carregar quadro de pedidos');
-        }
-    }
-
-    /**
      * Fatura um pedido
      */
     public function invoice($identify): JsonResponse
@@ -121,15 +102,24 @@ class OrderApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Pedido não encontrado', 404);
             }
 
-            // Verificar se o pedido já foi faturado/entregue
-            if ($order->status === 'Entregue') {
-                return ApiResponseClass::sendResponse('', 'Pedido já foi entregue/faturado', 400);
+            // Verificar se o pedido já foi faturado/concluído
+            if (in_array($order->status, ['Concluído', 'Entregue'], true)) {
+                return ApiResponseClass::sendResponse('', 'Pedido já foi concluído/faturado', 400);
             }
 
-            // Atualizar status para entregue (faturado)
-            $order->update(['status' => 'Entregue']);
+            // Atualizar status para Concluído (faturado)
+            $tenantId = $order->tenant_id;
+            $concluido = app(\App\Repositories\Contracts\OrderStatusRepositoryInterface::class)
+                ->getByName($tenantId, 'Concluído')
+                ?? app(\App\Repositories\Contracts\OrderStatusRepositoryInterface::class)
+                    ->getByName($tenantId, 'Entregue');
 
-            return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido faturado com sucesso', 200);
+            $order->update([
+                'status' => $concluido?->name ?? 'Concluído',
+                'order_status_id' => $concluido?->id ?? $order->order_status_id,
+            ]);
+
+            return ApiResponseClass::sendResponse(new OrderResource($order->fresh()), 'Pedido faturado com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao faturar pedido');
         }
@@ -146,10 +136,40 @@ class OrderApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Pedido não encontrado', 404);
             }
 
-            // Retornar dados do pedido para geração do recibo
+            $order->load(['client', 'table', 'products', 'tenant', 'paymentMethod']);
+
             return ApiResponseClass::sendResponse(new OrderResource($order), 'Dados do recibo obtidos com sucesso', 200);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao gerar recibo');
+        }
+    }
+
+    /**
+     * Envia recibo do pedido por e-mail ao cliente
+     */
+    public function sendReceiptEmail($identify): JsonResponse
+    {
+        try {
+            $order = $this->orderService->getOrderByIdentify($identify);
+            if (!$order) {
+                return ApiResponseClass::sendResponse('', 'Pedido não encontrado', 404);
+            }
+
+            if (!$order->client?->email) {
+                return ApiResponseClass::validationError(
+                    ['email' => ['O cliente deste pedido não possui e-mail cadastrado.']],
+                    'Cliente sem e-mail cadastrado.'
+                );
+            }
+
+            $this->orderEmailService->sendOrderReceiptEmail($order);
+
+            return ApiResponseClass::sendResponse(
+                ['email' => $order->client->email],
+                'Recibo enviado por e-mail com sucesso.'
+            );
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao enviar recibo por e-mail');
         }
     }
 
@@ -161,8 +181,42 @@ class OrderApiController extends Controller
         try {
             $order = $this->orderService->updateOrder($identify, $request->validated());
             return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido atualizado com sucesso', Response::HTTP_OK);
+        } catch (\DomainException $ex) {
+            // Pedido finalizado - retornar erro específico
+            return ApiResponseClass::sendResponse('', $ex->getMessage(), 403);
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar pedido');
+        }
+    }
+
+    public function archive($identify): JsonResponse
+    {
+        try {
+            $order = $this->orderService->archiveOrder($identify);
+            return ApiResponseClass::sendResponse(new OrderResource($order), 'Pedido arquivado com sucesso', 200);
+        } catch (\DomainException $ex) {
+            return response()->json([
+                'success' => false,
+                'message' => $ex->getMessage(),
+            ], 400);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao arquivar pedido');
+        }
+    }
+
+    /**
+     * Avançar status do pedido
+     */
+    public function advanceStatus($identify): JsonResponse
+    {
+        try {
+            $order = $this->orderService->advanceOrderStatus($identify);
+            return ApiResponseClass::sendResponse(new OrderResource($order), 'Status do pedido atualizado com sucesso', Response::HTTP_OK);
+        } catch (\DomainException $ex) {
+            // Pedido finalizado - retornar erro específico
+            return ApiResponseClass::sendResponse('', $ex->getMessage(), 403);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao avançar status do pedido');
         }
     }
 
@@ -176,5 +230,253 @@ class OrderApiController extends Controller
         }
     }
 
+    /**
+     * Excluir múltiplos pedidos em massa
+     */
+    public function bulkDelete(BulkDeleteOrdersRequest $request): JsonResponse
+    {
+        try {
+            $orderIdentifies = $request->validated()['order_ids'];
+            
+            if (empty($orderIdentifies)) {
+                return ApiResponseClass::sendResponse('', 'Nenhum pedido informado para exclusão', 400);
+            }
+
+            $result = $this->orderService->bulkDeleteOrders($orderIdentifies);
+
+            $message = "Operação concluída. ";
+            $message .= "{$result['total_deleted']} pedido(s) excluído(s) com sucesso.";
+            
+            if (!empty($result['not_found'])) {
+                $count = is_array($result['not_found']) ? count($result['not_found']) : 0;
+                $message .= " {$count} pedido(s) não encontrado(s).";
+            }
+            if (!empty($result['unauthorized'])) {
+                $count = is_array($result['unauthorized']) ? count($result['unauthorized']) : 0;
+                $message .= " {$count} pedido(s) não autorizado(s).";
+            }
+            if (!empty($result['errors'])) {
+                $count = is_array($result['errors']) ? count($result['errors']) : 0;
+                $message .= " {$count} erro(s) encontrado(s).";
+            }
+
+            return ApiResponseClass::sendResponse($result, $message, Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao excluir pedidos em massa');
+        }
+    }
+
+    /**
+     * Atualizar status de múltiplos pedidos em massa
+     */
+    public function bulkUpdateStatus(BulkUpdateOrdersStatusRequest $request): JsonResponse
+    {
+        try {
+            $validated = $request->validated();
+            $orderIdentifies = $validated['order_ids'];
+            $status = $validated['status'];
+            
+            if (empty($orderIdentifies)) {
+                return ApiResponseClass::sendResponse('', 'Nenhum pedido informado para atualização', 400);
+            }
+
+            $result = $this->orderService->bulkUpdateOrdersStatus($orderIdentifies, $status);
+
+            $message = "Operação concluída. ";
+            $message .= "{$result['total_updated']} pedido(s) atualizado(s) para status '{$status}'.";
+            
+            if (!empty($result['not_found'])) {
+                $count = is_array($result['not_found']) ? count($result['not_found']) : 0;
+                $message .= " {$count} pedido(s) não encontrado(s).";
+            }
+            if (!empty($result['unauthorized'])) {
+                $count = is_array($result['unauthorized']) ? count($result['unauthorized']) : 0;
+                $message .= " {$count} pedido(s) não autorizado(s).";
+            }
+            if (!empty($result['final_status'])) {
+                $count = is_array($result['final_status']) ? count($result['final_status']) : 0;
+                $message .= " {$count} pedido(s) com status final não podem ser alterados.";
+            }
+            if (!empty($result['errors'])) {
+                $count = is_array($result['errors']) ? count($result['errors']) : 0;
+                $message .= " {$count} erro(s) encontrado(s).";
+            }
+
+            return ApiResponseClass::sendResponse($result, $message, Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao atualizar status dos pedidos em massa');
+        }
+    }
+
+    /**
+     * Pedidos abertos há mais de N dias (padrão 15) elegíveis para conclusão em lote.
+     */
+    public function staleForCompletion(\Illuminate\Http\Request $request): JsonResponse
+    {
+        try {
+            $days = max(1, (int) $request->query('days', 15));
+            $identifies = $this->orderService->getStaleOpenOrderIdentifies($days);
+
+            return ApiResponseClass::sendResponse([
+                'days' => $days,
+                'count' => count($identifies),
+                'order_ids' => $identifies,
+            ], 'Pedidos elegíveis obtidos com sucesso', Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao listar pedidos elegíveis');
+        }
+    }
+
+    /**
+     * Marca como Concluído todos os pedidos abertos com mais de N dias.
+     */
+    public function completeStale(\Illuminate\Http\Request $request): JsonResponse
+    {
+        try {
+            $days = max(1, (int) ($request->input('days') ?? 15));
+            $result = $this->orderService->completeStaleOpenOrders($days);
+
+            return ApiResponseClass::sendResponse($result, sprintf(
+                '%d pedido(s) marcado(s) como Concluído (critério: %d dias).',
+                $result['total_updated'],
+                $days
+            ), Response::HTTP_OK);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao concluir pedidos antigos');
+        }
+    }
+
+    /**
+     * Buscar pedidos por número (para autocomplete)
+     */
+    public function searchByNumber(Request $request): JsonResponse
+    {
+        try {
+            $query = $request->input('query', '');
+            $tenantId = Auth::user()->tenant_id;
+            
+            $orders = $this->orderService->searchOrdersByNumber($tenantId, $query);
+            
+            return ApiResponseClass::sendResponse($orders, '', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar pedidos');
+        }
+    }
+
+    /**
+     * Obter detalhes de um pedido por ID para preencher formulário
+     */
+    public function getOrderDetails($orderId): JsonResponse
+    {
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            $order = $this->orderService->getOrderDetailsForAccount($orderId, $tenantId);
+            
+            if (!$order) {
+                return ApiResponseClass::sendResponse(null, 'Pedido não encontrado', 404);
+            }
+            
+            return ApiResponseClass::sendResponse($order, '', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao carregar detalhes do pedido');
+        }
+    }
+
+    /**
+     * Buscar pedidos em aberto por mesa
+     */
+    public function getOpenOrdersByTable(Request $request): JsonResponse
+    {
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            if (!$tenantId) {
+                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $tableUuid = $request->input('table_uuid');
+            if (!$tableUuid) {
+                return ApiResponseClass::sendResponse('', 'UUID da mesa é obrigatório', 400);
+            }
+
+            $orders = $this->orderService->getOpenOrdersByTable($tenantId, $tableUuid);
+            
+            // Transformar para recursos
+            $ordersResource = collect($orders)->map(function ($orderData) {
+                $order = \App\Models\Order::with(['client', 'table', 'products', 'orderStatus', 'paymentMethod'])->find($orderData['id']);
+                return $order ? new OrderResource($order) : null;
+            })->filter();
+
+            return ApiResponseClass::sendResponse($ordersResource->values(), 'Pedidos carregados com sucesso', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar pedidos da mesa');
+        }
+    }
+
+    /**
+     * Buscar pedidos do dia atual (para PDV)
+     */
+    public function getTodayOrders(): JsonResponse
+    {
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            if (!$tenantId) {
+                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $orders = $this->orderService->getTodayOrders($tenantId);
+            
+            // Transformar para recursos
+            $ordersResource = collect($orders)->map(function ($orderData) {
+                $order = \App\Models\Order::with(['client', 'table', 'products', 'orderStatus', 'paymentMethod'])->find($orderData['id']);
+                return $order ? new OrderResource($order) : null;
+            })->filter();
+
+            return ApiResponseClass::sendResponse($ordersResource->values(), 'Pedidos do dia carregados com sucesso', 200);
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar pedidos do dia');
+        }
+    }
+
+    /**
+     * Obter recomendações de produtos baseadas no carrinho atual
+     * 
+     * Endpoint otimizado para retornar produtos frequentemente pedidos juntos
+     * ou produtos mais vendidos como fallback
+     */
+    public function getProductRecommendations(Request $request): JsonResponse
+    {
+        try {
+            $tenantId = Auth::user()->tenant_id;
+            if (!$tenantId) {
+                return ApiResponseClass::sendResponse('', 'Usuário não possui tenant associado', 400);
+            }
+
+            $cartProductIds = $request->input('product_ids', []);
+            $limit = (int) $request->input('limit', 6);
+
+            if (!is_array($cartProductIds)) {
+                // Se for string, converter para array
+                if (is_string($cartProductIds)) {
+                    $cartProductIds = explode(',', $cartProductIds);
+                } else {
+                    $cartProductIds = [];
+                }
+            }
+
+            $recommendations = $this->recommendationService->getRecommendationsForCart(
+                $tenantId,
+                $cartProductIds,
+                $limit
+            );
+
+            return ApiResponseClass::sendResponse(
+                $recommendations,
+                'Recomendações carregadas com sucesso',
+                200
+            );
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao buscar recomendações');
+        }
+    }
 }
 

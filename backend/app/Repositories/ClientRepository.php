@@ -4,11 +4,16 @@
 namespace App\Repositories;
 
 use App\Models\Client;
-use App\Repositories\contracts\ClientRepositoryInterface;
+use App\Repositories\Concerns\SearchesFullText;
+use App\Repositories\Contracts\ClientRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class ClientRepository extends BaseRepository implements ClientRepositoryInterface
 {
+    use SearchesFullText;
+
     public function __construct(protected Model $entity =  new Client())
     {
     }
@@ -21,26 +26,87 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
 
     public function getAllClients()
     {
-        return $this->entity->with(['orders' => function($query) {
-            $query->orderBy('created_at', 'desc');
-        }])->orderBy('created_at', 'desc')->get();
+        return $this->entity
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     public function getClientsByTenant($tenantId)
     {
         return $this->entity->where('tenant_id', $tenantId)
-            ->with(['orders' => function($query) {
-                $query->orderBy('created_at', 'desc');
-            }])
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
             ->orderBy('created_at', 'desc')
             ->get();
     }
 
+    public function paginateForTenant(
+        int $tenantId,
+        int $page,
+        int $perPage,
+        ?string $search = null,
+        ?string $sort = null,
+        ?string $filter = null
+    ) {
+        $query = $this->entity->where('tenant_id', $tenantId)
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at');
+
+        // "recent_orders": clientes com pedido mais recente primeiro, usados pelo
+        // combo de cliente do app mobile para sugerir os mais relevantes antes de
+        // o vendedor digitar uma busca. Sem pedido nenhum (coluna NULL) vai pro
+        // final naturalmente no MySQL com DESC.
+        if ($sort === 'recent_orders') {
+            $query->orderByDesc('sale_orders_max_ordered_at');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        if ($search !== null && $search !== '') {
+            $this->applyFullTextSearch(
+                $query,
+                ['name', 'company_name', 'trade_name'],
+                $search,
+                ['email', 'phone', 'cnpj']
+            );
+        }
+
+        $this->applyListFilter($query, $filter);
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Filtros rápidos do app Campo: active | inactive | blocked.
+     */
+    private function applyListFilter($query, ?string $filter): void
+    {
+        if ($filter === null || $filter === '' || $filter === 'all') {
+            return;
+        }
+
+        match ($filter) {
+            'active' => $query->where('is_active', true)->where(function ($q) {
+                $q->where('is_blocked', false)->orWhereNull('is_blocked');
+            }),
+            'inactive' => $query->where('is_active', false),
+            'blocked' => $query->where('is_blocked', true),
+            default => null,
+        };
+    }
+
     public function getClientById($id)
     {
-        return $this->entity->with(['orders' => function($query) {
-            $query->orderBy('created_at', 'desc');
-        }])->find($id);
+        return $this->entity
+            ->withCount(['orders', 'saleOrders'])
+            ->withMax('orders', 'created_at')
+            ->withMax('saleOrders', 'ordered_at')
+            ->find($id);
     }
 
     public function getClientByUuid($uuid)
@@ -76,5 +142,93 @@ class ClientRepository extends BaseRepository implements ClientRepositoryInterfa
     public function getTableByIdentify(string $identify)
     {
         // TODO: Implement getTableByIdentify() method.
+    }
+
+    public function findByCpfAndTenant(string $cpf, int $tenantId)
+    {
+        return $this->entity
+            ->where('cpf', $cpf)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    public function findByRequestIdAndTenant(string $requestId, int $tenantId)
+    {
+        return $this->entity
+            ->where('client_request_id', $requestId)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    public function findByEmailAndTenant(string $email, int $tenantId)
+    {
+        return $this->entity
+            ->where('email', $email)
+            ->where('tenant_id', $tenantId)
+            ->first();
+    }
+
+    public function findByPhoneAndTenant(string $phone, int $tenantId)
+    {
+        $clean = preg_replace('/\D/', '', $phone);
+        if (strlen($clean) < 10) {
+            return null;
+        }
+
+        $suffix = strlen($clean) > 11 ? substr($clean, -11) : $clean;
+
+        return $this->entity
+            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($clean, $suffix) {
+                $q->where('phone', $clean)
+                    ->orWhere('phone', $suffix)
+                    ->orWhere('phone', 'like', '%' . $suffix);
+            })
+            ->first();
+    }
+
+    public function emailExistsForTenant(string $email, int $tenantId): bool
+    {
+        return $this->entity
+            ->where('email', $email)
+            ->where('tenant_id', $tenantId)
+            ->exists();
+    }
+
+    public function cpfExistsForOtherClient(string $cpf, int $tenantId, int $excludeId): bool
+    {
+        return $this->entity
+            ->where('cpf', $cpf)
+            ->where('tenant_id', $tenantId)
+            ->where('id', '!=', $excludeId)
+            ->exists();
+    }
+
+    public function emailExistsForOtherClient(string $email, int $tenantId, int $excludeId): bool
+    {
+        return $this->entity
+            ->where('email', $email)
+            ->where('tenant_id', $tenantId)
+            ->where('id', '!=', $excludeId)
+            ->exists();
+    }
+
+    public function registerAuthClient(array $data, int $tenantId)
+    {
+        return $this->entity->create([
+            'uuid' => Str::uuid(),
+            'tenant_id' => $tenantId,
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'phone' => $data['phone'],
+            'cpf' => $data['cpf'] ?? null,
+            'is_active' => true,
+        ]);
+    }
+
+    public function createPublicClient(array $data)
+    {
+        return $this->entity->create($data);
     }
 }

@@ -18,12 +18,13 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  price: number;
+  price: number | string;
   categories: Array<{
     identify: string;
     name: string;
   }>;
-  price_cost: number;
+  price_cost: number | string;
+  qtd_stock?: number | string;
   is_active: boolean;
   created_at: string;
   createdAt: string;

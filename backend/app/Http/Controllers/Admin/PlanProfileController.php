@@ -7,6 +7,7 @@ use App\Http\Requests\attachPlanProfileRequest;
 use App\Models\{Plan, Profile};
 use Illuminate\Http\Request;
 
+/** @deprecated Legado Blade — use a API REST. */
 class PlanProfileController extends Controller
 {
 

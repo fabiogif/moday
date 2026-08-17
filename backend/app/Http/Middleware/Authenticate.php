@@ -4,6 +4,9 @@ namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Classes\ApiResponseClass;
 
 class Authenticate extends Middleware
 {
@@ -12,6 +15,17 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        return null;
+    }
+
+    protected function authenticate($request, array $guards)
+    {
+        try {
+            parent::authenticate($request, $guards);
+        } catch (AuthenticationException $exception) {
+            $message = $request->header('Authorization') ? 'Token inválido' : 'Token não fornecido';
+
+            throw new HttpResponseException(ApiResponseClass::unauthorized($message));
+        }
     }
 }

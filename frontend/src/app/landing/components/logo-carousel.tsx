@@ -37,7 +37,7 @@ const SimpleIcon = ({ iconSlug, size = 24 }: { iconSlug: string; size?: number }
   }
 
   return (
-    <svg role='img' viewBox='0 0 24 24' className='fill-black dark:fill-white' style={{ width: size, height: size }}>
+    <svg role='img' viewBox='0 0 24 24' className='fill-black' style={{ width: size, height: size }}>
       <path d={iconPath} />
     </svg>
   )

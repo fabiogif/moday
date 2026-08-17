@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\{EvaluationRepositoryInterface, OrderRepositoryInterface};
+use App\Repositories\Contracts\{EvaluationRepositoryInterface, OrderRepositoryInterface};
 
 readonly class EvaluationService
 {

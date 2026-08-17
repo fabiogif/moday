@@ -58,7 +58,7 @@ export function BlogSection() {
                     alt={blog.title}
                     width={400}
                     height={225}
-                    className="size-full object-cover dark:invert dark:brightness-[0.95]"
+                    className="size-full object-cover"
                     loading="lazy"
                   />
                 </div>

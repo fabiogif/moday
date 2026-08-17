@@ -22,13 +22,13 @@ export function useFullscreen() {
 
   const enterFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(console.error)
+      document.documentElement.requestFullscreen().catch(() => {})
     }
   }
 
   const exitFullscreen = () => {
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(console.error)
+      document.exitFullscreen().catch(() => {})
     }
   }
 

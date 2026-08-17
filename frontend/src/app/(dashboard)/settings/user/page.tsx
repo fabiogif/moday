@@ -61,7 +61,7 @@ export default function UserSettingsPage() {
   })
 
   function onSubmit(data: UserFormValues) {
-    console.log("Form submitted:", data)
+
     // Here you would typically save the data
   }
 

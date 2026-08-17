@@ -3,87 +3,79 @@
 namespace Database\Seeders;
 
 use App\Models\Client;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class ClientSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Cliente administrador
-        Client::create([
-            'name' => 'João Silva',
-            'cpf' => '123.456.789-00',
-            'email' => 'joao@example.com',
-            'phone' => '(11) 99999-9999',
-            'password' => Hash::make('password'),
-            'uuid' => Str::uuid(),
-            'address' => 'Rua das Flores, 123',
-            'city' => 'São Paulo',
-            'state' => 'SP',
-            'zip_code' => '01234-567',
-            'neighborhood' => 'Centro',
-            'number' => '123',
-            'complement' => 'Apto 101',
-            'is_active' => true,
-            'tenant_id' => 1,
-        ]);
+        $tenant = \App\Models\Tenant::first();
 
-        // Cliente com endereço completo
-        Client::create([
-            'name' => 'Maria Santos',
-            'cpf' => '987.654.321-00',
-            'email' => 'maria@example.com',
-            'phone' => '(11) 88888-8888',
-            'password' => Hash::make('password'),
-            'uuid' => Str::uuid(),
-            'address' => 'Avenida Paulista, 1000',
-            'city' => 'São Paulo',
-            'state' => 'SP',
-            'zip_code' => '01310-100',
-            'neighborhood' => 'Bela Vista',
-            'number' => '1000',
-            'complement' => 'Sala 501',
-            'is_active' => true,
-            'tenant_id' => 1,
-        ]);
+        $clients = [
+            [
+                'name' => 'Farmácia Central LTDA',
+                'cnpj' => '12.345.678/0001-90',
+                'company_name' => 'Farmácia Central LTDA',
+                'trade_name' => 'Farmácia Central',
+                'client_type' => 'farmacia',
+                'email' => 'compras@farmaciacentral.com.br',
+                'phone' => '(11) 3333-4444',
+                'credit_limit' => 50000.00,
+                'payment_term_days' => 30,
+                'city' => 'São Paulo', 'state' => 'SP',
+            ],
+            [
+                'name' => 'Drogaria Popular EIRELI',
+                'cnpj' => '98.765.432/0001-10',
+                'company_name' => 'Drogaria Popular EIRELI',
+                'trade_name' => 'Drogaria Popular',
+                'client_type' => 'drogaria',
+                'email' => 'pedidos@drogariapopular.com.br',
+                'phone' => '(21) 2222-5555',
+                'credit_limit' => 30000.00,
+                'payment_term_days' => 60,
+                'city' => 'Rio de Janeiro', 'state' => 'RJ',
+            ],
+            [
+                'name' => 'Supermercado Família S/A',
+                'cnpj' => '45.678.901/0001-23',
+                'company_name' => 'Supermercado Família S/A',
+                'trade_name' => 'Super Família',
+                'client_type' => 'supermercado',
+                'email' => 'compras@superfamilia.com.br',
+                'phone' => '(31) 4444-6666',
+                'credit_limit' => 100000.00,
+                'payment_term_days' => 30,
+                'city' => 'Belo Horizonte', 'state' => 'MG',
+            ],
+            [
+                'name' => 'Hospital São Lucas LTDA',
+                'cnpj' => '11.222.333/0001-44',
+                'company_name' => 'Hospital São Lucas LTDA',
+                'trade_name' => 'HSL',
+                'client_type' => 'hospital',
+                'email' => 'suprimentos@hsl.com.br',
+                'phone' => '(41) 5555-7777',
+                'credit_limit' => 200000.00,
+                'payment_term_days' => 90,
+                'city' => 'Curitiba', 'state' => 'PR',
+            ],
+        ];
 
-        // Cliente sem endereço
-        Client::create([
-            'name' => 'Pedro Costa',
-            'cpf' => '456.789.123-00',
-            'email' => 'pedro@example.com',
-            'phone' => '(11) 77777-7777',
-            'password' => Hash::make('password'),
-            'uuid' => Str::uuid(),
-            'is_active' => true,
-            'tenant_id' => 1,
-        ]);
+        foreach ($clients as $data) {
+            Client::firstOrCreate(
+                ['cnpj' => $data['cnpj'], 'tenant_id' => $tenant->id],
+                array_merge($data, [
+                    'uuid' => Str::uuid(),
+                    'tenant_id' => $tenant->id,
+                    'is_active' => true,
+                    'password' => Hash::make('password'),
+                ])
+            );
+        }
 
-        // Cliente inativo
-        Client::create([
-            'name' => 'Ana Oliveira',
-            'cpf' => '789.123.456-00',
-            'email' => 'ana@example.com',
-            'phone' => '(11) 66666-6666',
-            'password' => Hash::make('password'),
-            'uuid' => Str::uuid(),
-            'address' => 'Rua da Consolação, 500',
-            'city' => 'São Paulo',
-            'state' => 'SP',
-            'zip_code' => '01302-000',
-            'neighborhood' => 'Consolação',
-            'number' => '500',
-            'is_active' => false,
-            'tenant_id' => 1,
-        ]);
-
-        // Gerar clientes aleatórios
-        Client::factory(20)->create();
+        $this->command->info('✅ Clientes B2B criados.');
     }
 }

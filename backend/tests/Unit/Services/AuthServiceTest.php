@@ -3,11 +3,10 @@
 namespace Tests\Unit\Services;
 
 use App\Models\User;
-use App\Models\Profile;
 use App\Services\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class AuthServiceTest extends TestCase
@@ -19,21 +18,15 @@ class AuthServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->authService = new AuthService();
-        
-        // Criar profile padrão
-        Profile::factory()->create([
-            'name' => 'user',
-            'description' => 'Usuário padrão'
-        ]);
+        $this->authService = app(AuthService::class);
     }
 
-    /** @test */
+    #[Test]
     public function login_com_credenciais_validas_retorna_sucesso()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => 'password123',
             'is_active' => true
         ]);
 
@@ -49,12 +42,12 @@ class AuthServiceTest extends TestCase
         $this->assertEquals($user->id, $result['user']->id);
     }
 
-    /** @test */
+    #[Test]
     public function login_com_credenciais_invalidas_retorna_erro()
     {
         User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123')
+            'password' => 'password123'
         ]);
 
         $result = $this->authService->login([
@@ -66,12 +59,12 @@ class AuthServiceTest extends TestCase
         $this->assertEquals('Credenciais inválidas', $result['message']);
     }
 
-    /** @test */
+    #[Test]
     public function login_com_usuario_inativo_retorna_erro()
     {
         User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => 'password123',
             'is_active' => false
         ]);
 
@@ -84,14 +77,17 @@ class AuthServiceTest extends TestCase
         $this->assertEquals('Usuário inativo', $result['message']);
     }
 
-    /** @test */
+    #[Test]
     public function registro_com_dados_validos_cria_usuario()
     {
+        $tenant = \App\Models\Tenant::factory()->create();
+        
         $userData = [
             'name' => 'João Silva',
             'email' => 'joao@example.com',
             'password' => 'password123',
-            'phone' => '11999999999'
+            'phone' => '11999999999',
+            'tenant_id' => $tenant->id
         ];
 
         $result = $this->authService->register($userData);
@@ -105,16 +101,17 @@ class AuthServiceTest extends TestCase
             'name' => 'João Silva',
             'email' => 'joao@example.com',
             'phone' => '11999999999',
-            'is_active' => true
+            'is_active' => true,
+            'tenant_id' => $tenant->id
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function login_atualiza_ultimo_acesso()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => 'password123',
             'is_active' => true,
             'last_login_at' => null
         ]);
@@ -128,12 +125,12 @@ class AuthServiceTest extends TestCase
         $this->assertNotNull($user->last_login_at);
     }
 
-    /** @test */
+    #[Test]
     public function login_armazena_dados_no_cache()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => Hash::make('password123'),
+            'password' => 'password123',
             'is_active' => true
         ]);
 
@@ -145,7 +142,7 @@ class AuthServiceTest extends TestCase
         $this->assertTrue(Cache::has("user_data_{$user->id}"));
     }
 
-    /** @test */
+    #[Test]
     public function has_permission_verifica_permissoes_corretamente()
     {
         $user = User::factory()->create();
@@ -160,7 +157,7 @@ class AuthServiceTest extends TestCase
         $this->assertFalse($hasNoPermission);
     }
 
-    /** @test */
+    #[Test]
     public function invalidate_user_cache_remove_dados_do_cache()
     {
         $user = User::factory()->create();
@@ -175,7 +172,7 @@ class AuthServiceTest extends TestCase
         $this->assertFalse(Cache::has("user_permissions_{$user->id}"));
     }
 
-    /** @test */
+    #[Test]
     public function update_profile_atualiza_dados_e_cache()
     {
         $user = User::factory()->create([

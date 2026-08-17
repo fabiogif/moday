@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import {
@@ -8,17 +8,19 @@ import {
   Mail,
   MessageSquare,
   Download,
-  X,
-  FileText,
-  User,
-  Phone,
-  MapPin,
-  Package,
-  Calendar,
-  Clock,
-  CreditCard,
+  Loader2,
 } from "lucide-react"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,6 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
+import { apiClient, endpoints } from "@/lib/api-client"
 import { OrderReceipt, Order } from "../types"
 
 interface ReceiptDialogProps {
@@ -42,6 +45,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   const [isPrinting, setIsPrinting] = useState(false)
   const [isEmailing, setIsEmailing] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
+  const [emailConfirmOpen, setEmailConfirmOpen] = useState(false)
 
   if (!order) return null
 
@@ -53,18 +57,12 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
   const orderItems = isOrderReceipt(order) ? order.items : order.products || []
 
   // Debug: Log completo do pedido recebido
-  console.log('ReceiptDialog - Pedido completo:', order)
-  console.log('ReceiptDialog - Cliente:', order.client)
-  console.log('ReceiptDialog - Cliente JSON:', JSON.stringify(order.client, null, 2))
-  console.log('ReceiptDialog - Todas as keys do pedido:', Object.keys(order))
-  console.log('ReceiptDialog - Tentando acessar:', {
-    'order.client?.name': order.client?.name,
-    'order.client?.email': order.client?.email,
-    'order.client?.phone': order.client?.phone,
-    'order.customerName': (order as any).customerName,
-    'order.customer?.name': (order as any).customer?.name
-  })
-  console.log('ReceiptDialog - Produtos:', orderItems)
+
+  // )
+  // )
+  // .customerName,
+  //   'order.customer?.name': (order as any).customer?.name
+  // })
 
   // Get order number from either type
   const orderNumber = (order as OrderReceipt).orderNumber || (order as Order).identify || 'N/A'
@@ -73,14 +71,13 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
 
   const formatCurrency = (value: number | string | undefined) => {
     // Debug: Log do valor recebido
-    console.log('formatCurrency recebeu:', value, 'tipo:', typeof value)
-    
+
     // Converter para número se for string
     const numValue = typeof value === 'string' ? parseFloat(value) : value
     
     // Verificar se é um número válido
     if (numValue === undefined || numValue === null || isNaN(numValue)) {
-      console.warn('formatCurrency: valor inválido:', value)
+
       return 'R$ 0,00'
     }
     
@@ -102,7 +99,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
       }
       return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
     } catch (error) {
-      console.error('Erro ao formatar data:', error)
+
       return 'Data inválida'
     }
   }
@@ -231,7 +228,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
       </head>
       <body>
         <div class="header">
-          <div class="company-name">MODAY RESTAURANTE</div>
+          <div class="company-name">ALBA TEC</div>
           <div>Rua Exemplo, 123 - Centro</div>
           <div>Tel: (11) 99999-9999</div>
         </div>
@@ -287,17 +284,48 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
     `
   }
 
-  const handleEmail = async () => {
+  const getClientEmail = () =>
+    order.client?.email ||
+    (order as any).customerEmail ||
+    (order as any).customer?.email ||
+    (order as any).client_email ||
+    ''
+
+  const getOrderIdentify = () =>
+    (order as Order).identify || (order as OrderReceipt).orderNumber
+
+  const handleEmailClick = () => {
+    const clientEmail = getClientEmail()
+
+    if (!clientEmail) {
+      toast.error('Cliente não possui e-mail cadastrado.')
+      return
+    }
+
+    if (!getOrderIdentify()) {
+      toast.error('Não foi possível identificar o pedido para envio do recibo.')
+      return
+    }
+
+    setEmailConfirmOpen(true)
+  }
+
+  const confirmEmailSend = async () => {
+    const orderIdentify = getOrderIdentify()
+    const clientEmail = getClientEmail()
+
     setIsEmailing(true)
-    
+
     try {
-      // Aqui você implementaria a lógica de envio de email
-      // Por enquanto, vamos simular
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      toast.success(`Recibo enviado por email para ${order.client?.email || (order as any).customerEmail || (order as any).customer?.email || 'N/A'}`)
-    } catch (error) {
-      toast.error("Não foi possível enviar o email. Tente novamente.")
+      const response = await apiClient.post(endpoints.orders.sendReceiptEmail(orderIdentify))
+      if (response.success) {
+        setEmailConfirmOpen(false)
+        toast.success(`Recibo enviado por e-mail para ${clientEmail}`)
+      } else {
+        throw new Error(response.message || 'Erro ao enviar recibo')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Não foi possível enviar o e-mail. Tente novamente.')
     } finally {
       setIsEmailing(false)
     }
@@ -349,7 +377,13 @@ Obrigado pela preferência! 🍽️`
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) setEmailConfirmOpen(false)
+        onOpenChange(isOpen)
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <div className="flex items-center justify-between">
@@ -366,7 +400,7 @@ Obrigado pela preferência! 🍽️`
           <div className="space-y-6">
             {/* Cabeçalho do Recibo */}
             <div className="text-center border-b pb-4">
-              <h2 className="text-2xl font-bold">MODAY RESTAURANTE</h2>
+              <h2 className="text-2xl font-bold">ALBA TEC</h2>
               <p className="text-sm text-muted-foreground">Rua Exemplo, 123 - Centro</p>
               <p className="text-sm text-muted-foreground">Tel: (11) 99999-9999</p>
             </div>
@@ -480,7 +514,7 @@ Obrigado pela preferência! 🍽️`
           </Button>
           
           <Button 
-            onClick={handleEmail} 
+            onClick={handleEmailClick} 
             disabled={isEmailing}
             variant="outline"
             className="flex-1 min-w-[120px]"
@@ -515,19 +549,40 @@ Obrigado pela preferência! 🍽️`
           </Button>
         </div>
       </DialogContent>
+
+      <AlertDialog open={emailConfirmOpen} onOpenChange={setEmailConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar recibo por e-mail</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  O recibo do pedido <strong className="text-foreground">#{orderNumber}</strong> será
+                  enviado para o e-mail do cliente.
+                </p>
+                <div className="rounded-md border bg-muted/50 px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">Destinatário</p>
+                  <p className="font-medium text-foreground break-all">{getClientEmail()}</p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isEmailing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                void confirmEmailSend()
+              }}
+              disabled={isEmailing}
+            >
+              {isEmailing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEmailing ? 'Enviando...' : 'Enviar e-mail'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
 

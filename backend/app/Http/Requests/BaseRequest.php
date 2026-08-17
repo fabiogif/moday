@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests;
 
-use App\Classes\ApiResponseClass;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Classes\ApiResponseClass;
 
 class BaseRequest extends FormRequest
 {
@@ -32,7 +32,7 @@ class BaseRequest extends FormRequest
     public function failedValidation(Validator $validator)
     {
         throw new HttpResponseException(
-            ApiResponseClass::validationError($validator->errors())
+            ApiResponseClass::validationError($validator->errors(), 'Erro de validação')
         );
     }
 }

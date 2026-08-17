@@ -8,22 +8,23 @@ import { useAuthenticatedProducts, useMutation, useMutationWithValidation } from
 import { commonFieldMappings } from "@/hooks/use-backend-validation"
 import { endpoints } from "@/lib/api-client"
 import { PageLoading } from "@/components/ui/loading-progress"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Product {
   id: number
   name: string
   description: string
-  price: number
+  price: number | string
   categories: Array<{
     identify: string
     name: string
   }>
-  price_cost: number
+  price_cost: number | string
+  qtd_stock?: number | string
   is_active: boolean
   created_at: string
   createdAt: string
   url?: string
-  qtd_stock?: number
 }
 
 interface ProductFormValues {
@@ -33,6 +34,7 @@ interface ProductFormValues {
   price_cost: number
   categories: string[]
   qtd_stock: number
+  is_active?: boolean
   image?: File
 }
 
@@ -40,6 +42,13 @@ export default function ProductsPage() {
   const { data: products, loading, error, refetch, isAuthenticated } = useAuthenticatedProducts()
   const { mutate: createProduct, loading: creating, error: createError } = useMutation()
   const { mutate: deleteProduct, loading: deleting } = useMutation()
+  const { isLoading: authLoading } = useAuth()
+
+  // Debug: Log dos produtos recebidos
+  // ,
+  //   length: Array.isArray(products) ? products.length : 0,
+  //   sample: Array.isArray(products) && products.length > 0 ? products[0] : null
+  // });
 
   // Estados para o alert de sucesso
   const [successAlert, setSuccessAlert] = useState({
@@ -58,11 +67,10 @@ export default function ProductsPage() {
 
   const handleAddProduct = async (productData: ProductFormValues) => {
     try {
-      console.log('Dados do produto antes do envio:', productData)
-      
+
       // Validar se categories está definido
       if (!productData.categories || productData.categories.length === 0) {
-        console.error('categories está undefined ou vazio:', productData.categories)
+
         handleShowSuccessAlert('Atenção!', 'Por favor, selecione uma categoria antes de criar o produto.')
         return
       }
@@ -74,6 +82,7 @@ export default function ProductsPage() {
       formData.append('price', productData.price.toString())
       formData.append('price_cost', productData.price_cost?.toString() || '0')
       formData.append('qtd_stock', productData.qtd_stock.toString())
+      formData.append('is_active', productData.is_active ?? true ? '1' : '0') // Campo obrigatório
       
       // Enviar cada categoria individualmente para o Laravel processar como array
       productData.categories.forEach((categoryId, index) => {
@@ -85,21 +94,48 @@ export default function ProductsPage() {
         formData.append('image', productData.image)
       }
       
-      const result = await createProduct(
-        endpoints.products.create,
-        'POST',
-        formData
-      )
+      // Debug: Log do FormData criado
+
+      for (const [key, value] of formData.entries()) {
+
+      }
+      
+      // Teste: Se não há imagem, enviar como JSON ao invés de FormData
+      let result
+      if (!productData.image || !(productData.image instanceof File)) {
+
+        const jsonData = {
+          name: productData.name,
+          description: productData.description,
+          price: productData.price,
+          price_cost: productData.price_cost || 0,
+          qtd_stock: productData.qtd_stock,
+          is_active: productData.is_active ?? true,
+          categories: productData.categories
+        }
+
+        result = await createProduct(
+          endpoints.products.create,
+          'POST',
+          jsonData
+        )
+      } else {
+
+        result = await createProduct(
+          endpoints.products.create,
+          'POST',
+          formData
+        )
+      }
       
       if (result) {
-        console.log('Produto criado com sucesso:', result)
+
         // ✅ Atualizar grid automaticamente sem refresh
         await refetch()
         handleShowSuccessAlert('Sucesso!', 'Produto criado com sucesso!')
       }
     } catch (error: any) {
-      console.error('Erro ao criar produto:', error)
-      
+
       // Se o erro tem dados de validação, mostrar para o usuário
       if (error?.data?.data) {
         const validationErrors = Object.entries(error.data.data)
@@ -119,51 +155,47 @@ export default function ProductsPage() {
         'DELETE'
       )
       
-      if (result) {
+      // Para exclusão, o backend retorna success: true mesmo com data vazia
+      if (result !== null) {
         // ✅ Atualizar grid automaticamente sem refresh
         await refetch()
         handleShowSuccessAlert('Sucesso!', 'Produto excluído com sucesso!')
       }
     } catch (error) {
-      console.error('Erro ao excluir produto:', error)
+
+      const apiError = error as any
+      if (apiError?.status === 409) {
+        handleShowSuccessAlert('Atenção!', apiError?.message || 'Produto não pode ser excluído, existe um pedido ativo ou não arquivado vinculado.')
+        return
+      }
+      // Mostrar mensagem detalhada do backend (422 validationError)
+      const backendMessage = apiError?.data?.message
+      const backendErrors = apiError?.data?.errors
+      if (backendMessage) {
+        // Montar detalhe com lista quando existir
+        let detail = backendMessage
+        if (backendErrors?.orders_in_preparing?.length) {
+          detail += `\nPedidos: ${backendErrors.orders_in_preparing.join(', ')}`
+        }
+        if (backendErrors?.linked_products?.length) {
+          detail += `\nProdutos vinculados: ${backendErrors.linked_products.join(', ')}`
+        }
+        handleShowSuccessAlert('Atenção!', detail)
+        return
+      }
       handleShowSuccessAlert('Erro!', 'Erro ao excluir produto')
     }
   }
 
+  // Função de edição removida - agora usa navegação para página de edição
   const handleEditProduct = async (product: Product) => {
-    try {
-      console.log("Edit product:", product)
-      
-      const formData = new FormData()
-      formData.append('name', product.name)
-      formData.append('description', product.description)
-      formData.append('price', product.price.toString())
-      formData.append('price_cost', product.price_cost?.toString() || '0')
-      formData.append('qtd_stock', product.qtd_stock?.toString() || '0')
-      
-      // Categorias
-      product.categories?.forEach((category, index) => {
-        formData.append(`categories[${index}]`, category.identify)
-      })
-      
-      const result = await createProduct(
-        endpoints.products.update(product.id),
-        'PUT',
-        formData
-      )
-      
-      if (result) {
-        // ✅ Atualizar grid automaticamente sem refresh
-        await refetch()
-        handleShowSuccessAlert('Sucesso!', 'Produto alterado com sucesso!')
-      }
-    } catch (error) {
-      console.error('Erro ao editar produto:', error)
-      handleShowSuccessAlert('Erro!', 'Erro ao editar produto')
-    }
+    // Esta função não é mais necessária, pois a edição é feita via página dedicada
+    // Mantida apenas para compatibilidade com a interface DataTable
+
   }
 
-  if (!isAuthenticated) {
+  // Só mostrar mensagem de não autenticado se não estiver carregando E não estiver autenticado
+  if (!authLoading && !isAuthenticated) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-destructive">Usuário não autenticado. Faça login para continuar.</div>

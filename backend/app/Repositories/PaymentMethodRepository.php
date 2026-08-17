@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\PaymentMethod;
-use App\Repositories\contracts\PaymentMethodRepositoryInterface;
+use App\Repositories\Contracts\PaymentMethodRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class PaymentMethodRepository extends BaseRepository implements PaymentMethodRepositoryInterface

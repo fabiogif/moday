@@ -24,8 +24,14 @@ class ProfileFactory extends Factory
      */
     public function definition(): array
     {
+        static $profileCounter = 0;
+        $profileCounter++;
+        
+        $baseNames = ['user', 'manager', 'admin', 'developer', 'analyst', 'supervisor'];
+        $baseName = fake()->randomElement($baseNames);
+        
         return [
-            'name' => fake()->randomElement(['user', 'manager', 'admin']),
+            'name' => $baseName . '_' . $profileCounter . '_' . fake()->unique()->numberBetween(1000, 9999),
             'description' => fake()->sentence(),
             'is_active' => true,
         ];

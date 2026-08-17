@@ -5,40 +5,39 @@
 | Tipo | Convenção | Exemplo |
 |------|-----------|---------|
 | Controller API | `*ApiController` (preferido) | `OrderApiController`, `ProductApiController` |
-| Controller admin (código sem rota) | `*Controller` | `PermissionController` (`Admin/`) |
+| Controller admin (Blade/Inertia) | `*Controller` | `PermissionController` (`Admin/`) |
 | Service | `*Service` | `OrderService`, `ProductService` |
+| Sub-service (domínio grande) | `Order*Service` | `OrderCreationService`, `OrderWorkflowService` |
 | Repository | `*Repository` | `OrderRepository` |
 | Interface repo | `*RepositoryInterface` em `Contracts/` | `OrderRepositoryInterface` |
 | Form Request | `Store*`, `Update*` | `StoreOrderRequest`, `UpdateOrderRequest` |
 | Resource | `*Resource` | `ProductResource` |
-| Middleware | PascalCase descritivo | `EnsureTenantAccess`, `CheckPermission` |
-| Test Feature | `*Test` | `CategoryTest` |
-| Test Unit | `*Test` sob `Unit/` | `Services/AuthServiceTest` |
-| Permission string | livre, checada via `hasPermission()` | ver `app/Models/Permission.php` para os valores reais em uso antes de inventar um novo |
-
-Não existe convenção `Order*Service` para sub-serviços (não há sub-serviços), nem `plan.feature:{key}` (não existe esse middleware).
+| Middleware | PascalCase descritivo | `CheckPlanFeatures`, `CheckTenantBlocked` |
+| Migration | `YYYY_MM_DD_HHMMSS_snake_description.php` | `2026_07_19_000002_create_delivery_fee_zones_table.php` |
+| Test Feature | `*Test` | `AccountPayableApiTest` |
+| Test Unit | `*Test` sob `Unit/` | `Services/*Test` |
+| Permission string | `resource.action` | `users.index` |
+| Plan feature key | `snake_case` | `reports` (usado em `plan.feature:reports`) |
 
 ## Frontend
 
 | Tipo | Convenção | Exemplo |
 |------|-----------|---------|
 | Page file | `page.tsx` no App Router | `orders/board/page.tsx` |
-| Component file | kebab-case | `category-form-dialog.tsx` |
-| Component export | PascalCase | `CategoryFormDialog` |
+| Component file | kebab-case | `order-form-dialog.tsx` |
+| Component export | PascalCase | `OrderFormDialog` |
 | Hook file | `use-*.ts` | `use-authenticated-api.ts` |
-| Lib helper | kebab-case | `api-client.ts` |
-
-Exceção conhecida: `src/components/PermissionGuard.tsx` é o único arquivo em PascalCase do projeto — não copiar esse nome, é histórico.
-
-Não existe objeto `endpoints` centralizado nem convenção `endpoints.{modulo}.{acao}` — `api-client.ts` é uma classe `ApiClient`, não um mapa de paths.
+| Lib helper | kebab-case | `api-config.ts` |
+| Endpoint key | camelCase nested | `endpoints.orders.board` |
+| Rota URL | kebab-case (mix PT/EN existente) | `/financial/accounts-payable`, `/contas-bancarias` |
 
 ## Banco
 
-- Tabelas: `snake_case` plural (`orders`, `categories`)
+- Tabelas: `snake_case` plural (`orders`, `financial_categories`)
 - Colunas: `snake_case`
-- Soft delete: `status` (ex.: `'A'`/`'I'` em `categories`) em alguns models, `deleted_at` em outros quando o model usa `SoftDeletes` — **não é uniforme**, verificar o model específico antes de assumir um padrão
-- Escopo de tenant: coluna `tenant_id`, aplicado manualmente nas queries (sem trait automática)
+- Soft delete: `deleted_at` quando o model usa SoftDeletes
+- Escopo de tenant: coluna `tenant_id` + trait `BelongsToTenant`
 
 ## Idioma
 
-Código e identifiers preferencialmente em inglês; mensagens de API/UI ao usuário em português (padrão das responses e toasts observado no código). Nomes de rota/pasta no frontend são majoritariamente em inglês — seguir o módulo vizinho.
+Código e identifiers preferencialmente em inglês; mensagens de API/UI ao usuário em português (já é o padrão das responses e toasts). Nomes de rota/pasta no frontend têm mix PT/EN já existente — seguir o módulo vizinho, não forçar tradução em massa.

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Moday - Gestão de Restaurante",
+  title: "Alba Tec - Gestão de Restaurante",
   description: "Gestão de Restaurante",
 };
 

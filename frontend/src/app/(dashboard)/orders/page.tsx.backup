@@ -77,7 +77,7 @@ export default function OrdersPage() {
       if (result) {
         // Recarregar dados após faturamento
         await refetch()
-        console.log("Pedido faturado com sucesso:", result)
+        // console.log("Pedido faturado com sucesso:", result)
       }
     } catch (error) {
       console.error('Erro ao faturar pedido:', error)

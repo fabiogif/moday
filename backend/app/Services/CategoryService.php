@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Repositories\contracts\{CategoryRepositoryInterface, PaginateRepositoryInterface};
+use App\Repositories\Contracts\{CategoryRepositoryInterface, PaginateRepositoryInterface};
 
 readonly class CategoryService
 {
@@ -17,12 +17,46 @@ readonly class CategoryService
         return $this->categoryRepositoryInterface->index();
     }
 
-    public function store(array $data, int $tenantId = null)
+    public function store(array $data)
     {
+        $tenantId = isset($data['tenant_id']) ? (int) $data['tenant_id'] : null;
+        $name = isset($data['name']) ? trim((string) $data['name']) : null;
+
+        // Soft-delete uses status=I: reactivate inactive category with same name.
+        if ($tenantId && $name) {
+            $inactive = \App\Models\Category::query()
+                ->where('tenant_id', $tenantId)
+                ->where('name', $name)
+                ->where('status', 'I')
+                ->first();
+
+            if ($inactive) {
+                $payload = array_intersect_key(
+                    array_merge($data, ['status' => 'A']),
+                    array_flip(['name', 'description', 'url', 'status'])
+                );
+                $category = $this->categoryRepositoryInterface->updateByTenant(
+                    $payload,
+                    (int) $inactive->id,
+                    $tenantId
+                );
+
+                $this->cacheService->invalidateCategoryCache($tenantId);
+
+                return $category;
+            }
+        }
+
+        if (!isset($data['status'])) {
+            $data['status'] = 'A';
+        }
+
         $category = $this->categoryRepositoryInterface->store($data);
-        if($tenantId) {
+
+        if ($tenantId) {
             $this->cacheService->invalidateCategoryCache($tenantId);
         }
+
         return $category;
     }
 
@@ -34,22 +68,18 @@ readonly class CategoryService
         return $this->categoryRepositoryInterface->getByUuid($identify);
     }
 
-    public function update(array $data, string $identify, int $tenantId = null)
+    public function update(array $data, int $id, int $tenantId = null)
     {
         if($tenantId) {
-            $category = $this->categoryRepositoryInterface->updateByTenant($data, $identify, $tenantId);
-            $this->cacheService->invalidateCategoryCache($tenantId);
-            return $category;
+            return $this->categoryRepositoryInterface->updateByTenant($data, $id, $tenantId);
         }
-        return $this->categoryRepositoryInterface->update($data, $identify);
+        return $this->categoryRepositoryInterface->update($data, $id);
     }
 
     public function delete(string $identify, int $tenantId = null)
     {
         if($tenantId) {
-            $result = $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
-            $this->cacheService->invalidateCategoryCache($tenantId);
-            return $result;
+            return $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
         }
         return $this->categoryRepositoryInterface->delete($identify);
     }

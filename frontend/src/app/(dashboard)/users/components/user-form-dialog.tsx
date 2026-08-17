@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import {
   Select,
   SelectContent,
@@ -201,8 +202,7 @@ export function UserFormDialog({ onAddUser, onEditUser, editingUser, children, o
                   <FormItem>
                     <FormLabel>Senha</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
+                      <PasswordInput
                         placeholder="Digite a senha"
                         className={passwordMismatch ? "border-red-500 focus:border-red-500" : ""}
                         {...field}
@@ -219,8 +219,7 @@ export function UserFormDialog({ onAddUser, onEditUser, editingUser, children, o
                   <FormItem>
                     <FormLabel>Confirmar Senha</FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
+                      <PasswordInput
                         placeholder="Confirme a senha"
                         className={passwordMismatch ? "border-red-500 focus:border-red-500" : ""}
                         {...field}

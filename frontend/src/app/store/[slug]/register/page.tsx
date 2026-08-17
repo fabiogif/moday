@@ -6,11 +6,13 @@ import Link from 'next/link'
 import { useClientAuth } from '@/contexts/client-auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Store, ArrowLeft, UserPlus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { maskCPF, validateCPF, maskPhone, validatePhone, validateEmail } from '@/lib/masks'
 
 export default function ClientRegisterPage() {
   const params = useParams()
@@ -36,15 +38,46 @@ export default function ClientRegisterPage() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    let maskedValue = value
+
+    // Aplicar máscaras
+    if (name === 'cpf') {
+      maskedValue = maskCPF(value)
+    } else if (name === 'phone') {
+      maskedValue = maskPhone(value)
+    }
+
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: maskedValue
     }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Validar email
+    if (!validateEmail(formData.email)) {
+      setError('Email inválido')
+      toast.error('Por favor, insira um email válido')
+      return
+    }
+
+    // Validar telefone
+    if (!validatePhone(formData.phone)) {
+      setError('Telefone inválido')
+      toast.error('Por favor, insira um telefone válido com DDD')
+      return
+    }
+
+    // Validar CPF se fornecido
+    if (formData.cpf && !validateCPF(formData.cpf)) {
+      setError('CPF inválido')
+      toast.error('Por favor, insira um CPF válido')
+      return
+    }
 
     // Validar senhas
     if (formData.password !== formData.password_confirmation) {
@@ -172,10 +205,9 @@ export default function ClientRegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Senha *</Label>
-                <Input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   placeholder="Mínimo 6 caracteres"
                   value={formData.password}
                   onChange={handleChange}
@@ -187,10 +219,9 @@ export default function ClientRegisterPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password_confirmation">Confirmar Senha *</Label>
-                <Input
+                <PasswordInput
                   id="password_confirmation"
                   name="password_confirmation"
-                  type="password"
                   placeholder="Digite a senha novamente"
                   value={formData.password_confirmation}
                   onChange={handleChange}

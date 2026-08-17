@@ -2,212 +2,81 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
-use App\Models\Client;
-use App\Models\Tenant;
-use Illuminate\Http\Request;
+use App\Http\Requests\Api\ClientLoginRequest;
+use App\Http\Requests\Api\ClientRegisterRequest;
+use App\Services\ClientAuthService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ClientAuthController extends Controller
 {
+    public function __construct(private readonly ClientAuthService $authService) {}
+
     /**
      * Register a new client
      */
-    public function register(Request $request, string $slug): JsonResponse
+    public function register(ClientRegisterRequest $request, string $slug): JsonResponse
     {
         try {
-            // Find tenant by slug
-            $tenant = Tenant::where('slug', $slug)
-                ->where('is_active', true)
-                ->first();
+            $tenant = $this->authService->findActiveTenantBySlug($slug);
 
             if (!$tenant) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Loja não encontrada'
-                ], 404);
+                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
             }
 
-            // Validate request
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
-                'password' => 'required|string|min:6|confirmed',
-                'phone' => 'required|string|max:20',
-                'cpf' => 'nullable|string|max:14',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dados inválidos',
-                    'errors' => $validator->errors()
-                ], 422);
+            if ($this->authService->emailExistsForTenant($request->email, $tenant->id)) {
+                return ApiResponseClass::validationError(['email' => ['Email já cadastrado nesta loja']], 'Dados inválidos');
             }
 
-            // Check if email already exists for this tenant
-            $existingClient = Client::where('email', $request->email)
-                ->where('tenant_id', $tenant->id)
-                ->first();
+            [$client, $token] = $this->authService->registerClient($request->validated(), $tenant);
 
-            if ($existingClient) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Email já cadastrado nesta loja'
-                ], 422);
-            }
+            $ttlMinutes = config('jwt.ttl', 120);
+            $cookie = cookie('client_auth_token', $token, $ttlMinutes, '/', null, true, true, false, 'strict');
 
-            // Create client
-            $client = Client::create([
-                'uuid' => Str::uuid(),
-                'tenant_id' => $tenant->id,
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'phone' => $request->phone,
-                'cpf' => $request->cpf,
-                'is_active' => true,
-            ]);
-
-            // Generate JWT token
-            $token = JWTAuth::fromUser($client);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Cliente registrado com sucesso',
-                'data' => [
-                    'client' => [
-                        'uuid' => $client->uuid,
-                        'name' => $client->name,
-                        'email' => $client->email,
-                        'phone' => $client->phone,
-                        'cpf' => $client->cpf,
-                    ],
-                    'token' => $token,
-                    'token_type' => 'bearer',
-                    'expires_in' => config('jwt.ttl') * 60
-                ]
-            ], 201);
+            return ApiResponseClass::sendResponse([
+                'client' => [
+                    'uuid' => $client->uuid,
+                    'name' => $client->name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'cpf' => $client->cpf,
+                ],
+                'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => $ttlMinutes * 60
+            ], 'Cliente registrado com sucesso', 201)->withCookie($cookie);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao registrar cliente',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao registrar cliente');
         }
     }
 
     /**
      * Login client
      */
-    public function login(Request $request, string $slug): JsonResponse
+    public function login(ClientLoginRequest $request, string $slug): JsonResponse
     {
         try {
-            // Find tenant by slug
-            $tenant = Tenant::where('slug', $slug)
-                ->where('is_active', true)
-                ->first();
+            $tenant = $this->authService->findActiveTenantBySlug($slug);
 
             if (!$tenant) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Loja não encontrada'
-                ], 404);
+                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
             }
-
-            // Validate request
-            $validator = Validator::make($request->all(), [
-                'email' => 'required|email',
-                'password' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Dados inválidos',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Find client
-            $client = Client::where('email', $request->email)
-                ->where('tenant_id', $tenant->id)
-                ->first();
-
-            if (!$client || !Hash::check($request->password, $client->password ?? '')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Email ou senha incorretos'
-                ], 401);
-            }
-
-            // Check if client is active
-            if (!$client->is_active) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Conta desativada. Entre em contato com a loja.'
-                ], 403);
-            }
-
-            // Generate JWT token
-            $token = JWTAuth::fromUser($client);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Login realizado com sucesso',
-                'data' => [
-                    'client' => [
-                        'uuid' => $client->uuid,
-                        'name' => $client->name,
-                        'email' => $client->email,
-                        'phone' => $client->phone,
-                        'cpf' => $client->cpf,
-                        'address' => $client->address,
-                        'city' => $client->city,
-                        'state' => $client->state,
-                        'zip_code' => $client->zip_code,
-                        'neighborhood' => $client->neighborhood,
-                        'number' => $client->number,
-                        'complement' => $client->complement,
-                    ],
-                    'token' => $token,
-                    'token_type' => 'bearer',
-                    'expires_in' => config('jwt.ttl') * 60
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao fazer login',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get authenticated client info
-     */
-    public function me(Request $request): JsonResponse
-    {
-        try {
-            $client = JWTAuth::parseToken()->authenticate();
-
+            $client = $this->authService->authenticate($request->email, $request->password, $tenant);
             if (!$client) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cliente não autenticado'
-                ], 401);
+                return ApiResponseClass::sendResponse('', 'Email ou senha incorretos', 401);
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => [
+            $token = $this->authService->generateTokenForClient($client);
+
+            $ttlMinutes = config('jwt.ttl', 120);
+            $cookie = cookie('client_auth_token', $token, $ttlMinutes, '/', null, true, true, false, 'strict');
+
+            return ApiResponseClass::sendResponse([
+                'client' => [
                     'uuid' => $client->uuid,
                     'name' => $client->name,
                     'email' => $client->email,
@@ -220,15 +89,46 @@ class ClientAuthController extends Controller
                     'neighborhood' => $client->neighborhood,
                     'number' => $client->number,
                     'complement' => $client->complement,
-                ]
-            ]);
+                ],
+                'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => $ttlMinutes * 60
+            ], 'Login realizado com sucesso', 200)->withCookie($cookie);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar dados do cliente',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao fazer login');
+        }
+    }
+
+    /**
+     * Get authenticated client info
+     */
+    public function me(Request $request): JsonResponse
+    {
+        try {
+            $client = $request->user('client');
+
+            if (!$client) {
+                return ApiResponseClass::sendResponse('', 'Cliente não autenticado', 401);
+            }
+
+            return ApiResponseClass::sendResponse([
+                'uuid' => $client->uuid,
+                'name' => $client->name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'cpf' => $client->cpf,
+                'address' => $client->address,
+                'city' => $client->city,
+                'state' => $client->state,
+                'zip_code' => $client->zip_code,
+                'neighborhood' => $client->neighborhood,
+                'number' => $client->number,
+                'complement' => $client->complement,
+            ], 'Dados do cliente carregados com sucesso', 200);
+
+        } catch (\Exception $e) {
+            return ApiResponseClass::rollback($e, 'Erro ao buscar dados do cliente');
         }
     }
 
@@ -240,17 +140,13 @@ class ClientAuthController extends Controller
         try {
             JWTAuth::parseToken()->invalidate();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Logout realizado com sucesso'
-            ]);
+            $cookie = cookie('client_auth_token', '', -1, '/', null, true, true, false, 'strict');
+
+            return ApiResponseClass::sendResponse('', 'Logout realizado com sucesso', 200)
+                ->withCookie($cookie);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao fazer logout',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao fazer logout');
         }
     }
 
@@ -260,7 +156,7 @@ class ClientAuthController extends Controller
     public function getOrders(Request $request): JsonResponse
     {
         try {
-            $client = JWTAuth::parseToken()->authenticate();
+            $client = $request->user('client');
 
             if (!$client) {
                 return response()->json([
@@ -270,10 +166,7 @@ class ClientAuthController extends Controller
             }
 
             // Get orders with products
-            $orders = \App\Models\Order::where('client_id', $client->id)
-                ->with(['products', 'table'])
-                ->orderBy('created_at', 'desc')
-                ->get()
+            $orders = $this->authService->getClientOrders($client)
                 ->map(function ($order) {
                     return [
                         'id' => $order->id,
@@ -291,13 +184,15 @@ class ClientAuthController extends Controller
                         'created_at' => $order->created_at->format('d/m/Y H:i'),
                         'created_at_human' => $order->created_at->diffForHumans(),
                         'products' => $order->products->map(function ($product) {
+                            $imageUrl = \App\Helpers\ImageHelper::publicAssetPath($product->image, 'products');
+                            
                             return [
                                 'uuid' => $product->uuid,
                                 'name' => $product->name,
                                 'price' => (float) $product->pivot->price,
                                 'quantity' => (int) $product->pivot->qty,
                                 'subtotal' => (float) $product->pivot->price * (int) $product->pivot->qty,
-                                'image' => $product->url ?? $product->image,
+                                'image' => $imageUrl,
                             ];
                         }),
                         'table' => $order->table ? [
@@ -307,20 +202,13 @@ class ClientAuthController extends Controller
                     ];
                 });
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'orders' => $orders,
-                    'total_orders' => $orders->count(),
-                ]
-            ]);
+            return ApiResponseClass::sendResponse([
+                'orders' => $orders,
+                'total_orders' => $orders->count(),
+            ], 'Pedidos carregados com sucesso', 200);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro ao buscar pedidos',
-                'error' => $e->getMessage()
-            ], 500);
+            return ApiResponseClass::rollback($e, 'Erro ao buscar pedidos');
         }
     }
 }

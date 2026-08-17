@@ -24,7 +24,7 @@ class TestUserFactory extends Factory
         return [
             'name' => 'Teste',
             'email' => 'teste@example.com',
-            'password' => Hash::make('$Duda0793'),
+            'password' => Hash::make(env('TEST_USER_PASSWORD', 'password')),
             'email_verified_at' => now(),
             'is_active' => true,
             'tenant_id' => function () {

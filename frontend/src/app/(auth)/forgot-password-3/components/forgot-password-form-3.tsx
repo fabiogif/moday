@@ -24,13 +24,13 @@ export function ForgotPasswordForm3({
                   <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
                     <Logo size={24} />
                   </div>
-                  <span className="text-xl">ShadcnStore</span>
+                  <span className="text-xl">Alba Tec - Sistema de Gestão</span>
                 </Link>
               </div>
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Forgot your password?</h1>
+                <h1 className="text-2xl font-bold">Esqueceu sua senha?</h1>
                 <p className="text-muted-foreground text-balance">
-                  Enter your email to reset your ShadcnStore account password
+                Digite seu e-mail para redefinir a senha da sua conta 
                 </p>
               </div>
               <div className="grid gap-3">
@@ -43,12 +43,12 @@ export function ForgotPasswordForm3({
                 />
               </div>
               <Button type="submit" className="w-full cursor-pointer">
-                Send Reset Link
+              Enviar link de redefinição
               </Button>
               <div className="text-center text-sm">
-                Remember your password?{" "}
+              Lembre-se da sua senha?{" "}
                 <a href="/login" className="underline underline-offset-4">
-                  Back to sign in
+                Voltar para fazer login
                 </a>
               </div>
             </div>
@@ -58,14 +58,15 @@ export function ForgotPasswordForm3({
               src="https://ui.shadcn.com/placeholder.svg"
               alt="Image"
               fill
+              sizes="(max-width: 768px) 0vw, 50vw"
               className="object-cover dark:brightness-[0.95] dark:invert"
             />
           </div>
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+      Ao clicar em continuar, você concorda com nossos <a href="#">Termos de serviço</a>{" "}
+        e <a href="#">Política de Privacidade</a>.
       </div>
     </div>
   )

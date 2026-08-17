@@ -19,8 +19,8 @@ import { useAuthenticatedPermissions, useMutation } from "@/hooks/use-authentica
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { endpoints } from "@/lib/api-client"
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+import { buildApiUrl } from "@/lib/api-config"
+import { getAuthToken } from "@/lib/auth-storage"
 
 interface Permission {
   id: number
@@ -76,9 +76,9 @@ export function AssignPermissionsDialog({
     if (!profile) return
 
     try {
-      const response = await fetch(API_BASE_URL + endpoints.profiles.permissions(profile.id), {
+      const response = await fetch(buildApiUrl(endpoints.profiles.permissions(profile.id)), {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Accept': 'application/json',
         },
       })
@@ -87,9 +87,11 @@ export function AssignPermissionsDialog({
         const data = await response.json()
         const permissions = data.data || []
         setSelectedPermissions(permissions.map((p: Permission) => p.id))
+      } else {
+        toast.error("Não foi possível carregar as permissões do perfil")
       }
     } catch (error) {
-      console.error('Erro ao carregar permissões do perfil:', error)
+      toast.error("Não foi possível carregar as permissões do perfil")
     }
   }
 
@@ -117,7 +119,7 @@ export function AssignPermissionsDialog({
     if (!profile) return
 
     try {
-      console.log('Vinculando permissões:', { profileId: profile.id, permissionIds: selectedPermissions })
+
       const result = await syncPermissions(
         endpoints.profiles.syncPermissions(profile.id),
         'PUT',
@@ -130,7 +132,7 @@ export function AssignPermissionsDialog({
         onOpenChange(false)
       }
     } catch (error: any) {
-      console.error('Erro ao vincular permissões:', error)
+
       toast.error(error.message || 'Erro ao vincular permissões')
     }
   }

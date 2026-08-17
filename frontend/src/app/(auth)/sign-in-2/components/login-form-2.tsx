@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 
 export function LoginForm2({
@@ -32,7 +33,7 @@ export function LoginForm2({
               Forgot your password?
             </a>
           </div>
-          <Input id="password" type="password" defaultValue="password" required />
+          <PasswordInput id="password" defaultValue="password" required />
         </div>
         <Button type="submit" className="w-full cursor-pointer">
           Login

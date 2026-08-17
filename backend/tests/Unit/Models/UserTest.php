@@ -7,13 +7,14 @@ use App\Models\Tenant;
 use App\Models\Profile;
 use App\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class UserTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function user_pode_ter_tenant()
     {
         $tenant = Tenant::factory()->create();
@@ -23,7 +24,7 @@ class UserTest extends TestCase
         $this->assertEquals($tenant->id, $user->tenant->id);
     }
 
-    /** @test */
+    #[Test]
     public function user_pode_ter_profile()
     {
         $profile = Profile::factory()->create();
@@ -33,7 +34,7 @@ class UserTest extends TestCase
         $this->assertEquals($profile->id, $user->profile->id);
     }
 
-    /** @test */
+    #[Test]
     public function scope_active_retorna_apenas_usuarios_ativos()
     {
         User::factory()->create(['is_active' => true]);
@@ -46,7 +47,7 @@ class UserTest extends TestCase
         $this->assertTrue($activeUsers->every(fn($user) => $user->is_active));
     }
 
-    /** @test */
+    #[Test]
     public function scope_for_tenant_retorna_usuarios_do_tenant()
     {
         $tenant1 = Tenant::factory()->create();
@@ -59,24 +60,28 @@ class UserTest extends TestCase
         $tenant1Users = User::forTenant($tenant1->id)->get();
 
         $this->assertCount(2, $tenant1Users);
-        $this->assertTrue($tenant1Users->every(fn($user) => $user->tenant_id === $tenant1->id));
+        $this->assertTrue($tenant1Users->every(fn($user) => $user->tenant_id == $tenant1->id));
     }
 
-    /** @test */
+    #[Test]
     public function has_permission_verifica_permissoes_do_usuario()
     {
-        $permission = Permission::factory()->create(['name' => 'create_posts']);
+        $permissionName = 'create_posts_' . uniqid();
+        $permission = Permission::factory()->create([
+            'name' => $permissionName,
+            'slug' => $permissionName
+        ]);
         $profile = Profile::factory()->create();
-        $profile->permissions()->attach($permission);
+        $profile->permissions()->syncWithoutDetaching([$permission->id]);
         
         $user = User::factory()->create(['profile_id' => $profile->id]);
         $user->load('profile.permissions');
 
-        $this->assertTrue($user->hasPermission('create_posts'));
+        $this->assertTrue($user->hasPermission($permissionName));
         $this->assertFalse($user->hasPermission('delete_posts'));
     }
 
-    /** @test */
+    #[Test]
     public function update_last_login_atualiza_campo_corretamente()
     {
         $user = User::factory()->create(['last_login_at' => null]);
@@ -87,7 +92,7 @@ class UserTest extends TestCase
         $this->assertNotNull($user->last_login_at);
     }
 
-    /** @test */
+    #[Test]
     public function jwt_identifier_retorna_id_do_usuario()
     {
         $user = User::factory()->create();
@@ -95,7 +100,7 @@ class UserTest extends TestCase
         $this->assertEquals($user->id, $user->getJWTIdentifier());
     }
 
-    /** @test */
+    #[Test]
     public function jwt_custom_claims_retorna_dados_corretos()
     {
         $tenant = Tenant::factory()->create();
@@ -113,7 +118,7 @@ class UserTest extends TestCase
         $this->assertTrue($claims['is_active']);
     }
 
-    /** @test */
+    #[Test]
     public function password_e_automaticamente_hasheada()
     {
         $user = User::factory()->create(['password' => 'plain-password']);
@@ -121,7 +126,7 @@ class UserTest extends TestCase
         $this->assertTrue(password_verify('plain-password', $user->getAuthPassword()));
     }
 
-    /** @test */
+    #[Test]
     public function campos_hidden_nao_aparecem_na_serializacao()
     {
         $user = User::factory()->create();
@@ -131,7 +136,7 @@ class UserTest extends TestCase
         $this->assertArrayNotHasKey('remember_token', $array);
     }
 
-    /** @test */
+    #[Test]
     public function campos_fillable_podem_ser_mass_assigned()
     {
         $data = [
@@ -155,7 +160,7 @@ class UserTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function soft_deletes_funciona_corretamente()
     {
         $user = User::factory()->create();
@@ -164,5 +169,50 @@ class UserTest extends TestCase
         
         $this->assertSoftDeleted($user);
         $this->assertNotNull($user->deleted_at);
+    }
+
+    #[Test]
+    public function administrador_tem_acesso_a_todas_as_permissoes_mesmo_sem_grant_explicito()
+    {
+        $tenant = Tenant::factory()->create();
+        $adminProfile = Profile::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Administrador',
+        ]);
+
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->profiles()->attach($adminProfile->id);
+
+        $this->assertTrue($user->isAdmin());
+        $this->assertTrue($user->hasPermissionTo('visits.index'));
+        $this->assertTrue($user->hasPermissionTo('qualquer.permissao.inexistente'));
+        $this->assertTrue($user->hasAnyPermission(['visits.destroy', 'x.y']));
+        $this->assertTrue($user->hasAllPermissions(['a.b', 'c.d']));
+    }
+
+    #[Test]
+    public function has_permission_to_respeita_profile_id_sem_pivot()
+    {
+        $tenant = Tenant::factory()->create();
+        $permission = Permission::factory()->create([
+            'tenant_id' => $tenant->id,
+            'slug' => 'clients.index.' . uniqid(),
+            'name' => 'clients.index',
+            'is_active' => true,
+        ]);
+        $profile = Profile::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Vendedor',
+        ]);
+        $profile->permissions()->syncWithoutDetaching([$permission->id]);
+
+        $user = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'profile_id' => $profile->id,
+        ]);
+
+        $this->assertFalse($user->isAdmin());
+        $this->assertTrue($user->hasPermissionTo($permission->slug));
+        $this->assertFalse($user->hasPermissionTo('clients.destroy.' . uniqid()));
     }
 }

@@ -29,7 +29,8 @@ class PermissionFactory extends Factory
         
         $action = fake()->randomElement($actions);
         $resource = fake()->randomElement($resources);
-        $name = "{$action}_{$resource}";
+        $uniqueId = fake()->unique()->randomNumber(5);
+        $name = "{$action}_{$resource}_{$uniqueId}";
 
         return [
             'name' => $name,

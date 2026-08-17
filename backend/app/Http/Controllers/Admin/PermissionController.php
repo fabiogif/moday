@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUpdatePermission;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 
+/** @deprecated Legado Blade — use a API REST. */
 class PermissionController extends Controller
 {
     public function __construct(protected Permission $repository)

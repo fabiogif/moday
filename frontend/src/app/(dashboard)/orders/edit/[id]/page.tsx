@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -48,6 +48,10 @@ import { useAuthenticatedApi, useMutation } from "@/hooks/use-authenticated-api"
 import { endpoints } from "@/lib/api-client"
 import { OrderDetails } from "../../types"
 import { toast } from "sonner"
+import { useViaCEP } from "@/hooks/use-viacep"
+import { maskZipCode } from "@/lib/masks"
+import { StateCityFormFields } from "@/components/location/state-city-form-fields"
+import { applyCepToForm } from "@/lib/apply-cep-to-form"
 
 // Schema de validação para edição de pedido
 const orderEditSchema = z.object({
@@ -69,11 +73,20 @@ type OrderEditFormValues = z.infer<typeof orderEditSchema>
 
 const statusOptions = [
   { value: "Pendente", label: "Pendente" },
-  { value: "Em Preparo", label: "Em Preparo" },
-  { value: "Pronto", label: "Pronto" },
-  { value: "Entregue", label: "Entregue" },
+  { value: "Aceito", label: "Aceito" },
+  { value: "Preparo", label: "Preparo" },
+  { value: "Concluído", label: "Concluído" },
   { value: "Cancelado", label: "Cancelado" },
 ]
+
+// Status finais que não podem ser editados
+const FINAL_STATUSES = ['Concluído', 'Cancelado']
+
+// Função helper para verificar se um status é final
+const isFinalStatus = (status: string | null | undefined): boolean => {
+  if (!status) return false
+  return FINAL_STATUSES.includes(status)
+}
 
 export default function EditOrderPage() {
   const params = useParams()
@@ -89,6 +102,7 @@ export default function EditOrderPage() {
   )
 
   const { mutate: updateOrder, loading: updating } = useMutation()
+  const { loading: loadingCEP, searchCEP } = useViaCEP()
 
   const form = useForm<OrderEditFormValues>({
     resolver: zodResolver(orderEditSchema),
@@ -110,6 +124,32 @@ export default function EditOrderPage() {
 
   const isDelivery = form.watch("is_delivery")
   const useClientAddress = form.watch("use_client_address")
+
+  const handleDeliveryCepLookup = useCallback(
+    async (cepValue: string) => {
+      if (!cepValue || useClientAddress) return
+
+      const cleanCEP = cepValue.replace(/\D/g, "")
+      if (cleanCEP.length !== 8) {
+        return
+      }
+
+      try {
+        const address = await searchCEP(cepValue)
+        if (address) {
+          applyCepToForm(form.setValue, address, {
+            address: "delivery_address",
+            neighborhood: "delivery_neighborhood",
+            state: "delivery_state",
+            city: "delivery_city",
+          })
+        }
+      } catch {
+        // Erro já é tratado pelo useViaCEP com toast
+      }
+    },
+    [form, searchCEP, useClientAddress]
+  )
 
   useEffect(() => {
     if (orderData) {
@@ -143,6 +183,12 @@ export default function EditOrderPage() {
   }, [orderData, apiLoading, apiError, form])
 
   const onSubmit = async (data: OrderEditFormValues) => {
+    // Verificar se o pedido está finalizado antes de tentar atualizar
+    if (orderIsFinal) {
+      toast.error('Este pedido está finalizado e não pode ser alterado.')
+      return
+    }
+
     try {
       const result = await updateOrder(
         endpoints.orders.update(orderId),
@@ -155,8 +201,13 @@ export default function EditOrderPage() {
         router.push('/orders')
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar pedido:', error)
-      toast.error(error.message || 'Erro ao atualizar pedido')
+
+      // Verificar se o erro é de pedido finalizado
+      if (error?.response?.status === 403 || error?.message?.includes('finalizado')) {
+        toast.error('Este pedido está finalizado e não pode ser alterado.')
+      } else {
+        toast.error(error.message || 'Erro ao atualizar pedido')
+      }
     }
   }
 
@@ -180,14 +231,14 @@ export default function EditOrderPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Entregue":
+      case "Concluído":
         return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
       case "Pendente":
         return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20"
-      case "Em Preparo":
+      case "Aceito":
+        return "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/20"
+      case "Preparo":
         return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20"
-      case "Pronto":
-        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20"
       case "Cancelado":
         return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20"
       default:
@@ -247,8 +298,10 @@ export default function EditOrderPage() {
     )
   }
 
+  const orderIsFinal = isFinalStatus(order.status)
+
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 py-2 px-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -264,7 +317,7 @@ export default function EditOrderPage() {
               Editar Pedido #{order.identify || order.orderNumber}
             </h1>
             <p className="text-muted-foreground">
-              Edite as informações do pedido
+              {orderIsFinal ? 'Visualizar informações do pedido (pedido finalizado não pode ser editado)' : 'Edite as informações do pedido'}
             </p>
           </div>
         </div>
@@ -272,6 +325,24 @@ export default function EditOrderPage() {
           {order.status}
         </Badge>
       </div>
+
+      {orderIsFinal && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/50">
+              <MessageSquare className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                Pedido Finalizado
+              </p>
+              <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                Este pedido possui status final ({order.status}) e não pode ser editado. Você pode visualizar as informações, mas não pode salvar alterações.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna Principal - Formulário */}
@@ -291,7 +362,7 @@ export default function EditOrderPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status do Pedido</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={orderIsFinal}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o status" />
@@ -320,6 +391,7 @@ export default function EditOrderPage() {
                           <Textarea
                             placeholder="Adicione observações sobre o pedido..."
                             className="resize-none"
+                            disabled={orderIsFinal}
                             {...field}
                           />
                         </FormControl>
@@ -352,6 +424,7 @@ export default function EditOrderPage() {
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            disabled={orderIsFinal}
                           />
                         </FormControl>
                       </FormItem>
@@ -375,6 +448,7 @@ export default function EditOrderPage() {
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                disabled={orderIsFinal}
                               />
                             </FormControl>
                           </FormItem>
@@ -390,7 +464,7 @@ export default function EditOrderPage() {
                               <FormItem className="md:col-span-2">
                                 <FormLabel>Endereço de Entrega</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Rua, Avenida..." {...field} />
+                                  <Input placeholder="Rua, Avenida..." disabled={orderIsFinal} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -404,7 +478,7 @@ export default function EditOrderPage() {
                               <FormItem>
                                 <FormLabel>Número</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="123" {...field} />
+                                  <Input placeholder="123" disabled={orderIsFinal} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -418,7 +492,7 @@ export default function EditOrderPage() {
                               <FormItem>
                                 <FormLabel>Complemento</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Apt, Bloco..." {...field} />
+                                  <Input placeholder="Apt, Bloco..." disabled={orderIsFinal} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -432,54 +506,64 @@ export default function EditOrderPage() {
                               <FormItem>
                                 <FormLabel>Bairro</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Centro" {...field} />
+                                  <Input placeholder="Centro" disabled={orderIsFinal} {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
-                          <FormField
-                            control={form.control}
-                            name="delivery_city"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Cidade</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="São Paulo" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 md:items-end">
+                            <StateCityFormFields
+                              control={form.control}
+                              stateFieldName="delivery_state"
+                              cityFieldName="delivery_city"
+                              disabled={orderIsFinal}
+                              gridCols="state-small"
+                            />
 
-                          <FormField
-                            control={form.control}
-                            name="delivery_state"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Estado</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="SP" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="delivery_zip_code"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>CEP</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="01234-567" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                              control={form.control}
+                              name="delivery_zip_code"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    CEP{" "}
+                                    <span className="text-muted-foreground text-xs font-normal">
+                                    Ao informar o CEP o preenchimento do endereço será automático
+                                    </span>
+                                  </FormLabel>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Input
+                                        placeholder="01234-567"
+                                        value={field.value || ""}
+                                        onChange={(event) => {
+                                          const masked = maskZipCode(event.target.value)
+                                          field.onChange(masked)
+                                        }}
+                                        onBlur={(event) => {
+                                          field.onBlur()
+                                          handleDeliveryCepLookup(event.target.value)
+                                        }}
+                                        maxLength={9}
+                                        disabled={orderIsFinal || loadingCEP}
+                                      />
+                                      {loadingCEP && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </FormControl>
+                                  <p className="text-xs text-muted-foreground mt-1 md:hidden">
+                                    {loadingCEP ? "Buscando endereço..." : "Preenchimento automático ativo"}
+                                  </p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
                           <FormField
                             control={form.control}
@@ -491,6 +575,7 @@ export default function EditOrderPage() {
                                   <Textarea
                                     placeholder="Instruções especiais para entrega..."
                                     className="resize-none"
+                                    disabled={orderIsFinal}
                                     {...field}
                                   />
                                 </FormControl>
@@ -514,9 +599,9 @@ export default function EditOrderPage() {
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={updating}>
+                <Button type="submit" disabled={updating || orderIsFinal}>
                   <Save className="mr-2 h-4 w-4" />
-                  {updating ? 'Salvando...' : 'Salvar Alterações'}
+                  {updating ? 'Salvando...' : orderIsFinal ? 'Pedido Finalizado (Não Pode Ser Editado)' : 'Salvar Alterações'}
                 </Button>
               </div>
             </form>

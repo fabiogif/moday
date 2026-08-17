@@ -3,7 +3,6 @@ import {BarChart3, FileText, TrendingUp, Clock, TrendingUp as TrendingUpIcon, Tr
 import { Badge } from "@/components/ui/badge"
 import { cn } from '@/lib/utils'
 
-
 const performanceMetrics = [
   {
     title: 'Total Relatórios',

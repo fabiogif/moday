@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { resolveImageUrl } from "@/lib/resolve-image-url"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -52,20 +53,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toast } from "sonner"
 import { ProductFormDialog } from "./product-form-dialog"
-import { ProductEditDialog } from "./product-edit-dialog"
 import { DeleteProductDialog } from "./delete-product-dialog"
 
 interface Product {
   id: number
   name: string
   description: string
-  price: number
+  price: number | string
   categories: Array<{
     identify: string
     name: string
   }>
-  price_cost: number
+  price_cost: number | string
+  qtd_stock?: number | string
   is_active: boolean
   created_at: string
   createdAt: string
@@ -110,6 +112,10 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
   }
 
   const handleViewDetails = (productId: number | string) => {
+    if (productId === undefined || productId === null || productId === '' || productId === 'undefined') {
+      toast.error('ID do produto inválido');
+      return;
+    }
     router.push(`/products/${productId}`);
   };
 
@@ -146,14 +152,14 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       accessorKey: "name",
       header: "Nome",
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
+        <div className="group flex items-center gap-3">
           {/* Product Image Thumbnail */}
           <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
             {row.original.url ? (
               <img
-                src={row.original.url}
+                src={resolveImageUrl(row.original.url) || ""}
                 alt={row.getValue("name")}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-110"
                 onError={(e) => {
                   // Fallback if image fails to load
                   e.currentTarget.style.display = 'none'
@@ -255,6 +261,8 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
       enableHiding: false,
       cell: ({ row }) => {
         const product = row.original
+        
+        // Debug: Log do produto para verificar estrutura
 
         return (
           <DropdownMenu>
@@ -265,12 +273,19 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleViewDetails(product.id?.toString() || '')}>
+              <DropdownMenuItem 
+                onClick={() => handleViewDetails(product.id)}
+                disabled={!product.id}
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 Ver detalhes
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <ProductEditDialog product={product} onEditProduct={onEditProduct} />
+              <DropdownMenuItem 
+                onClick={() => router.push(`/products/${product.id}/edit`)}
+                disabled={!product.id}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
@@ -340,7 +355,7 @@ export function DataTable({ products, onDeleteProduct, onEditProduct, onAddProdu
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => window.location.href = '/products/new'}>
+          <Button onClick={() => router.push('/products/new')}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Produto
           </Button>

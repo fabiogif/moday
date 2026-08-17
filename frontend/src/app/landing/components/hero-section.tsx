@@ -1,108 +1,104 @@
 "use client"
 
+import { useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowRight, Play, Star } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { DotPattern } from '@/components/dot-pattern'
+import { TRIAL_CTA_LABEL, TRIAL_MICRO_COPY } from '@/lib/landing-copy'
+import {
+  getVariantFromQuery,
+  persistLandingVariant,
+  resolveLandingVariant,
+} from '@/lib/landing-variants'
+import { useLandingCTAClick } from '@/hooks/use-landing-cta-click'
+import { HeroProductAnimation } from './hero-product-animation'
 
 export function HeroSection() {
+  const searchParams = useSearchParams()
+  const variant = resolveLandingVariant(searchParams)
+  const trackCTA = useLandingCTAClick('cta_hero_click', variant.id)
+
+  useEffect(() => {
+    const queryVariant = getVariantFromQuery(searchParams)
+    if (queryVariant) persistLandingVariant(queryVariant)
+  }, [searchParams])
+
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-background to-background/80 pt-20 sm:pt-32 pb-16">
-      {/* Background Pattern */}
-      <div className="absolute inset-0">
-        {/* Dot pattern overlay using reusable component */}
-        <DotPattern className="opacity-100" size="md" fadeStyle="ellipse" />
-      </div>
+    <section
+      id="inicio"
+      aria-label="Apresentação do Alba Tec, sistema de gestão para restaurantes"
+      className="bg-gradient-to-b from-white to-[#F9F5FF] pt-20 sm:pt-28 pb-16 sm:pb-24 border-b border-gray-200"
+    >
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div className="mx-auto max-w-4xl text-center">
-          {/* Announcement Badge */}
-          <div className="mb-8 flex justify-center">
-            <Badge variant="outline" className="px-4 py-2 border-foreground">
-              <Star className="w-3 h-3 mr-2 fill-current" />
-              New: Premium Template Collection
-              <ArrowRight className="w-3 h-3 ml-2" />
-            </Badge>
-          </div>
+          {/* Left column */}
+          <div>
+            <div className="flex items-center gap-2.5 mb-6">
+              <span className="w-7 h-px bg-apricot-600 flex-shrink-0" />
+              <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500 font-medium">
+                Alba Tec · Sistema para Restaurantes
+              </p>
+            </div>
 
-          {/* Main Headline */}
-          <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-            Build Better
-            <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              {" "}Web Applications{" "}
-            </span>
-            with Ready-Made Components
-          </h1>
+            <h1 className="mb-5 text-4xl sm:text-5xl lg:text-5xl xl:text-[3.4rem] font-bold tracking-tight leading-[1.08] text-zinc-900 text-balance">
+              {variant.title}
+            </h1>
 
-          {/* Subheading */}
-          <p className="mx-auto mb-10 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-            Accelerate your development with our curated collection of blocks, templates, landing pages,
-            and admin dashboards. From free components to complete solutions, built with shadcn/ui.
-          </p>
+            <p className="mb-7 max-w-lg text-lg text-zinc-500 leading-relaxed">
+              {variant.subtitle}
+            </p>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" className="text-base cursor-pointer" asChild>
-              <Link href="/auth/sign-up">
-                Get Started Free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="text-base cursor-pointer" asChild>
-              <a href="#">
-                <Play className="mr-2 h-4 w-4" />
-                Watch Demo
-              </a>
-            </Button>
-          </div>
-        </div>
-
-        {/* Hero Image/Visual */}
-        <div className="mx-auto mt-20 max-w-6xl">
-          <div className="relative group">
-            {/* Top background glow effect - positioned above the image */}
-            <div className="absolute top-2 lg:-top-8 left-1/2 transform -translate-x-1/2 w-[90%] mx-auto h-24 lg:h-80 bg-primary/50 rounded-full blur-3xl"></div>
-
-            <div className="relative rounded-xl border bg-card shadow-2xl">
-              {/* Light mode dashboard image */}
-              <Image
-                src="/dashboard-light.png"
-                alt="Dashboard Preview - Light Mode"
-                width={1200}
-                height={800}
-                className="w-full rounded-xl object-cover block dark:hidden"
-                priority
-              />
-
-              {/* Dark mode dashboard image */}
-              <Image
-                src="/dashboard-dark.png"
-                alt="Dashboard Preview - Dark Mode"
-                width={1200}
-                height={800}
-                className="w-full rounded-xl object-cover hidden dark:block"
-                priority
-              />
-
-              {/* Bottom fade effect - gradient overlay that fades the image to background */}
-              <div className="absolute bottom-0 left-0 w-full h-32 md:h-40 lg:h-48 bg-gradient-to-b from-background/0 via-background/70 to-background rounded-b-xl"></div>
-
-              {/* Overlay play button for demo */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button
-                  size="lg"
-                  className="rounded-full h-16 w-16 p-0 cursor-pointer hover:scale-105 transition-transform"
-                  asChild
+            <div className="flex flex-wrap gap-2 mb-8">
+              {['PDV touch-first', 'App mobile de pedidos', 'Cardápio digital', 'Relatórios em tempo real'].map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-apricot-100 text-primary-700 border border-apricot-200"
                 >
-                  <a href="#" aria-label="Watch demo video">
-                    <Play className="h-6 w-6 fill-current" />
-                  </a>
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button
+                size="lg"
+                className="bg-primary text-white hover:bg-primary-600 rounded-md h-11 px-7 text-sm font-semibold transition-colors"
+                asChild
+              >
+                <Link href="/auth/register" className="flex items-center gap-2" onClick={() => trackCTA('/auth/register')}>
+                  {TRIAL_CTA_LABEL}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+              <Link href="/auth/login">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto rounded-md h-11 px-6 text-sm border-zinc-300 text-zinc-700 hover:bg-zinc-100 transition-colors"
+                >
+                  Fazer Login
                 </Button>
-              </div>
+              </Link>
+            </div>
+
+            <p className="mt-3.5 text-xs text-zinc-400">{TRIAL_MICRO_COPY}</p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-5 text-sm text-zinc-500 pt-6 border-t border-zinc-200">
+              <span className="font-medium text-zinc-700">7 dias de teste grátis</span>
+              <span className="w-px h-4 bg-zinc-300 hidden sm:block" aria-hidden />
+              <span>Sem cartão de crédito</span>
+              <span className="w-px h-4 bg-zinc-300 hidden sm:block" aria-hidden />
+              <span>PDV, cardápio digital e app</span>
             </div>
           </div>
+
+          {/* Right column — product animation */}
+          <div className="flow-reveal-up [animation-delay:200ms]">
+            <HeroProductAnimation />
+          </div>
+
         </div>
       </div>
     </section>

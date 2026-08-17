@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import {
   Form,
   FormControl,
@@ -54,7 +55,7 @@ export function SignupForm1({
   })
 
   function onSubmit(data: SignupFormValues) {
-    console.log("Signup attempt:", data)
+
     // Here you would typically handle the signup
   }
 
@@ -124,7 +125,7 @@ export function SignupForm1({
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" {...field} />
+                          <PasswordInput {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -137,7 +138,7 @@ export function SignupForm1({
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" {...field} />
+                          <PasswordInput {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

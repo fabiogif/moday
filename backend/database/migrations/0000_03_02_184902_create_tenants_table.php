@@ -8,9 +8,16 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Idempotente: `tenants` costuma já existir via create_core_tables /
+     * schema legado quando este batch ainda não está em `migrations`.
      */
     public function up(): void
     {
+        if (Schema::hasTable('tenants')) {
+            return;
+        }
+
         Schema::create('tenants', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->uuid('uuid');
@@ -31,7 +38,6 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('plan_id')->references('id')->on('plans');
-
         });
     }
 

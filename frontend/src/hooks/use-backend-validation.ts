@@ -22,8 +22,7 @@ export function useBackendValidation<T extends FieldValues>(
     error: any,
     fieldMapping?: Record<string, FieldPath<T>>
   ) => {
-    console.log('Backend validation error:', error)
-    
+
     // Se o erro tem dados de validação estruturados
     if (error?.data?.data) {
       const validationErrors = error.data.data

@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { showErrorToast } from "@/components/ui/error-toast";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -144,11 +145,17 @@ export function DataTable({
         await onDeleteClient(clientToDelete.id);
         setDeleteDialogOpen(false);
         setClientToDelete(null);
-        if (onShowSuccessAlert) {
-          onShowSuccessAlert("Sucesso!", "Cliente excluído com sucesso!");
-        }
       } catch (error) {
-        console.error("Erro ao excluir cliente:", error);
+        const apiError = error as any;
+
+        const title = apiError?.status === 409 ? "Ação não permitida" : "Erro ao Excluir Cliente";
+        const defaultMessage = "Cliente não pode ser excluído, existe um pedido ativo ou não arquivado vinculado.";
+        const formattedError = {
+          ...apiError,
+          message: apiError?.status === 409 ? (apiError?.message || defaultMessage) : apiError?.message,
+        };
+
+        showErrorToast(formattedError, title);
       }
     }
   };

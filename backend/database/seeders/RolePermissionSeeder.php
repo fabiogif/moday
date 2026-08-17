@@ -65,46 +65,36 @@ class RolePermissionSeeder extends Seeder
             );
         }
 
-        // Atribuir todas as permissões ao role de administrador
-        $adminRole->permissions()->attach(Permission::all());
+        // Atribuir todas as permissões ao role de administrador (sync evita duplicatas)
+        $adminRole->permissions()->syncWithoutDetaching(Permission::pluck('id'));
 
-        // Atribuir permissões limitadas ao role de gerente
-        $managerRole->permissions()->attach(Permission::whereIn('slug', [
+        $managerPerms = Permission::whereIn('slug', [
             'read_users', 'read_products', 'read_categories', 'read_orders', 'read_tables',
             'create_products', 'update_products', 'create_categories', 'update_categories',
             'create_orders', 'update_orders', 'create_tables', 'update_tables'
-        ])->get());
+        ])->pluck('id');
+        $managerRole->permissions()->syncWithoutDetaching($managerPerms);
 
-        // Atribuir permissões básicas ao role de usuário
-        $userRole->permissions()->attach(Permission::whereIn('slug', [
+        $userPerms = Permission::whereIn('slug', [
             'read_products', 'read_categories', 'read_orders', 'read_tables'
-        ])->get());
+        ])->pluck('id');
+        $userRole->permissions()->syncWithoutDetaching($userPerms);
 
-        // Buscar perfis existentes ou criar se não existirem
         $adminProfile = Profile::firstOrCreate(
             ['name' => 'Administrador'],
             ['description' => 'Perfil de administrador com acesso total ao sistema', 'is_active' => true, 'tenant_id' => 1]
         );
-
         $managerProfile = Profile::firstOrCreate(
             ['name' => 'Gerente'],
             ['description' => 'Perfil de gerente com acesso limitado ao sistema', 'is_active' => true, 'tenant_id' => 1]
         );
-
         $userProfile = Profile::firstOrCreate(
             ['name' => 'Usuário'],
             ['description' => 'Perfil de usuário com acesso básico ao sistema', 'is_active' => true, 'tenant_id' => 1]
         );
 
-        // Atribuir permissões aos perfis
-        $adminProfile->permissions()->attach(Permission::all());
-        $managerProfile->permissions()->attach(Permission::whereIn('slug', [
-            'read_users', 'read_products', 'read_categories', 'read_orders', 'read_tables',
-            'create_products', 'update_products', 'create_categories', 'update_categories',
-            'create_orders', 'update_orders', 'create_tables', 'update_tables'
-        ])->get());
-        $userProfile->permissions()->attach(Permission::whereIn('slug', [
-            'read_products', 'read_categories', 'read_orders', 'read_tables'
-        ])->get());
+        $adminProfile->permissions()->syncWithoutDetaching(Permission::pluck('id'));
+        $managerProfile->permissions()->syncWithoutDetaching($managerPerms);
+        $userProfile->permissions()->syncWithoutDetaching($userPerms);
     }
 }

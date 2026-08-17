@@ -61,8 +61,6 @@ Before implementing:
 
 ---
 
-After implementation, from inside the app directory you touched (`backend/` or `frontend/`):
+After implementation:
 
-graphify update .
-
-(AST-only, no API cost, when only code changed. See CLAUDE.md for the per-app graphify-out/ layout — there is no multi-repo merge in this project.)
+graphify extract . --code-only

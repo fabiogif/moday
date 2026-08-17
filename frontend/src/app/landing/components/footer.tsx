@@ -1,11 +1,16 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import Link from "next/link"
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { AlbaTecLogo, LANDING_FOOTER_BRAND_ICON_SIZE } from '@/components/albatec-logo'
+import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -13,50 +18,35 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form"
-import { Logo } from '@/components/logo'
-import { Github, Twitter, Linkedin, Youtube, Heart } from 'lucide-react'
+import { SITE_CONTACT } from '@/lib/site-config'
 
 const newsletterSchema = z.object({
   email: z.string().email({
-    message: "Please enter a valid email address.",
+    message: "Por favor, insira um endereço de e-mail válido.",
   }),
 })
 
 const footerLinks = {
   product: [
-    { name: 'Features', href: '#features' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'API', href: '#api' },
-    { name: 'Documentation', href: '#docs' },
+    { name: 'O que é o Alba Tec', href: '/#o-que-e' },
+    { name: 'Recursos do sistema', href: '/#features' },
+    { name: 'Planos e preços', href: '/#pricing' },
+    { name: 'Demonstração do cardápio', href: '/demo/menu' },
+    { name: 'Criar conta grátis', href: '/auth/register' },
   ],
   company: [
-    { name: 'About', href: '#about' },
-    { name: 'Blog', href: '#blog' },
-    { name: 'Careers', href: '#careers' },
-    { name: 'Press', href: '#press' },
-  ],
-  resources: [
-    { name: 'Help Center', href: '#help' },
-    { name: 'Community', href: '#community' },
-    { name: 'Guides', href: '#guides' },
-    { name: 'Webinars', href: '#webinars' },
-  ],
-  legal: [
-    { name: 'Privacy', href: '#privacy' },
-    { name: 'Terms', href: '#terms' },
-    { name: 'Security', href: '#security' },
-    { name: 'Status', href: '#status' },
+    { name: 'Sobre', href: '/sobre' },
+    { name: 'Blog', href: '/blog' },
+    { name: 'Contato', href: '/#contact' },
+    { name: 'Perguntas frequentes', href: '/#faq' },
+    { name: 'Política de Privacidade', href: '/privacidade' },
+    { name: 'Termos de Uso', href: '/termos' },
   ],
 }
 
-const socialLinks = [
-  { name: 'Twitter', href: '#', icon: Twitter },
-  { name: 'GitHub', href: 'https://github.com/silicondeck/shadcn-dashboard-landing-template', icon: Github },
-  { name: 'LinkedIn', href: '#', icon: Linkedin },
-  { name: 'YouTube', href: '#', icon: Youtube },
-]
-
 export function LandingFooter() {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const form = useForm<z.infer<typeof newsletterSchema>>({
     resolver: zodResolver(newsletterSchema),
     defaultValues: {
@@ -64,22 +54,41 @@ export function LandingFooter() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof newsletterSchema>) {
-    // Here you would typically send the email to your newsletter service
-    console.log(values)
-    // Show success message and reset form
-    form.reset()
+  async function onSubmit(values: z.infer<typeof newsletterSchema>) {
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao realizar inscrição')
+      }
+
+      toast.success(data.message || 'Inscrição realizada com sucesso!')
+      form.reset()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao realizar inscrição')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <footer className="border-t bg-background">
+    <footer className="border-t bg-background" role="contentinfo">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Newsletter Section */}
         <div className="mb-16">
           <div className="mx-auto max-w-2xl text-center">
-            <h3 className="text-2xl font-bold mb-4">Stay updated</h3>
+            <h2 className="text-2xl font-bold mb-4">Fique por dentro</h2>
             <p className="text-muted-foreground mb-6">
-              Get the latest updates, articles, and resources sent to your inbox weekly.
+              Receba novidades, dicas e atualizações sobre gestão de restaurantes.
             </p>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-2 max-w-md mx-auto sm:flex-row">
@@ -91,7 +100,8 @@ export function LandingFooter() {
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder="Enter your email"
+                          placeholder="Digite seu e-mail"
+                          aria-label="E-mail para newsletter"
                           {...field}
                         />
                       </FormControl>
@@ -99,101 +109,89 @@ export function LandingFooter() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="cursor-pointer">Subscribe</Button>
+                <Button type="submit" className="cursor-pointer rounded-md bg-zinc-900 text-white hover:bg-zinc-700 transition-colors" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Inscrever'
+                  )}
+                </Button>
               </form>
             </Form>
           </div>
         </div>
 
-        {/* Main Footer Content */}
-        <div className="grid gap-8 grid-cols-4 lg:grid-cols-6">
-          {/* Brand Column */}
-          <div className="col-span-4 lg:col-span-2 max-w-2xl">
-            <div className="flex items-center space-x-2 mb-4 max-lg:justify-center">
-              <a href="https://shadcnstore.com" target='_blank' className="flex items-center space-x-2 cursor-pointer">
-                <Logo size={32} />
-                <span className="font-bold text-xl">ShadcnStore</span>
-              </a>
+        <div className="grid gap-8 grid-cols-2 lg:grid-cols-4">
+          <div className="col-span-2 max-w-2xl">
+            <div className="mb-5 max-lg:flex max-lg:justify-center">
+              <AlbaTecLogo
+                variant="icon"
+                width={LANDING_FOOTER_BRAND_ICON_SIZE}
+                height={LANDING_FOOTER_BRAND_ICON_SIZE}
+                className="shrink-0"
+              />
             </div>
-            <p className="text-muted-foreground mb-6 max-lg:text-center max-lg:flex max-lg:justify-center">
-              Accelerating web development with curated blocks, templates, landing pages, and admin dashboards designed for modern developers.
+            <p className="text-muted-foreground mb-4 max-lg:text-center max-lg:flex max-lg:justify-center text-sm leading-relaxed">
+              Sistema de gestão para restaurantes com PDV, cardápio digital, financeiro e relatórios
+              em uma única plataforma.
             </p>
-            <div className="flex space-x-4 max-lg:justify-center">
-              {socialLinks.map((social) => (
-                <Button key={social.name} variant="ghost" size="icon" asChild>
-                  <a
-                    href={social.href}
-                    aria-label={social.name}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <social.icon className="h-4 w-4" />
-                  </a>
-                </Button>
-              ))}
-            </div>
+            <p className="text-sm text-muted-foreground max-lg:text-center">
+              Contato:{' '}
+              <a
+                href={`mailto:${SITE_CONTACT.email}`}
+                className="text-foreground hover:underline"
+              >
+                {SITE_CONTACT.email}
+              </a>
+              {' · '}
+              WhatsApp:{' '}
+              <a
+                href={SITE_CONTACT.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground hover:underline"
+              >
+                {SITE_CONTACT.whatsappDisplay}
+              </a>
+            </p>
+            {SITE_CONTACT.cnpj ? (
+              <p className="text-xs text-muted-foreground mt-2 max-lg:text-center">
+                CNPJ: {SITE_CONTACT.cnpj}
+                {SITE_CONTACT.address ? ` · ${SITE_CONTACT.address}` : ''}
+              </p>
+            ) : null}
           </div>
 
-          {/* Links Columns */}
-          <div className='max-md:col-span-2 lg:col-span-1'>
-            <h4 className="font-semibold mb-4">Product</h4>
+          <div className='max-md:col-span-1 lg:col-span-1'>
+            <h3 className="font-semibold mb-4">Produto</h3>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.name}>
-                  <a
+                  <Link
                     href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className='max-md:col-span-2 lg:col-span-1'>
-            <h4 className="font-semibold mb-4">Company</h4>
+          <div className='max-md:col-span-1 lg:col-span-1'>
+            <h3 className="font-semibold mb-4">Empresa</h3>
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a
+                  <Link
                     href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-muted-foreground hover:text-foreground transition-colors text-sm"
                   >
                     {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className='max-md:col-span-2 lg:col-span-1'>
-            <h4 className="font-semibold mb-4">Resources</h4>
-            <ul className="space-y-3">
-              {footerLinks.resources.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className='max-md:col-span-2 lg:col-span-1'>
-            <h4 className="font-semibold mb-4">Legal</h4>
-            <ul className="space-y-3">
-              {footerLinks.legal.map((link) => (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -202,30 +200,17 @@ export function LandingFooter() {
 
         <Separator className="my-8" />
 
-        {/* Bottom Footer */}
         <div className="flex flex-col lg:flex-row justify-between items-center gap-2">
-          <div className="flex flex-col sm:flex-row items-center gap-2 text-muted-foreground text-sm">
-            <div className="flex items-center gap-1">
-              <span>Made with</span>
-              <Heart className="h-4 w-4 text-red-500 fill-current" />
-              <span>by</span>
-              <a href="https://shadcnstore.com" target='_blank' className="font-semibold text-foreground hover:text-primary transition-colors cursor-pointer">
-                ShadcnStore
-              </a>
-            </div>
-            <span className="hidden sm:inline">•</span>
-            <span>© {new Date().getFullYear()} for the developer community</span>
+          <div className="text-muted-foreground text-sm text-center lg:text-left">
+            © {new Date().getFullYear()} Alba Tec. Todos os direitos reservados.
           </div>
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-4 md:mt-0">
-            <a href="#privacy" className="hover:text-foreground transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#terms" className="hover:text-foreground transition-colors">
-              Terms of Service
-            </a>
-            <a href="#cookies" className="hover:text-foreground transition-colors">
-              Cookie Policy
-            </a>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <Link href="/privacidade" className="hover:text-foreground">
+              Privacidade
+            </Link>
+            <Link href="/termos" className="hover:text-foreground">
+              Termos
+            </Link>
           </div>
         </div>
       </div>

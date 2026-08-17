@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
+import { clearAuthSession, getAuthToken } from '@/lib/auth-storage'
 
 export function ForceLogoutButton() {
   const [tokenInfo, setTokenInfo] = useState<string>('')
-  const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem('auth-token')
+    const token = getAuthToken()
     if (token) {
       const isJWT = token.startsWith('eyJ')
       setTokenInfo(`Token: ${isJWT ? 'JWT válido' : 'INVÁLIDO (não é JWT)'}`)
@@ -20,13 +19,10 @@ export function ForceLogoutButton() {
 
   const forceLogout = () => {
     // Limpar tudo
-    localStorage.removeItem('auth-user')
-    localStorage.removeItem('auth-token')
-    document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    clearAuthSession()
     
     alert('Autenticação limpa! Faça login novamente.')
-    router.push('/login')
-    router.refresh()
+    window.location.href = '/auth/login'
   }
 
   if (process.env.NODE_ENV !== 'development') {

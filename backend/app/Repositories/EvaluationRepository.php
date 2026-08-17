@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\OrderEvaluation;
-use App\Repositories\contracts\EvaluationRepositoryInterface;
+use App\Repositories\Contracts\EvaluationRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 
 class EvaluationRepository extends BaseRepository implements  EvaluationRepositoryInterface

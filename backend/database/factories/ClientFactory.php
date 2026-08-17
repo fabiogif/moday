@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Models\Client>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Client>
  */
 class ClientFactory extends Factory
 {
+    protected $model = \App\Models\Client::class;
     /**
      * Define the model's default state.
      *
@@ -25,6 +26,10 @@ class ClientFactory extends Factory
             'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
             'uuid' => fake()->uuid(),
             'tenant_id' => 1,
+            'credit_limit' => 0,
+            'payment_term_days' => 30,
+            'client_type' => 'outro',
+            'is_blocked' => false,
         ];
     }
 }

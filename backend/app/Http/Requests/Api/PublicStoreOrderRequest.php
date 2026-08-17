@@ -2,7 +2,12 @@
 
 namespace App\Http\Requests\Api;
 
+use App\Models\Tenant;
+use App\Services\CouponService;
+use App\Services\PublicOrderCalculationService;
+use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 
 class PublicStoreOrderRequest extends FormRequest
 {
@@ -39,8 +44,11 @@ class PublicStoreOrderRequest extends FormRequest
             'products.*.quantity' => 'required|integer|min:1',
             
             // Payment and shipping
-            'payment_method' => 'required|string|in:pix,credit_card,debit_card,money,bank_transfer',
+            'payment_method' => 'required|string|exists:payment_methods,uuid',
             'shipping_method' => 'required|string|in:delivery,pickup',
+
+            // Coupon
+            'coupon_code' => 'nullable|string|max:40',
         ];
     }
 
@@ -62,6 +70,12 @@ class PublicStoreOrderRequest extends FormRequest
             
             // Validate products exist and have stock
             $this->validateProducts($validator);
+            
+            // Validate payment method belongs to tenant
+            $this->validatePaymentMethod($validator);
+
+            // Validate coupon if provided
+            $this->validateCouponCode($validator);
         });
     }
 
@@ -99,7 +113,7 @@ class PublicStoreOrderRequest extends FormRequest
             if (isset($product['uuid'])) {
                 // Get tenant from route parameter
                 $slug = $this->route('slug');
-                $tenant = \App\Models\Tenant::where('slug', $slug)->where('is_active', true)->first();
+                $tenant = Tenant::where('slug', $slug)->where('is_active', true)->first();
                 
                 if (!$tenant) {
                     $validator->errors()->add(
@@ -133,6 +147,78 @@ class PublicStoreOrderRequest extends FormRequest
     }
 
     /**
+     * Validate payment method belongs to tenant
+     */
+    private function validatePaymentMethod($validator)
+    {
+        $paymentMethodUuid = $this->input('payment_method');
+        $slug = $this->route('slug');
+        
+        if ($paymentMethodUuid) {
+            $tenant = Tenant::where('slug', $slug)->where('is_active', true)->first();
+            
+            if (!$tenant) {
+                $validator->errors()->add('payment_method', 'Loja não encontrada');
+                return;
+            }
+            
+            $paymentMethod = \App\Models\PaymentMethod::where('uuid', $paymentMethodUuid)
+                ->where('tenant_id', $tenant->id)
+                ->where('is_active', true)
+                ->first();
+            
+            if (!$paymentMethod) {
+                $validator->errors()->add('payment_method', 'A forma de pagamento selecionada é inválida.');
+            }
+        }
+    }
+
+    /**
+     * Validate coupon code when provided.
+     */
+    private function validateCouponCode($validator): void
+    {
+        $couponCode = $this->input('coupon_code');
+        if (!$couponCode) {
+            return;
+        }
+
+        $slug = $this->route('slug');
+        $tenant = Tenant::where('slug', $slug)->where('is_active', true)->first();
+
+        if (!$tenant) {
+            $validator->errors()->add('coupon_code', 'Loja não encontrada');
+            return;
+        }
+
+        try {
+            $calculationService = app(PublicOrderCalculationService::class);
+            $couponService = app(CouponService::class);
+
+            $calculation = $calculationService->calculateOrder($this->input('products', []), $tenant);
+
+            $identifier = $this->input('client.email') ?? $this->input('client.phone');
+
+            $couponService->validateForPreview(
+                $tenant,
+                strtoupper(trim((string) $couponCode)),
+                (float) $calculation['total'],
+                null,
+                $identifier
+            );
+        } catch (DomainException $e) {
+            $validator->errors()->add('coupon_code', $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Erro ao validar cupom na requisição pública', [
+                'error' => $e->getMessage(),
+                'slug' => $slug,
+                'coupon_code' => $couponCode,
+            ]);
+            $validator->errors()->add('coupon_code', 'Não foi possível validar o cupom no momento.');
+        }
+    }
+
+    /**
      * Get custom error messages
      */
     public function messages(): array
@@ -154,6 +240,7 @@ class PublicStoreOrderRequest extends FormRequest
             'payment_method.required' => 'Forma de pagamento é obrigatória',
             'shipping_method.required' => 'Método de entrega é obrigatório',
             'shipping_method.in' => 'Método de entrega deve ser "delivery" ou "pickup"',
+            'coupon_code.max' => 'O código do cupom pode ter no máximo 40 caracteres.',
         ];
     }
 
@@ -179,6 +266,7 @@ class PublicStoreOrderRequest extends FormRequest
             'products.*.quantity' => 'Quantidade',
             'payment_method' => 'Forma de Pagamento',
             'shipping_method' => 'Método de Entrega',
+            'coupon_code' => 'Cupom',
         ];
     }
 }

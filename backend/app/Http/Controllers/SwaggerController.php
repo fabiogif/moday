@@ -7,12 +7,12 @@ use App\Http\Controllers\Api\Controller;
 
 /**
  * @OA\Info(
- *     title="Moday API",
+ *     title="Alba Tec API",
  *     version="1.0.0",
  *     description="API completa para sistema de gestão de restaurantes e delivery",
  *     @OA\Contact(
- *         email="contato@moday.com",
- *         name="Equipe Moday"
+ *         email="contato@albatec.com.br",
+ *         name="Equipe Alba Tec"
  *     ),
  *     @OA\License(
  *         name="MIT",

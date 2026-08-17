@@ -3,6 +3,8 @@ import { Logo } from "@/components/logo"
 import Link from "next/link"
 import Image from "next/image"
 
+export const dynamic = 'force-dynamic'
+
 export default function ForgotPassword2Page() {
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -26,6 +28,7 @@ export default function ForgotPassword2Page() {
           src="https://ui.shadcn.com/placeholder.svg"
           alt="Image"
           fill
+          sizes="(max-width: 768px) 0vw, 50vw"
           className="object-cover dark:brightness-[0.95] dark:invert"
         />
       </div>

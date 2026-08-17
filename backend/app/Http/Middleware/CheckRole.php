@@ -20,7 +20,7 @@ class CheckRole
         if (!$user) {
             return response()->json([
                 'message' => 'Não autenticado.',
-                'error' => 'Não autenticado.'
+                'error' => 'UNAUTHENTICATED'
             ], 401);
         }
 

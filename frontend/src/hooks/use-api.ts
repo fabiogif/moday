@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient, endpoints } from '@/lib/api-client'
+import { getAuthToken } from '@/lib/auth-storage'
 
 interface UseApiState<T> {
   data: T | null
@@ -57,6 +58,15 @@ export function useApi<T>(
       }
     }
 
+    // Garantir que o token está no apiClient antes de fazer a requisição
+    if (typeof window !== 'undefined') {
+      const tokenFromStorage = getAuthToken()
+      if (tokenFromStorage) {
+        apiClient.setToken(tokenFromStorage)
+        apiClient.reloadToken()
+      }
+    }
+
     setLoading(true)
     setError(null)
 
@@ -82,11 +92,12 @@ export function useApi<T>(
 
   const refetch = useCallback(async () => {
     // Limpar cache se existir
-    if (useCache && cacheKey) {
-      cache.delete(cacheKey)
+    const key = cacheKey || endpoint
+    if (useCache) {
+      cache.delete(key)
     }
     await fetchData()
-  }, [fetchData, useCache, cacheKey])
+  }, [fetchData, useCache, cacheKey, endpoint])
 
   useEffect(() => {
     if (immediate) {
@@ -201,7 +212,7 @@ export function useAuth() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth-token')
+        const token = getAuthToken()
         if (token) {
           apiClient.setToken(token)
       const response = await apiClient.get('/api/auth/me')
@@ -210,7 +221,7 @@ export function useAuth() {
       }
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
+
         apiClient.clearToken()
       } finally {
         setLoading(false)

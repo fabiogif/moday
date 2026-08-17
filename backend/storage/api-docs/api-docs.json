@@ -1,11 +1,11 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Moday API",
+        "title": "Alba Tec API",
         "description": "API completa para sistema de gestão de restaurantes e delivery",
         "contact": {
-            "name": "Equipe Moday",
-            "email": "contato@moday.com"
+            "name": "Equipe Alba Tec",
+            "email": "contato@albatec.com.br"
         },
         "license": {
             "name": "MIT",

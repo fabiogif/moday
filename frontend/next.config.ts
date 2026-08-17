@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
+
 const nextConfig: NextConfig = {
+  // Standalone is needed for Docker deployment (Linux server).
+  // On Windows, symlink creation requires Developer Mode or admin rights,
+  // so we disable it locally and enable only in CI/deploy via env var.
+  output: process.env.NEXT_STANDALONE === '1' ? 'standalone' : undefined,
   experimental: {
     optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
   },
@@ -13,10 +18,36 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  
   // Image optimization
   images: {
-    domains: ['ui.shadcn.com', 'images.unsplash.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ui.shadcn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'orca-app-7hejo.ondigitalocean.app',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '163.176.233.174',
+        pathname: '/**',
+      },
+      { protocol: 'https', 
+        hostname: 'moday.sfo3.digitaloceanspaces.com' 
+      },
+    ],
+    dangerouslyAllowSVG: true, // se exibir SVG
     formats: ['image/webp', 'image/avif'],
   },
   
@@ -29,6 +60,15 @@ const nextConfig: NextConfig = {
   // Headers for better security and performance
   async headers() {
     return [
+      {
+        source: '/auth/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, must-revalidate',
+          },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [
@@ -46,6 +86,51 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: '/landing/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/brand/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*.webp',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*.png',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*.woff2',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ];
   },
   
@@ -53,9 +138,19 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/landing',
+        destination: '/',
+        permanent: true,
+      },
+      {
         source: '/home',
         destination: '/dashboard',
         permanent: true,
+      },
+      {
+        source: '/login',
+        destination: '/auth/login',
+        permanent: false,
       },
     ];
   },

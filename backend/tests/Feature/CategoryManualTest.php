@@ -166,7 +166,7 @@ class CategoryManualTest extends TestCase
         // Assert
         $response->assertStatus(200);
         $this->assertTrue($response->json('success'));
-        $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+        $this->assertSoftDeleted('categories', ['id' => $category->id]);
     }
 
     /**

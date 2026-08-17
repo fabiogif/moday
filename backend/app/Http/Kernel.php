@@ -16,7 +16,7 @@ class Kernel extends HttpKernel
     protected $middleware = [
         // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
-        \Illuminate\Http\Middleware\HandleCors::class,
+        // \Illuminate\Http\Middleware\HandleCors::class, // Removido - usando GlobalCorsMiddleware
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
@@ -64,11 +64,14 @@ class Kernel extends HttpKernel
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'verified.email' => \App\Http\Middleware\EnsureTenantEmailIsVerified::class,
         'permission' => \App\Http\Middleware\CheckPermission::class,
         'role' => \App\Http\Middleware\CheckRole::class,
         'permission.any' => \App\Http\Middleware\CheckAnyPermission::class,
         'role.any' => \App\Http\Middleware\CheckAnyRole::class,
         'acl.permission' => \App\Http\Middleware\PermissionMiddleware::class,
         'csrf.api' => \App\Http\Middleware\VerifyCsrfTokenApi::class,
+        'trial.check'   => \App\Http\Middleware\CheckTrialStatus::class,
+        'mp.signature'  => \App\Http\Middleware\VerifyMercadoPagoSignature::class,
     ];
 }

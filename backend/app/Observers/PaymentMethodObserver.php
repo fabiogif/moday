@@ -34,9 +34,10 @@ class PaymentMethodObserver
         $allowedFields = ['uuid', 'name', 'description', 'tenant_id', 'is_active'];
         
         // Remove any attributes not in fillable array
-        foreach ($paymentMethod->getAttributes() as $key => $value) {
+        $attributes = $paymentMethod->getAttributes();
+        foreach ($attributes as $key => $value) {
             if (!in_array($key, $allowedFields) && !in_array($key, ['id', 'created_at', 'updated_at'])) {
-                unset($paymentMethod->attributes[$key]);
+                $paymentMethod->offsetUnset($key);
             }
         }
     }
