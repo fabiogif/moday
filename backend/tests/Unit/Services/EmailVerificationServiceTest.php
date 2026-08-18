@@ -4,12 +4,11 @@ namespace Tests\Unit\Services;
 
 use App\Mail\EmailVerificationCodeMail;
 use App\Models\User;
-use App\Services\EmailService;
 use App\Services\EmailVerificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
-use Mockery;
+use Illuminate\Support\Facades\Mail;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -17,32 +16,20 @@ class EmailVerificationServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private EmailService $emailService;
-
     private EmailVerificationService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->emailService = Mockery::mock(EmailService::class);
-        $this->service = new EmailVerificationService($this->emailService);
+        $this->service = app(EmailVerificationService::class);
     }
 
     #[Test]
     public function send_armazena_hash_e_dispara_mailable(): void
     {
+        Mail::fake();
         $user = User::factory()->unverified()->create();
-
-        $this->emailService
-            ->shouldReceive('send')
-            ->once()
-            ->withArgs(function ($to, $mailable) use ($user) {
-                return $to === $user->email
-                    && $mailable instanceof EmailVerificationCodeMail
-                    && preg_match('/^\d{6}$/', $mailable->code) === 1;
-            })
-            ->andReturn(true);
 
         $result = $this->service->send($user);
 
@@ -53,28 +40,51 @@ class EmailVerificationServiceTest extends TestCase
         $payload = Cache::get("email_verify:{$user->id}");
         $this->assertArrayHasKey('hash', $payload);
         $this->assertSame(0, $payload['attempts']);
+
+        Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use ($user) {
+            return $mail->hasTo($user->email)
+                && $mail->user->is($user)
+                && preg_match('/^\d{6}$/', $mail->code) === 1;
+        });
+    }
+
+    #[Test]
+    public function send_failed_nao_grava_cooldown(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        Mail::shouldReceive('to')
+            ->once()
+            ->andThrow(new \RuntimeException('smtp down'));
+
+        $service = app(EmailVerificationService::class);
+        $result = $service->send($user);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('send_failed', $result['error']);
+        $this->assertFalse(Cache::has("email_verify:{$user->id}"));
+        $this->assertFalse(Cache::has("email_verify_resend:{$user->id}"));
     }
 
     #[Test]
     public function send_rejeita_usuario_ja_verificado(): void
     {
+        Mail::fake();
         $user = User::factory()->create(['email_verified_at' => now()]);
-
-        $this->emailService->shouldNotReceive('send');
 
         $result = $this->service->send($user);
 
         $this->assertFalse($result['success']);
         $this->assertSame('already_verified', $result['error']);
+        Mail::assertNothingSent();
     }
 
     #[Test]
     public function resend_respeita_cooldown(): void
     {
+        Mail::fake();
         $user = User::factory()->unverified()->create();
         Cache::put("email_verify_resend:{$user->id}", time() + 45, 45);
-
-        $this->emailService->shouldNotReceive('send');
 
         $result = $this->service->resend($user);
 
@@ -82,6 +92,7 @@ class EmailVerificationServiceTest extends TestCase
         $this->assertSame('resend_cooldown', $result['error']);
         $this->assertArrayHasKey('retry_after', $result);
         $this->assertGreaterThan(0, $result['retry_after']);
+        Mail::assertNothingSent();
     }
 
     #[Test]

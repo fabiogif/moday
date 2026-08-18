@@ -26,6 +26,19 @@ class RegisterController extends Controller
             $user = $result['user'];
             $tenant = $result['tenant'];
             $token = $result['token'];
+            $ttlMinutes = (int) config('jwt.ttl', 120);
+
+            $cookie = cookie(
+                'auth_token',
+                $token,
+                $ttlMinutes,
+                '/',
+                null,
+                true,
+                true,
+                false,
+                'strict'
+            );
 
             return ApiResponseClass::sendResponse([
                 'user' => [
@@ -43,11 +56,11 @@ class RegisterController extends Controller
                     ],
                 ],
                 'token' => $token,
-                'expires_in' => config('jwt.ttl', 120) * 60,
+                'expires_in' => $ttlMinutes * 60,
                 'trial_status' => $result['trial_status'],
                 'email_verified' => false,
                 'requires_email_verification' => true,
-            ], 'Cadastro realizado com sucesso! Confirme seu e-mail para continuar.', 201);
+            ], 'Cadastro realizado com sucesso! Confirme seu e-mail para continuar.', 201)->withCookie($cookie);
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao realizar cadastro. Por favor, tente novamente.');
         }

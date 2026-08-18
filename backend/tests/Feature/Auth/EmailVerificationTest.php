@@ -86,6 +86,11 @@ class EmailVerificationTest extends TestCase
         Mail::assertSent(EmailVerificationCodeMail::class, function (EmailVerificationCodeMail $mail) use ($user) {
             return $mail->user->is($user) && preg_match('/^\d{6}$/', $mail->code) === 1;
         });
+
+        $cookie = $response->headers->getCookies()[0] ?? null;
+        $this->assertNotNull($cookie, 'Cadastro deveria retornar um Set-Cookie');
+        $this->assertSame('auth_token', $cookie->getName());
+        $this->assertTrue($cookie->isHttpOnly());
     }
 
     #[Test]
@@ -217,6 +222,22 @@ class EmailVerificationTest extends TestCase
 
         Mail::assertSent(EmailVerificationCodeMail::class);
         $this->assertTrue(Cache::has("email_verify:{$user->id}"));
+    }
+
+    #[Test]
+    public function reenvio_aceita_cookie_auth_token_do_frontend_sem_header(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $token = JWTAuth::fromUser($user);
+
+        $response = $this->withCredentials()
+            ->withUnencryptedCookies(['auth-token' => $token])
+            ->postJson('/api/auth/email/verification-notification');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        Mail::assertSent(EmailVerificationCodeMail::class);
     }
 
     #[Test]

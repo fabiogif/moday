@@ -112,10 +112,16 @@ for kv in "CACHE_STORE=redis" "CACHE_DRIVER=redis" "QUEUE_CONNECTION=redis" "SES
   grep -q "^${k}=" .env && sed -i "s|^${k}=.*|${kv}|" .env || echo "$kv" >> .env
 done
 
-for kv in "MAIL_MAILER=smtp" "MAIL_CONTACT_TO=contato@albatec.com.br" "MAIL_SUPPORT_TO=atendimento@albatec.com.br" "MAIL_PIX_TO=pix@albatec.com.br" "MAIL_PROVIDER=smtp"; do
+for kv in "MAIL_MAILER=smtp" "MAIL_SCHEME=smtp" "MAIL_CONTACT_TO=contato@albatec.com.br" "MAIL_SUPPORT_TO=atendimento@albatec.com.br" "MAIL_PIX_TO=pix@albatec.com.br" "MAIL_PROVIDER=smtp"; do
   k="${kv%%=*}"
   grep -q "^${k}=" .env || echo "$kv" >> .env
 done
+if grep -q '^MAIL_FROM_ADDRESS=hello@example.com' .env || grep -q '^MAIL_FROM_ADDRESS=$' .env || ! grep -q '^MAIL_FROM_ADDRESS=' .env; then
+  grep -q '^MAIL_FROM_ADDRESS=' .env && sed -i 's|^MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=noreply@albatec.com.br|' .env || echo 'MAIL_FROM_ADDRESS=noreply@albatec.com.br' >> .env
+fi
+if grep -q '^MAIL_FROM_ADDRESS=noreply@distribtec.com.br' .env; then
+  sed -i 's|^MAIL_FROM_ADDRESS=.*|MAIL_FROM_ADDRESS=noreply@albatec.com.br|' .env
+fi
 
 mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
 chmod -R 775 storage bootstrap/cache 2>/dev/null || true

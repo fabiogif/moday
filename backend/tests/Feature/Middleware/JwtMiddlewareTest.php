@@ -123,4 +123,31 @@ class JwtMiddlewareTest extends TestCase
         // Pode retornar 401 se o formato não for suportado
         $this->assertContains($response->getStatusCode(), [200, 401]);
     }
+
+    #[Test]
+    public function middleware_autentica_pelo_cookie_auth_token_do_frontend(): void
+    {
+        $user = User::factory()->create(['is_active' => true]);
+        $token = JWTAuth::fromUser($user);
+
+        $response = $this->withCredentials()
+            ->withUnencryptedCookies(['auth-token' => $token])
+            ->getJson('/api/auth/me');
+
+        $response->assertStatus(200);
+    }
+
+    #[Test]
+    public function middleware_trata_token_malformado_como_401(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer not-a-jwt',
+        ])->getJson('/api/auth/me');
+
+        $response->assertStatus(401)
+            ->assertJson([
+                'success' => false,
+            ]);
+        $this->assertNotSame(500, $response->status());
+    }
 }

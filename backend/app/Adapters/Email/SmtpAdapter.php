@@ -71,10 +71,24 @@ class SmtpAdapter implements EmailAdapterInterface
      */
     public function isConfigured(): bool
     {
-        $host = config('mail.mailers.smtp.host');
+        $mailer = config('mail.default');
+        if (in_array($mailer, ['log', 'array'], true)) {
+            return true;
+        }
+
+        $host = (string) config('mail.mailers.smtp.host');
         $port = config('mail.mailers.smtp.port');
-        
-        return !empty($host) && !empty($port);
+        if ($host === '' || empty($port)) {
+            return false;
+        }
+
+        $local = in_array($host, ['127.0.0.1', 'localhost', 'mailpit', 'mailhog'], true);
+        if ($local) {
+            return true;
+        }
+
+        return filled(config('mail.mailers.smtp.username'))
+            && filled(config('mail.mailers.smtp.password'));
     }
 
     /**

@@ -267,11 +267,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     try {
       // Chamar logout no backend
+      const authToken = getAuthToken()
       await fetch(buildApiUrl('/api/auth/logout'), {
         method: 'POST',
         credentials: 'include',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
+          Accept: 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
       })
     } catch (error) {

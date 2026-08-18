@@ -4,6 +4,8 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -37,6 +39,9 @@ class JwtMiddleware
                 ], 403);
             }
 
+            Auth::shouldUse('api');
+            Auth::guard('api')->setUser($user);
+
         } catch (TokenExpiredException $e) {
             return response()->json([
                 'success' => false,
@@ -55,11 +60,26 @@ class JwtMiddleware
                 'message' => 'Token não fornecido'
             ], 401);
 
-        } catch (\Exception $e) {
+        } catch (\UnexpectedValueException $e) {
+            Log::warning('JwtMiddleware: token malformado', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Token inválido'
+            ], 401);
+
+        } catch (\Throwable $e) {
+            Log::error('JwtMiddleware: erro de autorização', [
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Erro de autorização'
-            ], 500);
+            ], 401);
         }
 
         return $next($request);

@@ -6,6 +6,7 @@ use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\VerifyEmailCodeRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use App\Services\EmailVerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,12 @@ class EmailVerificationApiController extends Controller
 
     public function send(Request $request): JsonResponse
     {
-        $result = $this->emailVerification->resend($request->user());
+        $user = $this->authenticatedUser($request);
+        if (!$user) {
+            return ApiResponseClass::unauthorized('Não autorizado');
+        }
+
+        $result = $this->emailVerification->resend($user);
 
         if (!$result['success']) {
             $code = $result['error'] === 'resend_cooldown' ? 429 : 422;
@@ -32,14 +38,19 @@ class EmailVerificationApiController extends Controller
         }
 
         return ApiResponseClass::sendResponse([
-            'email' => $this->maskEmail($request->user()->email),
+            'email' => $this->maskEmail($user->email),
         ], $result['message']);
     }
 
     public function verify(VerifyEmailCodeRequest $request): JsonResponse
     {
+        $user = $this->authenticatedUser($request);
+        if (!$user) {
+            return ApiResponseClass::unauthorized('Não autorizado');
+        }
+
         $result = $this->emailVerification->verify(
-            $request->user(),
+            $user,
             $request->validated()['code']
         );
 
@@ -51,13 +62,18 @@ class EmailVerificationApiController extends Controller
             ], 422);
         }
 
-        $user = $request->user()->fresh(['tenant', 'profiles.permissions']);
+        $user = $user->fresh(['tenant', 'profiles.permissions']);
         $user->setAttribute('permission_slugs', $user->getPermissionsList());
 
         return ApiResponseClass::sendResponse([
             'user' => new UserResource($user),
             'email_verified' => true,
         ], $result['message']);
+    }
+
+    private function authenticatedUser(Request $request): ?User
+    {
+        return $request->user('api') ?? auth('api')->user();
     }
 
     private function maskEmail(string $email): string

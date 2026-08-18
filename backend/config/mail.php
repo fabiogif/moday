@@ -38,14 +38,20 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
+            // Laravel 11 usa `scheme` (smtp/smtps). `encryption` sozinho é ignorado
+            // pelo MailManager e o envio para a porta 587 falha sem STARTTLS.
+            'scheme' => env('MAIL_SCHEME', ((int) env('MAIL_PORT', 2525) === 465) ? 'smtps' : 'smtp'),
             'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 2525),
-            'encryption' => in_array(env('MAIL_ENCRYPTION'), [null, '', 'null'], true) ? null : env('MAIL_ENCRYPTION', 'tls'),
+            'host' => env('MAIL_HOST') ?: '127.0.0.1',
+            'port' => env('MAIL_PORT') ?: 2525,
+            'encryption' => in_array(env('MAIL_ENCRYPTION'), [null, '', 'null'], true)
+                ? (((int) env('MAIL_PORT', 2525) === 587) ? 'tls' : null)
+                : env('MAIL_ENCRYPTION', 'tls'),
             'username' => in_array(env('MAIL_USERNAME'), [null, '', 'null'], true) ? null : env('MAIL_USERNAME'),
             'password' => in_array(env('MAIL_PASSWORD'), [null, '', 'null'], true) ? null : env('MAIL_PASSWORD'),
-            'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            'timeout' => 15,
+            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            'require_tls' => (int) env('MAIL_PORT', 0) === 587,
         ],
 
         'ses' => [
@@ -158,7 +164,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'contact_to' => env('MAIL_CONTACT_TO', 'contato@distribtec.com.br'),
+    'contact_to' => env('MAIL_CONTACT_TO', 'contato@albatec.com.br'),
 
     /*
     |--------------------------------------------------------------------------
@@ -166,8 +172,8 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'support_to' => env('MAIL_SUPPORT_TO', 'atendimento@distribtec.com.br'),
+    'support_to' => env('MAIL_SUPPORT_TO', 'atendimento@albatec.com.br'),
 
-    'pix_to' => env('MAIL_PIX_TO', 'pix@distribtec.com.br'),
+    'pix_to' => env('MAIL_PIX_TO', 'pix@albatec.com.br'),
 
 ];

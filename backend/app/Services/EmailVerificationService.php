@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class EmailVerificationService
 {
@@ -15,10 +16,6 @@ class EmailVerificationService
     private const MAX_ATTEMPTS = 5;
 
     private const RESEND_COOLDOWN_SECONDS = 60;
-
-    public function __construct(
-        private readonly EmailService $emailService,
-    ) {}
 
     public function hasVerifiedEmail(User $user): bool
     {
@@ -55,6 +52,29 @@ class EmailVerificationService
 
         $code = (string) random_int(100000, 999999);
 
+        try {
+            Mail::to($user->email, $user->name)->send(new EmailVerificationCodeMail($user, $code));
+        } catch (\Throwable $e) {
+            Log::error('EmailVerification: falha ao enviar código', [
+                'user_id' => $user->id,
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'scheme' => config('mail.mailers.smtp.scheme'),
+                'has_username' => filled(config('mail.mailers.smtp.username')),
+                'has_password' => filled(config('mail.mailers.smtp.password')),
+                'from' => config('mail.from.address'),
+                'error' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Não foi possível enviar o e-mail de verificação. Tente novamente em instantes.',
+                'error' => 'send_failed',
+            ];
+        }
+
         Cache::put($this->codeKey($user->id), [
             'hash' => Hash::make($code),
             'attempts' => 0,
@@ -65,21 +85,6 @@ class EmailVerificationService
             time() + self::RESEND_COOLDOWN_SECONDS,
             self::RESEND_COOLDOWN_SECONDS
         );
-
-        try {
-            $this->emailService->send($user->email, new EmailVerificationCodeMail($user, $code));
-        } catch (\Throwable $e) {
-            Log::error('EmailVerification: falha ao enviar código', [
-                'user_id' => $user->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Não foi possível enviar o e-mail de verificação. Tente novamente em instantes.',
-                'error' => 'send_failed',
-            ];
-        }
 
         return [
             'success' => true,

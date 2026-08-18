@@ -68,7 +68,13 @@ class TenantRegistrationService
             event(new CompanyRegistered($tenant, $user, $plan));
 
             try {
-                $this->emailVerification->send($user);
+                $sent = $this->emailVerification->send($user);
+                if (!$sent['success']) {
+                    Log::error('Falha ao enviar verificação de e-mail no registro', [
+                        'user_id' => $user->id,
+                        'error' => $sent['error'] ?? $sent['message'],
+                    ]);
+                }
             } catch (\Throwable $e) {
                 Log::error('Falha ao enviar verificação de e-mail no registro', [
                     'user_id' => $user->id,

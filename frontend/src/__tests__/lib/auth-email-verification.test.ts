@@ -88,6 +88,16 @@ describe('auth-email-verification', () => {
         message: 'Novo código enviado para o seu e-mail.',
         email: 'j***@empresa.com',
       })
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://api.test/api/auth/email/verification-notification',
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      )
     })
 
     it('inclui retry_after no cooldown', async () => {
