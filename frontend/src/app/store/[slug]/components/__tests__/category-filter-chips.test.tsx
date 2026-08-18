@@ -10,15 +10,16 @@ describe("CategoryFilterChips", () => {
     "Yakisoba",
   ]
 
-  it("quebra as categorias em várias linhas em vez de criar rolagem horizontal", () => {
-    const { container } = render(
+  it("mantém as categorias em uma única linha sem barra de rolagem visível", () => {
+    render(
       <CategoryFilterChips categories={categories} selected="all" onSelect={jest.fn()} />,
     )
 
     const list = screen.getByLabelText("Categorias do cardápio")
-    expect(list).toHaveClass("flex-wrap")
-    expect(list.className).not.toMatch(/overflow-x/)
-    expect(container.querySelector(".overflow-x-auto")).not.toBeInTheDocument()
+    expect(list.className).toMatch(/flex-nowrap/)
+    expect(list.className).toMatch(/overflow-x-auto/)
+    expect(list.className).not.toMatch(/flex-wrap/)
+    expect(list.className).toMatch(/scrollbar-width:none/)
   })
 
   it("permite selecionar uma categoria pelo nome completo", async () => {
