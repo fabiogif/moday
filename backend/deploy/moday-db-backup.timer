@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer diário do backup do banco MySQL do Moday
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
