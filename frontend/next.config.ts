@@ -43,8 +43,13 @@ const nextConfig: NextConfig = {
         hostname: '163.176.233.174',
         pathname: '/**',
       },
-      { protocol: 'https', 
-        hostname: 'moday.sfo3.digitaloceanspaces.com' 
+      { protocol: 'https',
+        hostname: 'moday.sfo3.digitaloceanspaces.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'rest.albatec.com.br',
+        pathname: '/**',
       },
     ],
     dangerouslyAllowSVG: true, // se exibir SVG
