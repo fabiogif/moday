@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, Check } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { useAuth } from "@/contexts/auth-context"
+import { AlbaTecLogo } from "@/components/albatec-logo"
 import { maskCNPJ, validateCNPJ } from "@/lib/masks"
 import { PASSWORD_MIN_LENGTH } from "@/lib/password-policy"
 import { TRIAL_DAYS } from "@/lib/subscription"
@@ -240,6 +241,9 @@ export function RegisterForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
+          <div className="mb-2 flex justify-center">
+            <AlbaTecLogo href="/" variant="full" height={80} adaptive />
+          </div>
           <CardTitle className="text-xl">Criar sua conta</CardTitle>
           <CardDescription>
             Preencha os dados abaixo para começar a usar o Alba Tec
