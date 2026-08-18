@@ -110,6 +110,10 @@ readonly class DashboardMetricsService
                     $totalOrders,
                     $ordersGrowth
                 ),
+                'conversion_rate' => $this->buildConversionMetric(
+                    $currentConversion['conversion_rate'],
+                    $conversionGrowth
+                ),
                 'average_ticket' => $this->buildAverageTicketMetric(
                     $currentAvgTicket,
                     $avgTicketGrowth
