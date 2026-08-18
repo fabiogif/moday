@@ -26,7 +26,8 @@ const PasswordInput = React.forwardRef<
       <button
         type="button"
         disabled={disabled}
-        className="absolute inset-y-0 right-0 z-10 flex w-11 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        data-password-visibility-toggle=""
+        className="absolute inset-y-0 right-0 z-10 flex w-11 cursor-pointer items-center justify-center text-foreground/70 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         onClick={() => setShow((prev) => !prev)}
         aria-pressed={show}
         aria-label={show ? "Ocultar senha" : "Mostrar senha"}
@@ -36,6 +37,7 @@ const PasswordInput = React.forwardRef<
         ) : (
           <Eye className="size-4" aria-hidden="true" />
         )}
+        <span className="sr-only">{show ? "Ocultar senha" : "Mostrar senha"}</span>
       </button>
     </div>
   )

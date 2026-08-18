@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { isPublicRoute } from "@/lib/auth-routes"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -36,7 +36,6 @@ export function LoginForm3({
   const [rememberMe, setRememberMe] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { login } = useAuth()
 
   const {
@@ -84,7 +83,7 @@ export function LoginForm3({
         return
       }
 
-      const redirectParam = searchParams.get("redirect")
+      const redirectParam = new URLSearchParams(window.location.search).get("redirect")
       let destination = "/dashboard"
       if (
         redirectParam?.startsWith("/") &&

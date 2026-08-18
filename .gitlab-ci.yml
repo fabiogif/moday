@@ -360,9 +360,18 @@ frontend:deploy:
       "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
       code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
       echo "Frontend local :${FRONTEND_PORT} -> HTTP ${code}"
-      login_html=$(curl -s "http://127.0.0.1:${FRONTEND_PORT}/auth/login" || true)
+      login_url="http://127.0.0.1:${FRONTEND_PORT}/auth/login"
+      login_headers=$(curl -sI -H 'Cache-Control: no-cache' "$login_url" || true)
+      login_html=$(curl -s -H 'Cache-Control: no-cache' "$login_url" || true)
+      echo "$login_headers"
+      if echo "$login_headers" | grep -qi 's-maxage=31536000'; then
+        echo "Falha: /auth/login ainda esta com cache estatico de 1 ano" >&2
+        exit 1
+      fi
       if ! printf '%s' "$login_html" | grep -q 'Mostrar senha'; then
         echo "Falha: /auth/login nao contem o botao Mostrar senha apos o deploy" >&2
+        printf '%s' "$login_html" | head -c 2500 >&2
+        echo >&2
         exit 1
       fi
       echo "Login :${FRONTEND_PORT}/auth/login contem o icone de senha"
