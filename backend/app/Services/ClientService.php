@@ -310,6 +310,12 @@ class ClientService {
             ? round((($currentNewClients - $previousNewClients) / $previousNewClients) * 100, 1)
             : ($currentNewClients > 0 ? 100 : 0);
 
+        $currentRecurringRate = $this->calculateRecurringClientsRate((int) $tenantId);
+        $previousRecurringRate = $this->calculateRecurringClientsRate((int) $tenantId, $previousMonthEnd);
+        $recurringGrowth = $previousRecurringRate > 0
+            ? round((($currentRecurringRate - $previousRecurringRate) / $previousRecurringRate) * 100, 1)
+            : ($currentRecurringRate > 0 ? 100 : 0);
+
         return [
             'total_clients' => [
                 'current' => $currentTotalClients,
@@ -330,7 +336,36 @@ class ClientService {
                 'current' => $currentNewClients,
                 'previous' => $previousNewClients,
                 'growth' => $newClientsGrowth
-            ]
+            ],
+            'recurring_clients_rate' => [
+                'current' => $currentRecurringRate,
+                'previous' => $previousRecurringRate,
+                'growth' => $recurringGrowth,
+            ],
         ];
+    }
+
+    /**
+     * Percentual de clientes com mais de um pedido (entre os que já pediram).
+     */
+    private function calculateRecurringClientsRate(int $tenantId, ?Carbon $until = null): float
+    {
+        $orderCounts = DB::table('orders')
+            ->where('tenant_id', $tenantId)
+            ->whereNotNull('client_id')
+            ->when($until, fn ($query) => $query->where('created_at', '<=', $until))
+            ->groupBy('client_id')
+            ->selectRaw('client_id, COUNT(*) as order_count');
+
+        $row = DB::query()
+            ->fromSub($orderCounts, 'client_order_counts')
+            ->selectRaw('COUNT(*) as clients_with_orders, COALESCE(SUM(CASE WHEN order_count > 1 THEN 1 ELSE 0 END), 0) as recurring')
+            ->first();
+
+        if (!$row || (int) $row->clients_with_orders === 0) {
+            return 0.0;
+        }
+
+        return round(((int) $row->recurring / (int) $row->clients_with_orders) * 100, 1);
     }
 }

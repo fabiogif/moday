@@ -55,10 +55,10 @@ interface MetricData {
 }
 
 interface MetricsData {
-  total_revenue: MetricData
-  active_clients: MetricData
-  total_orders: MetricData
-  conversion_rate: MetricData
+  total_revenue?: MetricData
+  active_clients?: MetricData
+  total_orders?: MetricData
+  conversion_rate?: MetricData
 }
 
 interface StatTrio {
@@ -68,18 +68,18 @@ interface StatTrio {
 }
 
 interface OrderStats {
-  delivered_orders: StatTrio
-  canceled_orders: StatTrio
-  average_service_time_minutes: {
+  delivered_orders?: StatTrio
+  canceled_orders?: StatTrio
+  average_service_time_minutes?: {
     current: number | null
     previous: number | null
     growth: number
   }
-  projected_revenue: StatTrio
+  projected_revenue?: StatTrio
 }
 
 interface ClientStats {
-  recurring_clients_rate: StatTrio
+  recurring_clients_rate?: StatTrio
 }
 
 interface ReviewStats {
@@ -222,6 +222,10 @@ function formatDuration(minutes: number) {
   return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`
 }
 
+function hasStatTrio(value: unknown): value is StatTrio {
+  return typeof value === "object" && value !== null && typeof (value as StatTrio).current === "number"
+}
+
 export function MetricsOverview() {
   const { user, isAuthenticated, isLoading: authLoading, token } = useAuth()
   const [metrics, setMetrics] = useState<MetricsData | null>(null)
@@ -356,9 +360,9 @@ export function MetricsOverview() {
             {isVisible("period-revenue") && (
               <KpiCard
                 title="Receita"
-                value={formatCurrency(indicators.total_sales_value.current)}
-                change={formatGrowth(indicators.total_sales_value.growth)}
-                trend={indicators.total_sales_value.growth >= 0 ? "up" : "down"}
+                value={hasStatTrio(indicators.total_sales_value) ? formatCurrency(indicators.total_sales_value.current) : "—"}
+                change={hasStatTrio(indicators.total_sales_value) ? formatGrowth(indicators.total_sales_value.growth) : undefined}
+                trend={hasStatTrio(indicators.total_sales_value) ? (indicators.total_sales_value.growth >= 0 ? "up" : "down") : undefined}
                 icon={DollarSign}
                 iconClassName="text-primary bg-primary/10"
                 tooltip="Soma do valor dos pedidos no período selecionado, comparada ao período anterior de mesma duração."
@@ -368,9 +372,9 @@ export function MetricsOverview() {
             {isVisible("period-orders") && (
               <KpiCard
                 title="Pedidos"
-                value={indicators.total_sales.current.toString()}
-                change={formatGrowth(indicators.total_sales.growth)}
-                trend={indicators.total_sales.growth >= 0 ? "up" : "down"}
+                value={hasStatTrio(indicators.total_sales) ? indicators.total_sales.current.toString() : "—"}
+                change={hasStatTrio(indicators.total_sales) ? formatGrowth(indicators.total_sales.growth) : undefined}
+                trend={hasStatTrio(indicators.total_sales) ? (indicators.total_sales.growth >= 0 ? "up" : "down") : undefined}
                 icon={ShoppingCart}
                 iconClassName="text-violet-600 bg-violet-50 dark:bg-violet-950 dark:text-violet-400"
                 tooltip="Total de pedidos no período selecionado, comparado ao período anterior de mesma duração."
@@ -380,9 +384,9 @@ export function MetricsOverview() {
             {isVisible("period-ticket") && (
               <KpiCard
                 title="Ticket Médio"
-                value={formatCurrency(indicators.average_ticket.current)}
-                change={formatGrowth(indicators.average_ticket.growth)}
-                trend={indicators.average_ticket.growth >= 0 ? "up" : "down"}
+                value={hasStatTrio(indicators.average_ticket) ? formatCurrency(indicators.average_ticket.current) : "—"}
+                change={hasStatTrio(indicators.average_ticket) ? formatGrowth(indicators.average_ticket.growth) : undefined}
+                trend={hasStatTrio(indicators.average_ticket) ? (indicators.average_ticket.growth >= 0 ? "up" : "down") : undefined}
                 icon={Receipt}
                 iconClassName="text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400"
                 tooltip="Valor médio por pedido (receita ÷ pedidos) no período selecionado."
@@ -392,9 +396,9 @@ export function MetricsOverview() {
             {isVisible("period-new-clients") && (
               <KpiCard
                 title="Novos Clientes"
-                value={indicators.new_clients.current.toString()}
-                change={formatGrowth(indicators.new_clients.growth)}
-                trend={indicators.new_clients.growth >= 0 ? "up" : "down"}
+                value={hasStatTrio(indicators.new_clients) ? indicators.new_clients.current.toString() : "—"}
+                change={hasStatTrio(indicators.new_clients) ? formatGrowth(indicators.new_clients.growth) : undefined}
+                trend={hasStatTrio(indicators.new_clients) ? (indicators.new_clients.growth >= 0 ? "up" : "down") : undefined}
                 icon={UserPlus}
                 iconClassName="text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400"
                 tooltip="Clientes que fizeram o primeiro pedido dentro do período selecionado."
@@ -419,13 +423,13 @@ export function MetricsOverview() {
           {isVisible("month-active-clients") && (
             <KpiCard
               title="Clientes Ativos"
-              value={metrics.active_clients.value.toString()}
-              change={formatGrowth(metrics.active_clients.growth)}
-              trend={metrics.active_clients.trend}
+              value={metrics.active_clients ? metrics.active_clients.value.toString() : "—"}
+              change={metrics.active_clients ? formatGrowth(metrics.active_clients.growth) : undefined}
+              trend={metrics.active_clients?.trend}
               icon={Users}
               iconClassName="text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400"
-              footer={metrics.active_clients.subtitle}
-              subfooter={metrics.active_clients.description}
+              footer={metrics.active_clients?.subtitle}
+              subfooter={metrics.active_clients?.description}
               tooltip="Clientes com pelo menos um pedido no mês atual."
               liveIndicator={isConnected}
               onHide={() => hide("month-active-clients")}
@@ -434,13 +438,17 @@ export function MetricsOverview() {
           {isVisible("month-conversion") && (
             <KpiCard
               title="Taxa de Conversão"
-              value={metrics.conversion_rate.formatted || `${metrics.conversion_rate.value.toFixed(1)}%`}
-              change={formatGrowth(metrics.conversion_rate.growth)}
-              trend={metrics.conversion_rate.trend}
+              value={
+                metrics.conversion_rate
+                  ? metrics.conversion_rate.formatted || `${metrics.conversion_rate.value.toFixed(1)}%`
+                  : "—"
+              }
+              change={metrics.conversion_rate ? formatGrowth(metrics.conversion_rate.growth) : undefined}
+              trend={metrics.conversion_rate?.trend}
               icon={BarChart3}
               iconClassName="text-primary bg-primary/10"
-              footer={metrics.conversion_rate.subtitle}
-              subfooter={metrics.conversion_rate.description}
+              footer={metrics.conversion_rate?.subtitle}
+              subfooter={metrics.conversion_rate?.description}
               tooltip="Percentual de visitas/pedidos iniciados que viraram pedidos concluídos, no mês atual."
               onHide={() => hide("month-conversion")}
             />
@@ -450,9 +458,9 @@ export function MetricsOverview() {
           ) : (
             <KpiCard
               title="Pedidos Concluídos"
-              value={orderStats.delivered_orders.current.toString()}
-              change={formatGrowth(orderStats.delivered_orders.growth)}
-              trend={orderStats.delivered_orders.growth >= 0 ? "up" : "down"}
+              value={hasStatTrio(orderStats.delivered_orders) ? orderStats.delivered_orders.current.toString() : "—"}
+              change={hasStatTrio(orderStats.delivered_orders) ? formatGrowth(orderStats.delivered_orders.growth) : undefined}
+              trend={hasStatTrio(orderStats.delivered_orders) ? (orderStats.delivered_orders.growth >= 0 ? "up" : "down") : undefined}
               icon={CheckCircle2}
               iconClassName="text-emerald-600 bg-emerald-50 dark:bg-emerald-950 dark:text-emerald-400"
               tooltip="Pedidos com status Concluído no mês atual."
@@ -464,9 +472,9 @@ export function MetricsOverview() {
           ) : (
             <KpiCard
               title="Pedidos Cancelados"
-              value={orderStats.canceled_orders.current.toString()}
-              change={formatGrowth(orderStats.canceled_orders.growth)}
-              trend={orderStats.canceled_orders.growth >= 0 ? "down" : "up"}
+              value={hasStatTrio(orderStats.canceled_orders) ? orderStats.canceled_orders.current.toString() : "—"}
+              change={hasStatTrio(orderStats.canceled_orders) ? formatGrowth(orderStats.canceled_orders.growth) : undefined}
+              trend={hasStatTrio(orderStats.canceled_orders) ? (orderStats.canceled_orders.growth >= 0 ? "down" : "up") : undefined}
               icon={XCircle}
               iconClassName="text-rose-600 bg-rose-50 dark:bg-rose-950 dark:text-rose-400"
               tooltip="Pedidos com status Cancelado no mês atual. Uma redução (verde) é o resultado desejado."
@@ -507,9 +515,9 @@ export function MetricsOverview() {
           ) : (
             <KpiCard
               title="Receita Projetada"
-              value={formatCurrency(orderStats.projected_revenue.current)}
-              change={formatGrowth(orderStats.projected_revenue.growth)}
-              trend={orderStats.projected_revenue.growth >= 0 ? "up" : "down"}
+              value={hasStatTrio(orderStats.projected_revenue) ? formatCurrency(orderStats.projected_revenue.current) : "—"}
+              change={hasStatTrio(orderStats.projected_revenue) ? formatGrowth(orderStats.projected_revenue.growth) : undefined}
+              trend={hasStatTrio(orderStats.projected_revenue) ? (orderStats.projected_revenue.growth >= 0 ? "up" : "down") : undefined}
               icon={ProjectedIcon}
               iconClassName="text-primary bg-primary/10"
               subfooter="Projeção linear com base na receita do mês até agora"
@@ -523,9 +531,9 @@ export function MetricsOverview() {
           ) : (
             <KpiCard
               title="Clientes Recorrentes"
-              value={`${clientStats.recurring_clients_rate.current.toFixed(1)}%`}
-              change={formatGrowth(clientStats.recurring_clients_rate.growth)}
-              trend={clientStats.recurring_clients_rate.growth >= 0 ? "up" : "down"}
+              value={hasStatTrio(clientStats.recurring_clients_rate) ? `${clientStats.recurring_clients_rate.current.toFixed(1)}%` : "—"}
+              change={hasStatTrio(clientStats.recurring_clients_rate) ? formatGrowth(clientStats.recurring_clients_rate.growth) : undefined}
+              trend={hasStatTrio(clientStats.recurring_clients_rate) ? (clientStats.recurring_clients_rate.growth >= 0 ? "up" : "down") : undefined}
               icon={Repeat}
               iconClassName="text-violet-600 bg-violet-50 dark:bg-violet-950 dark:text-violet-400"
               tooltip="Percentual de clientes (dentre os que já fizeram pedido) com mais de um pedido, considerando todo o histórico."
@@ -535,7 +543,7 @@ export function MetricsOverview() {
 
           {isVisible("month-service-time") && (orderStatsLoading || !orderStats ? (
             <Card><CardHeader><Skeleton className="h-4 w-24 mb-2" /><Skeleton className="h-8 w-16" /></CardHeader></Card>
-          ) : orderStats.average_service_time_minutes.current === null ? (
+          ) : orderStats.average_service_time_minutes?.current == null ? (
             <KpiCard
               title="Tempo Médio de Atendimento"
               value="—"

@@ -345,6 +345,36 @@ readonly class OrderService
             ? round((($deliveredCurrent - $deliveredPrevious) / $deliveredPrevious) * 100, 1)
             : ($deliveredCurrent > 0 ? 100 : 0);
 
+        $dayOfMonth = max(1, (int) Carbon::now()->day);
+        $daysInMonth = (int) Carbon::now()->daysInMonth;
+        $projectedCurrent = round(($currentRevenue / $dayOfMonth) * $daysInMonth, 2);
+        $projectedPrevious = round((float) $previousRevenue, 2);
+        $projectedGrowth = $projectedPrevious > 0
+            ? round((($projectedCurrent - $projectedPrevious) / $projectedPrevious) * 100, 1)
+            : ($projectedCurrent > 0 ? 100 : 0);
+
+        $averageServiceMinutes = function ($orders): ?float {
+            $completed = $orders->filter(function ($order) {
+                return in_array($order->status, ['Concluído', 'Entregue'], true)
+                    && $order->created_at
+                    && $order->updated_at;
+            });
+
+            if ($completed->isEmpty()) {
+                return null;
+            }
+
+            return round($completed->avg(
+                fn ($order) => $order->created_at->diffInMinutes($order->updated_at)
+            ), 1);
+        };
+
+        $currentServiceTime = $averageServiceMinutes($currentMonthOrders);
+        $previousServiceTime = $averageServiceMinutes($previousMonthOrders);
+        $serviceTimeGrowth = ($currentServiceTime !== null && $previousServiceTime !== null && $previousServiceTime > 0)
+            ? round((($currentServiceTime - $previousServiceTime) / $previousServiceTime) * 100, 1)
+            : 0;
+
         return [
             'total_orders' => [
                 'current' => $currentTotalOrders,
@@ -382,6 +412,16 @@ readonly class OrderService
                 'growth' => $canceledPrevious > 0 
                     ? round((($canceledCurrent - $canceledPrevious) / $canceledPrevious) * 100, 1)
                     : ($canceledCurrent > 0 ? 100 : 0)
+            ],
+            'projected_revenue' => [
+                'current' => $projectedCurrent,
+                'previous' => $projectedPrevious,
+                'growth' => $projectedGrowth,
+            ],
+            'average_service_time_minutes' => [
+                'current' => $currentServiceTime,
+                'previous' => $previousServiceTime,
+                'growth' => $serviceTimeGrowth,
             ],
             'orders_by_status' => $currentOrdersByStatus
         ];

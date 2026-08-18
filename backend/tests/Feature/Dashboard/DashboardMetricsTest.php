@@ -256,7 +256,12 @@ class DashboardMetricsTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.total_orders.value', 2)
-            ->assertJsonPath('data.total_revenue.value', 150);
+            ->assertJsonPath('data.total_revenue.value', 150)
+            ->assertJsonStructure([
+                'data' => [
+                    'conversion_rate' => ['value', 'formatted', 'growth'],
+                ],
+            ]);
     }
 
     #[Test]
@@ -312,6 +317,61 @@ class DashboardMetricsTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.total_orders.value', 1)
             ->assertJsonPath('data.total_revenue.value', 300);
+    }
+
+    #[Test]
+    public function estatisticas_de_pedidos_incluem_kpis_derivados_do_dashboard(): void
+    {
+        $client = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        Order::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $client->id,
+            'status' => 'Concluído',
+            'total' => 80,
+            'created_at' => now()->subMinutes(40),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/order/stats');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => [
+                    'delivered_orders' => ['current', 'previous', 'growth'],
+                    'projected_revenue' => ['current', 'previous', 'growth'],
+                    'average_service_time_minutes' => ['current', 'previous', 'growth'],
+                ],
+            ]);
+
+        $this->assertNotNull($response->json('data.projected_revenue.current'));
+        $this->assertGreaterThan(0, $response->json('data.average_service_time_minutes.current'));
+    }
+
+    #[Test]
+    public function estatisticas_de_clientes_incluem_taxa_de_recorrencia(): void
+    {
+        $recurring = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+        $oneShot = Client::factory()->create(['tenant_id' => $this->tenant->id]);
+
+        Order::factory()->count(2)->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $recurring->id,
+        ]);
+        Order::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'client_id' => $oneShot->id,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/client/stats');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.recurring_clients_rate.current', 50);
     }
 }
 

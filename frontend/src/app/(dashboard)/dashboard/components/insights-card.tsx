@@ -26,7 +26,7 @@ function buildInsights(data: NonNullable<ReturnType<typeof useSalesPerformance>[
   const insights: Insight[] = []
   const { indicators, best_day, best_hour, sales_by_payment_method } = data
 
-  if (indicators.total_sales_value.growth !== 0) {
+  if (indicators?.total_sales_value && indicators.total_sales_value.growth !== 0) {
     const growth = indicators.total_sales_value.growth
     const isUp = growth > 0
     insights.push({
@@ -66,7 +66,7 @@ function buildInsights(data: NonNullable<ReturnType<typeof useSalesPerformance>[
     }
   }
 
-  if (indicators.average_ticket.growth !== 0) {
+  if (indicators?.average_ticket && indicators.average_ticket.growth !== 0) {
     const growth = indicators.average_ticket.growth
     const isUp = growth > 0
     insights.push({
