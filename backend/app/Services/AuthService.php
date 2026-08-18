@@ -24,6 +24,7 @@ class AuthService
         private readonly TenantRepositoryInterface $tenantRepository,
         private readonly TenantAclProvisioner $tenantAclProvisioner,
         private readonly TenantFinancialCategoryProvisioner $financialCategoryProvisioner,
+        private readonly TenantOrderStatusProvisioner $orderStatusProvisioner,
     ) {}
     /**
      * Realiza o login do usuário
@@ -163,6 +164,7 @@ class AuthService
                 // rota protegida por acl.permission.
                 $this->tenantAclProvisioner->provisionAndAssignOwner($tenant, $user);
                 $this->financialCategoryProvisioner->provision($tenant);
+                $this->orderStatusProvisioner->provision($tenant);
             }
 
             DB::commit();

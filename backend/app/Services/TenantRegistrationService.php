@@ -21,6 +21,7 @@ class TenantRegistrationService
         private readonly UserRepositoryInterface $userRepository,
         private readonly TenantAclProvisioner $tenantAclProvisioner,
         private readonly TenantFinancialCategoryProvisioner $financialCategoryProvisioner,
+        private readonly TenantOrderStatusProvisioner $orderStatusProvisioner,
         private readonly EmailVerificationService $emailVerification,
     ) {}
 
@@ -53,6 +54,7 @@ class TenantRegistrationService
 
             $this->tenantAclProvisioner->provisionAndAssignOwner($tenant, $user);
             $this->financialCategoryProvisioner->provision($tenant);
+            $this->orderStatusProvisioner->provision($tenant);
 
             $token = JWTAuth::fromUser($user);
             $user = $this->userRepository->loadRelations($user, ['tenant', 'profiles.permissions']);

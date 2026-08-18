@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantAclProvisioner;
 use App\Services\TenantFinancialCategoryProvisioner;
+use App\Services\TenantOrderStatusProvisioner;
 use Illuminate\Console\Command;
 
 class ProvisionTenantAcl extends Command
@@ -18,6 +19,7 @@ class ProvisionTenantAcl extends Command
     public function handle(
         TenantAclProvisioner $provisioner,
         TenantFinancialCategoryProvisioner $categoryProvisioner,
+        TenantOrderStatusProvisioner $orderStatusProvisioner,
     ): int
     {
         $tenantId = $this->argument('tenant');
@@ -41,6 +43,7 @@ class ProvisionTenantAcl extends Command
         foreach ($tenants as $tenant) {
             $profile = $provisioner->provision($tenant);
             $categoriesCreated = $categoryProvisioner->provision($tenant);
+            $orderStatusProvisioner->provision($tenant);
             $owner = User::where('tenant_id', $tenant->id)->orderBy('id')->first();
 
             if ($owner) {

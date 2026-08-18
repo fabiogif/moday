@@ -19,6 +19,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantAclProvisioner;
 use App\Services\TenantFinancialCategoryProvisioner;
+use App\Services\TenantOrderStatusProvisioner;
 use Illuminate\Support\Facades\DB;
 
 DB::statement('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
@@ -88,6 +89,7 @@ try {
 
     $adminProfile = app(TenantAclProvisioner::class)->provisionAndAssignOwner($tenant, $user);
     $financialCategories = app(TenantFinancialCategoryProvisioner::class)->provision($tenant);
+    app(TenantOrderStatusProvisioner::class)->provision($tenant);
 
     DB::commit();
 } catch (Throwable $e) {

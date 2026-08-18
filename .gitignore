@@ -13,7 +13,11 @@ id_*.pub
 *.key
 *.p12
 *.jks
+*.sso
 *.env.bak
+
+# Wallet Oracle Autonomous Database (nunca versionar)
+/db_oracle/
 .idea/
 .vscode/
 *.swp

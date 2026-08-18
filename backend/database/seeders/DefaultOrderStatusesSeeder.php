@@ -157,15 +157,19 @@ class DefaultOrderStatusesSeeder extends Seeder
             return;
         }
 
-        $definitions = static::definitions();
-        $this->command?->info('Sincronizando '.count($definitions).' status para '.$tenants->count().' tenant(s)...');
+        $this->command?->info('Sincronizando '.count(static::definitions()).' status para '.$tenants->count().' tenant(s)...');
 
         foreach ($tenants as $tenant) {
-            $this->syncTenantStatuses((int) $tenant->id, $definitions);
-            $this->remapOrderStatusNames((int) $tenant->id);
+            $this->seedForTenant((int) $tenant->id);
         }
 
         $this->command?->info('Status de pedidos sincronizados com sucesso.');
+    }
+
+    public function seedForTenant(int $tenantId): void
+    {
+        $this->syncTenantStatuses($tenantId, static::definitions());
+        $this->remapOrderStatusNames($tenantId);
     }
 
     /**

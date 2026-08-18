@@ -91,4 +91,18 @@ class DefaultOrderStatusesSeederTest extends TestCase
         $this->assertNotNull($pendente);
         $this->assertSame($pendente->id, $order->order_status_id);
     }
+
+    public function test_seed_for_tenant_does_not_touch_other_tenants(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $other = Tenant::factory()->create();
+
+        (new DefaultOrderStatusesSeeder())->seedForTenant((int) $tenant->id);
+
+        $this->assertSame(
+            count(DefaultOrderStatusesSeeder::definitions()),
+            OrderStatus::query()->where('tenant_id', $tenant->id)->count()
+        );
+        $this->assertSame(0, OrderStatus::query()->where('tenant_id', $other->id)->count());
+    }
 }

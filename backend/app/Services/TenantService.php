@@ -25,6 +25,7 @@ class TenantService
         $this->data = $data;
         $tenant = $this->storeTenant();
         $this->storeUser($tenant);
+        app(TenantOrderStatusProvisioner::class)->provision($tenant);
         return  $tenant;
     }
 

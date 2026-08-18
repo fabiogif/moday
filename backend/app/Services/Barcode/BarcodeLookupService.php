@@ -4,7 +4,7 @@ namespace App\Services\Barcode;
 
 use App\Models\BarcodeLookup;
 use App\Models\Product;
-use App\Repositories\ProductRepository;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Services\Barcode\Clients\CosmosBarcodeClient;
 use App\Services\Barcode\Clients\OpenFoodFactsBarcodeClient;
 use App\Services\Barcode\DTO\BarcodeProductData;
@@ -20,7 +20,7 @@ class BarcodeLookupService
 
     public function __construct(
         private readonly BarcodeValidator $validator,
-        private readonly ProductRepository $productRepository,
+        private readonly ProductRepositoryInterface $productRepository,
         private readonly CosmosBarcodeClient $cosmosClient,
         private readonly OpenFoodFactsBarcodeClient $openFoodFactsClient,
     ) {}

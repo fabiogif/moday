@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\PaymentMethod;
+use App\Services\TenantOrderStatusProvisioner;
 
 class TenantObserver
 {
@@ -30,6 +31,8 @@ class TenantObserver
         if (app()->environment('testing')) {
             return;
         }
+
+        app(TenantOrderStatusProvisioner::class)->provision($tenant);
 
         // Criar categorias exemplo
         $categories = [
