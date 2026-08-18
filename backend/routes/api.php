@@ -46,6 +46,7 @@ use App\Http\Controllers\{Api\Auth\AuthClientController,
     Api\FiscalCorrectionController,
     Api\NotificationController,
     Api\LocationController,
+    Api\CepLookupController,
     Api\RegisterController,
     Api\ReviewApiController,
     Api\SubscriptionApiController,
@@ -168,6 +169,11 @@ Route::get('/cities/search', [LocationController::class, 'searchCities'])
 
 // Resolver município local a partir dos dados do ViaCEP (ibge/uf/city)
 Route::get('/location/resolve-cep', [LocationController::class, 'resolveFromCep'])
+    ->middleware('throttle:read');
+
+// Consulta de endereço por CEP (proxy ViaCEP + resolução de cidade/UF local) — usada por vários
+// formulários (empresa, pedidos, clientes, fornecedores, PDV, checkout público da loja).
+Route::get('/cep/{cep}', CepLookupController::class)
     ->middleware('throttle:read');
 
 // Rotas de autenticação públicas com rate limiting específico
@@ -324,6 +330,7 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
     Route::get('/client', [ClientApiController::class, 'index'])->middleware(['acl.permission:clients.index', 'throttle:sync']);
     Route::get('/client/stats', [ClientApiController::class, 'stats'])->middleware(['acl.permission:clients.index', 'throttle:read']);
     Route::get('/client/check-cpf', [ClientApiController::class, 'checkCpf'])->middleware(['acl.permission:clients.index', 'throttle:read']);
+    Route::post('/client/validate', [ClientApiController::class, 'validateStep'])->middleware(['acl.permission:clients.index', 'throttle:read']);
     Route::get('/client/{id}', [ClientApiController::class, 'show'])->middleware(['acl.permission:clients.show', 'throttle:read']);
     Route::post('/client', [ClientApiController::class, 'store'])->middleware(['acl.permission:clients.store', 'throttle:critical']);
     Route::put('/client/{id}', [ClientApiController::class, 'update'])->middleware(['acl.permission:clients.update', 'throttle:critical']);

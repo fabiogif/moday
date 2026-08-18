@@ -65,4 +65,9 @@ return [
         'user_agent' => env('OPENFOODFACTS_USER_AGENT', 'DistribTec/1.0 (barcode-lookup)'),
     ],
 
+    'viacep' => [
+        'base_url' => env('VIACEP_BASE_URL', 'https://viacep.com.br'),
+        'timeout' => (int) env('VIACEP_TIMEOUT', 5),
+    ],
+
 ];

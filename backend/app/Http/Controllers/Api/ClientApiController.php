@@ -14,6 +14,7 @@ use App\Services\AuthTenantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class ClientApiController extends Controller
 {
@@ -332,6 +333,36 @@ class ClientApiController extends Controller
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao carregar estatísticas');
         }
+    }
+
+    /**
+     * Valida os campos de uma etapa do wizard de cliente (criação/edição) sem
+     * persistir nada, reutilizando as mesmas regras de UpdateClient.
+     * POST /api/client/validate
+     */
+    public function validateStep(Request $request): JsonResponse
+    {
+        [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+        $clientId = $request->input('client_id');
+        if ($clientId) {
+            $client = $this->clientService->getClientById($clientId);
+            if (!$client || $client->tenant_id !== $tenantId) {
+                return ApiResponseClass::sendResponse(null, 'Cliente não encontrado', 404);
+            }
+        }
+
+        $fields = $request->except(['step', 'client_id']);
+        $allRules = UpdateClient::fieldRules($tenantId, $clientId);
+        $rules = array_intersect_key($allRules, $fields);
+
+        $updateClientRequest = new UpdateClient();
+        $validator = Validator::make($fields, $rules, $updateClientRequest->messages(), $updateClientRequest->attributes());
+        if ($validator->fails()) {
+            return ApiResponseClass::validationError($validator->errors()->toArray());
+        }
+
+        return ApiResponseClass::sendResponse(null, 'Dados válidos', 200);
     }
 
     /**

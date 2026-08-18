@@ -23,19 +23,29 @@ class UpdateClient extends FormRequest
      */
     public function rules(): array
     {
-        $clientId = $this->route('id');
-        $tenantId = $this->user()?->tenant_id;
-        
+        return self::fieldRules($this->user()?->tenant_id, $this->route('id'));
+    }
+
+    /**
+     * Regras por campo, reutilizáveis fora do ciclo de request (ex.: validação de etapa do wizard).
+     *
+     * @param int|string|null $excludeClientId id do próprio cliente, excluído das checagens de unicidade
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
+     */
+    public static function fieldRules(?int $tenantId, int|string|null $excludeClientId = null): array
+    {
+        $excludeClientId ??= 'NULL';
+
         return [
             'name'         => 'nullable|string|min:3|max:255',
             'company_name' => 'nullable|string|max:255',
-            'cpf'          => ['nullable', 'string', 'min:11', 'max:14', new Cpf(), 'unique:clients,cpf,' . $clientId . ',id,tenant_id,' . $tenantId],
-            'email'        => 'nullable|email|min:3|max:255|unique:clients,email,' . $clientId . ',id,tenant_id,' . $tenantId,
+            'cpf'          => ['nullable', 'string', 'min:11', 'max:14', new Cpf(), 'unique:clients,cpf,' . $excludeClientId . ',id,tenant_id,' . $tenantId],
+            'email'        => 'nullable|email|min:3|max:255|unique:clients,email,' . $excludeClientId . ',id,tenant_id,' . $tenantId,
             'phone'        => 'nullable|string|min:10|max:20',
-            
+
             // Senha opcional para clientes (pode ser gerada automaticamente)
             'password' => 'nullable|string|min:6|max:60',
-            
+
             // Campos de endereço opcionais
             'address' => 'nullable|string|max:255',
             'number' => 'nullable|string|max:20',
@@ -44,13 +54,12 @@ class UpdateClient extends FormRequest
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:50',
             'zip_code' => 'nullable|string|max:20',
-            
+
             // Status do cliente
             'is_active' => 'nullable|boolean',
 
             // Campos B2B distribuidor
             'cnpj' => ['nullable', 'string', 'max:18', new Cnpj()],
-            'company_name' => 'nullable|string|max:255',
             'trade_name' => 'nullable|string|max:255',
             'state_registration' => 'nullable|string|max:50',
             'client_type' => 'nullable|string|in:farmacia,hospital,clinica,mercado,atacado,outro',
