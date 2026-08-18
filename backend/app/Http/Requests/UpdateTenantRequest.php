@@ -22,9 +22,16 @@ class UpdateTenantRequest extends FormRequest
      */
     public function rules(): array
     {
-        $tenantId = $this->route('uuid') ? 
-            \App\Models\Tenant::where('uuid', $this->route('uuid'))->first()?->id : null;
+        return self::fieldRules();
+    }
 
+    /**
+     * Regras por campo, reutilizáveis fora do ciclo de request (ex.: validação de etapa do wizard).
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public static function fieldRules(): array
+    {
         return [
             'name' => 'sometimes|required|string|max:255',
             'cnpj' => 'sometimes|nullable|string|max:18',

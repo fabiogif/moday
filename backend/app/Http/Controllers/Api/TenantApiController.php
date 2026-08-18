@@ -11,6 +11,7 @@ use App\Services\TenantService;
 use Illuminate\Http\{Request, JsonResponse, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class TenantApiController extends Controller
 {
@@ -45,6 +46,32 @@ class TenantApiController extends Controller
             return ApiResponseClass::sendResponse('', 'Empresa não encontrada', 404);
         }
         return ApiResponseClass::sendResponse(new TenantResource($tenant), '', 200);
+    }
+
+    /**
+     * Valida os campos de uma etapa do wizard de configurações da empresa
+     * sem persistir nada, reutilizando as mesmas regras de UpdateTenantRequest.
+     */
+    public function validateStep(Request $request): JsonResponse
+    {
+        [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
+        $uuid = (string) $request->input('uuid');
+        $ownerCheck = $uuid !== '' ? $this->tenantService->getTenantByUuid($uuid) : null;
+        if (!$ownerCheck || $ownerCheck->id !== $tenantId) {
+            return ApiResponseClass::sendResponse(null, 'Empresa não encontrada', 404);
+        }
+
+        $fields = $request->except(['step', 'uuid']);
+        $allRules = UpdateTenantRequest::fieldRules();
+        $rules = array_intersect_key($allRules, $fields);
+
+        $validator = Validator::make($fields, $rules);
+        if ($validator->fails()) {
+            return ApiResponseClass::validationError($validator->errors()->toArray());
+        }
+
+        return ApiResponseClass::sendResponse(null, 'Dados válidos', 200);
     }
 
     public function update(UpdateTenantRequest $request, string $uuid):JsonResponse

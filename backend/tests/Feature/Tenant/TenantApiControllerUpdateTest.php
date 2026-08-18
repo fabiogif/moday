@@ -69,4 +69,57 @@ class TenantApiControllerUpdateTest extends TestCase
         $this->assertFalse($fresh['require_email_verification']);
         $this->assertTrue($fresh['delivery_pickup']['pickup_enabled']);
     }
+
+    #[Test]
+    public function post_tenant_validate_nao_e_capturado_pela_rota_de_update(): void
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $tenant = $owner->tenant;
+
+        $response = $this->withHeaders($this->authHeaders($owner))
+            ->postJson('/api/tenant/validate', [
+                'step' => 1,
+                'uuid' => $tenant->uuid,
+                'name' => 'Nome Válido',
+                'email' => 'valido@example.com',
+            ]);
+
+        $response->assertOk();
+        $response->assertJson(['success' => true]);
+    }
+
+    #[Test]
+    public function tenant_validate_retorna_erros_de_validacao_do_campo(): void
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $tenant = $owner->tenant;
+
+        $response = $this->withHeaders($this->authHeaders($owner))
+            ->postJson('/api/tenant/validate', [
+                'step' => 1,
+                'uuid' => $tenant->uuid,
+                'name' => '',
+                'email' => 'nao-e-um-email',
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['name', 'email']);
+    }
+
+    #[Test]
+    public function tenant_validate_nao_permite_validar_uuid_de_outra_empresa(): void
+    {
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $otherTenantOwner = User::factory()->create(['email_verified_at' => now()]);
+        $otherTenant = $otherTenantOwner->tenant;
+
+        $response = $this->withHeaders($this->authHeaders($owner))
+            ->postJson('/api/tenant/validate', [
+                'step' => 1,
+                'uuid' => $otherTenant->uuid,
+                'name' => 'Nome Válido',
+            ]);
+
+        $response->assertStatus(404);
+    }
 }

@@ -509,6 +509,8 @@ Route::get('/tenant', [TenantApiController::class , 'index'])->middleware(['admi
 // Consulta do próprio tenant (usada pelas telas autenticadas de configurações da empresa/admin).
 Route::get('/tenant/{uuid}', [TenantApiController::class , 'show'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'throttle:read']);
 Route::post('/tenant', [TenantApiController::class , 'store'])->middleware('throttle:register');
+// Precisa vir antes de POST /tenant/{uuid}: sem isso, "validate" é capturado como {uuid}.
+Route::post('/tenant/validate', [TenantApiController::class , 'validateStep'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'throttle:read']);
 Route::put('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']);
 Route::post('/tenant/{uuid}', [TenantApiController::class , 'update'])->middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'throttle:critical']); // Para upload de arquivo com _method=PUT
 
