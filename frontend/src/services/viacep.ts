@@ -35,7 +35,32 @@ interface CepApiResponse {
     id?: number | null
     name: string
     ibge_code?: string | null
+    state?: {
+      id?: number | null
+      uf?: string
+    } | null
   } | null
+}
+
+export function mapCepApiResponse(data: CepApiResponse, cleanCEP: string): AddressData {
+  const uf = data.state?.uf || data.city?.state?.uf || ''
+  const cityName = data.city?.name || ''
+
+  return {
+    address: data.address || '',
+    neighborhood: data.neighborhood || '',
+    city: cityName,
+    state: uf,
+    zipCode: data.zip_code || cleanCEP,
+    complement: data.complement || '',
+    stateId: data.state?.id ?? data.city?.state?.id ?? undefined,
+    cityId: data.city?.id ?? undefined,
+    cityIbgeCode: data.city?.ibge_code ?? undefined,
+    logradouro: data.address || '',
+    bairro: data.neighborhood || '',
+    localidade: cityName,
+    uf,
+  }
 }
 
 /**
@@ -60,21 +85,7 @@ export async function searchAddressByCEP(cep: string): Promise<AddressData | nul
 
     const data = response.data
 
-    return {
-      address: data.address || '',
-      neighborhood: data.neighborhood || '',
-      city: data.city?.name || '',
-      state: data.state?.uf || '',
-      zipCode: data.zip_code || cleanCEP,
-      complement: data.complement || '',
-      stateId: data.state?.id ?? undefined,
-      cityId: data.city?.id ?? undefined,
-      cityIbgeCode: data.city?.ibge_code ?? undefined,
-      logradouro: data.address || '',
-      bairro: data.neighborhood || '',
-      localidade: data.city?.name || '',
-      uf: data.state?.uf || '',
-    }
+    return mapCepApiResponse(data, cleanCEP)
   } catch (err: unknown) {
     const status = (err as { status?: number })?.status
     if (status === 404 || status === 422) {

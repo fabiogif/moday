@@ -53,7 +53,7 @@ export function StateCitySelect({
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select
-            value={stateValue}
+            value={stateValue || undefined}
             onValueChange={onStateChange}
             disabled={disabled || loadingStates}
           >
@@ -61,17 +61,20 @@ export function StateCitySelect({
               <SelectValue placeholder="Selecione o estado" />
             </SelectTrigger>
             <SelectContent>
-              {!states || states.length === 0 ? (
-                <SelectItem value="_empty" disabled>
-                  Nenhum estado disponível
-                </SelectItem>
-              ) : (
+              {stateValue && !states.some((state) => state.uf === stateValue) && (
+                <SelectItem value={stateValue}>{stateValue}</SelectItem>
+              )}
+              {states.length > 0 ? (
                 states.map((state) => (
                   <SelectItem key={state.id} value={state.uf}>
                     {state.name} ({state.uf})
                   </SelectItem>
                 ))
-              )}
+              ) : !stateValue ? (
+                <SelectItem value="_empty" disabled>
+                  Nenhum estado disponível
+                </SelectItem>
+              ) : null}
             </SelectContent>
           </Select>
         )}
@@ -86,7 +89,7 @@ export function StateCitySelect({
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select
-            value={cityValue}
+            value={cityValue || undefined}
             onValueChange={onCityChange}
             disabled={disabled || !stateValue || loadingCities}
           >
@@ -102,18 +105,21 @@ export function StateCitySelect({
               />
             </SelectTrigger>
             <SelectContent>
-              {!cities || cities.length === 0 ? (
-                <SelectItem value="_empty" disabled>
-                  Nenhuma cidade disponível
-                </SelectItem>
-              ) : (
+              {cityValue && !cities.some((city) => city.name === cityValue) && (
+                <SelectItem value={cityValue}>{cityValue}</SelectItem>
+              )}
+              {cities.length > 0 ? (
                 cities.map((city) => (
                   <SelectItem key={city.id} value={city.name}>
                     {city.name}
                     {city.is_capital && " (Capital)"}
                   </SelectItem>
                 ))
-              )}
+              ) : !cityValue ? (
+                <SelectItem value="_empty" disabled>
+                  Nenhuma cidade disponível
+                </SelectItem>
+              ) : null}
             </SelectContent>
           </Select>
         )}

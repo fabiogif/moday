@@ -22,6 +22,38 @@ export interface City {
   }
 }
 
+/** Aceita `{ data: T[] }` ou o array já no `data` do ApiResponse. */
+export function unwrapResourceList<T>(payload: unknown): T[] {
+  if (Array.isArray(payload)) {
+    return payload as T[]
+  }
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: T[] }).data
+  }
+  return []
+}
+
+/** Aceita `{ state, cities }` ou o mesmo objeto aninhado em `data`. */
+export function unwrapCitiesPayload(payload: unknown): City[] {
+  if (!payload || typeof payload !== 'object') {
+    return []
+  }
+
+  const source =
+    'cities' in payload
+      ? payload
+      : (payload as { data?: unknown }).data && typeof (payload as { data?: unknown }).data === 'object'
+        ? (payload as { data: object }).data
+        : null
+
+  if (!source || !('cities' in source)) {
+    return []
+  }
+
+  const cities = (source as { cities: unknown }).cities
+  return Array.isArray(cities) ? cities : []
+}
+
 export function useStates() {
   const [states, setStates] = useState<State[]>([])
   const [loading, setLoading] = useState(false)
@@ -35,12 +67,10 @@ export function useStates() {
     try {
       setLoading(true)
       setError(null)
-      const response = await apiClient.get<{ success: boolean; data: { success: boolean; data: State[] } }>(
-        endpoints.states.list
-      )
+      const response = await apiClient.get<State[] | { data: State[] }>(endpoints.states.list)
 
-      if (response.success && response.data?.data) {
-        setStates(Array.isArray(response.data.data) ? response.data.data : [])
+      if (response.success) {
+        setStates(unwrapResourceList<State>(response.data))
       } else {
         setError('Erro ao carregar estados')
         setStates([])
@@ -92,19 +122,12 @@ export function useCitiesByState(stateKey: string | number | null) {
     try {
       setLoading(true)
       setError(null)
-      const response = await apiClient.get<{
-        success: boolean
-        data: {
-          success: boolean
-          data: {
-            state: State
-            cities: City[]
-          }
-        }
-      }>(endpoints.states.cities(id))
+      const response = await apiClient.get<{ state: State; cities: City[] } | { data: { state: State; cities: City[] } }>(
+        endpoints.states.cities(id)
+      )
 
-      if (response.success && response.data?.data && 'cities' in response.data.data) {
-        setCities(Array.isArray(response.data.data.cities) ? response.data.data.cities : [])
+      if (response.success) {
+        setCities(unwrapCitiesPayload(response.data))
       } else {
         setError('Erro ao carregar cidades')
         setCities([])
@@ -146,16 +169,12 @@ export function useSearchCities(searchTerm: string, minLength = 2) {
     try {
       setLoading(true)
       setError(null)
-      const response = await apiClient.get<{
-        success: boolean
-        data: {
-          success: boolean
-          data: City[]
-        }
-      }>(`${endpoints.cities.search}?q=${encodeURIComponent(query)}`)
+      const response = await apiClient.get<City[] | { data: City[] }>(
+        `${endpoints.cities.search}?q=${encodeURIComponent(query)}`
+      )
 
-      if (response.success && response.data?.data) {
-        setCities(Array.isArray(response.data.data) ? response.data.data : [])
+      if (response.success) {
+        setCities(unwrapResourceList<City>(response.data))
       } else {
         setError('Erro ao pesquisar cidades')
         setCities([])

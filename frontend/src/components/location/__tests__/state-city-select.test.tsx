@@ -33,6 +33,21 @@ describe('StateCitySelect', () => {
     expect(triggers[0]).not.toBeDisabled()
   })
 
+  it('mostra o valor preenchido pelo CEP mesmo antes da lista carregar', () => {
+    render(
+      <StateCitySelect
+        stateValue="BA"
+        cityValue="Salvador"
+        onStateChange={jest.fn()}
+        onCityChange={jest.fn()}
+        disabled={false}
+      />
+    )
+
+    expect(screen.getByText('Bahia (BA)')).toBeInTheDocument()
+    expect(screen.getByText('Salvador (Capital)')).toBeInTheDocument()
+  })
+
   it('fica somente leitura quando disabled é true (CEP encontrado)', () => {
     render(
       <StateCitySelect

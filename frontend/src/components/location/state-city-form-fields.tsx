@@ -81,7 +81,7 @@ export function StateCityFormFields<T extends FieldValues>({
               {stateLabel} {required && <span className="text-red-500">*</span>}
             </FormLabel>
             <Select
-              value={field.value}
+              value={field.value || undefined}
               onValueChange={field.onChange}
               disabled={disabled || loadingStates}
             >
@@ -91,17 +91,19 @@ export function StateCityFormFields<T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="max-h-[300px]">
-                {loadingStates ? (
+                {loadingStates && (
                   <SelectItem value="_loading" disabled>
                     Carregando...
                   </SelectItem>
-                ) : (
-                  states.map((state) => (
-                    <SelectItem key={state.id} value={state.uf}>
-                      {state.name} ({state.uf})
-                    </SelectItem>
-                  ))
                 )}
+                {field.value && !states.some((state) => state.uf === field.value) && (
+                  <SelectItem value={field.value}>{field.value}</SelectItem>
+                )}
+                {states.map((state) => (
+                  <SelectItem key={state.id} value={state.uf}>
+                    {state.name} ({state.uf})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FormMessage />
@@ -118,7 +120,7 @@ export function StateCityFormFields<T extends FieldValues>({
               {cityLabel} {required && <span className="text-red-500">*</span>}
             </FormLabel>
             <Select
-              value={field.value}
+              value={field.value || undefined}
               onValueChange={field.onChange}
               disabled={disabled || !stateField || loadingCities}
             >
@@ -136,22 +138,20 @@ export function StateCityFormFields<T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="max-h-[300px]">
-                {loadingCities ? (
+                {loadingCities && (
                   <SelectItem value="_loading" disabled>
                     Carregando...
                   </SelectItem>
-                ) : !cities || cities.length === 0 ? (
-                  <SelectItem value="_empty" disabled>
-                    Nenhuma cidade encontrada
-                  </SelectItem>
-                ) : (
-                  cities.map((city) => (
-                    <SelectItem key={city.id} value={city.name}>
-                      {city.name}
-                      {city.is_capital && " (Capital)"}
-                    </SelectItem>
-                  ))
                 )}
+                {field.value && !cities.some((city) => city.name === field.value) && (
+                  <SelectItem value={field.value}>{field.value}</SelectItem>
+                )}
+                {cities.map((city) => (
+                  <SelectItem key={city.id} value={city.name}>
+                    {city.name}
+                    {city.is_capital && " (Capital)"}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <FormMessage />
