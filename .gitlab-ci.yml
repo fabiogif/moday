@@ -1,7 +1,7 @@
-# RestTec / AlbatecRest — monorepo GitLab CI/CD
+# Moday (repo GitLab: root/albatecrest) — monorepo GitLab CI/CD
 # Runner: tag oracle-prod
-# Backend: Docker /home/ubuntu/apps/moday-backend (:8000)
-# Frontend: systemd /home/ubuntu/apps/moday-frontend (:3000)
+# Backend: Docker /home/ubuntu/apps/moday-backend (:8000) — domínio rest.albatec.com.br
+# Frontend: systemd /home/ubuntu/apps/moday-frontend (:3000) — domínio rest.albatec.com.br
 # Fluxo: test -> deploy (deploy só em main; path rules por app)
 
 stages:
