@@ -1,7 +1,7 @@
 # RestTec / AlbatecRest — monorepo GitLab CI/CD
 # Runner: tag oracle-prod
-# Backend: Docker ~/apps/albatecrest-backend (:8002)
-# Frontend: systemd ~/apps/albatecrest-frontend (:3002)
+# Backend: Docker /home/ubuntu/apps/moday-backend (:8000)
+# Frontend: systemd /home/ubuntu/apps/moday-frontend (:3000)
 # Fluxo: test -> deploy (deploy só em main; path rules por app)
 
 stages:
@@ -19,7 +19,7 @@ default:
 
 variables:
   COMPOSER_ALLOW_SUPERUSER: "1"
-  FRONTEND_PORT: "3002"
+  FRONTEND_PORT: "3000"
 
 # ---------------------------------------------------------------------------
 # Backend
@@ -129,7 +129,7 @@ backend:deploy:
           exit 1
         fi
       fi
-      mkdir -p ~/apps/albatecrest-backend
+      mkdir -p /home/ubuntu/apps/moday-backend
       rsync -a --no-owner --no-group --no-perms --omit-dir-times --no-times --delete \
         --exclude='.git' \
         --exclude='node_modules' \
@@ -144,10 +144,10 @@ backend:deploy:
         --exclude='storage/framework/testing/*' \
         --exclude='storage/debugbar/*' \
         --exclude='bootstrap/cache/*' \
-        "$CI_PROJECT_DIR/backend/" ~/apps/albatecrest-backend/
+        "$CI_PROJECT_DIR/backend/" /home/ubuntu/apps/moday-backend/
     - |
       set -e
-      cd ~/apps/albatecrest-backend
+      cd /home/ubuntu/apps/moday-backend
 
       docker_build_with_retry() {
         local compose_file="$1"
@@ -164,8 +164,8 @@ backend:deploy:
           fi
           attempt=$((attempt + 1))
         done
-        if docker image inspect albatecrest-backend-app:latest >/dev/null 2>&1; then
-          echo "Build indisponivel - usando imagem albatecrest-backend-app:latest ja existente"
+        if docker image inspect moday-backend-app:latest >/dev/null 2>&1; then
+          echo "Build indisponivel - usando imagem moday-backend-app:latest ja existente"
           return 0
         fi
         echo "Build falhou e nao ha imagem local de fallback"
@@ -197,21 +197,21 @@ backend:deploy:
       sleep 25
 
       rm -f bootstrap/cache/packages.php bootstrap/cache/services.php bootstrap/cache/config.php 2>/dev/null || true
-      docker exec albatecrest-backend php artisan cache:clear
-      docker exec albatecrest-backend php artisan package:discover --ansi
-      docker exec albatecrest-backend php artisan migrate --force
-      docker exec albatecrest-backend php artisan config:clear
-      docker exec albatecrest-backend php artisan config:cache
-      docker exec albatecrest-backend php artisan route:clear
+      docker exec moday-backend php artisan cache:clear
+      docker exec moday-backend php artisan package:discover --ansi
+      docker exec moday-backend php artisan migrate --force
+      docker exec moday-backend php artisan config:clear
+      docker exec moday-backend php artisan config:cache
+      docker exec moday-backend php artisan route:clear
 
       docker compose -f docker-compose.production.yml restart app queue-worker
       sleep 8
     - |
       set -e
-      cd ~/apps/albatecrest-backend
-      code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8002/ || echo "000")
-      echo "API local :8002 -> HTTP ${code}"
-      if docker ps --format '{{.Names}}' | grep -q albatecrest-queue-worker; then
+      cd /home/ubuntu/apps/moday-backend
+      code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ || echo "000")
+      echo "API local :8000 -> HTTP ${code}"
+      if docker ps --format '{{.Names}}' | grep -q moday-queue-worker; then
         echo "queue-worker rodando"
       else
         echo "queue-worker ausente - subindo..."
@@ -224,9 +224,9 @@ backend:diagnose:
   allow_failure: true
   script:
     - |
-      cd ~/apps/albatecrest-backend
+      cd /home/ubuntu/apps/moday-backend
       echo "=== simula request HTTP real via tinker ==="
-      docker exec albatecrest-backend php artisan tinker --execute='
+      docker exec moday-backend php artisan tinker --execute='
         try {
             $request = \Illuminate\Http\Request::create("/", "GET");
             $response = app()->handle($request);
@@ -238,7 +238,7 @@ backend:diagnose:
             echo $e->getTraceAsString()."\n";
         }
       ' 2>&1
-      curl -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:8002/ 2>&1
+      curl -s -w "\n[HTTP %{http_code}]\n" http://127.0.0.1:8000/ 2>&1
 
 backend:reset-db-volume:
   stage: deploy
@@ -247,10 +247,10 @@ backend:reset-db-volume:
   script:
     - |
       set -e
-      cd ~/apps/albatecrest-backend
+      cd /home/ubuntu/apps/moday-backend
       docker compose -f docker-compose.production.yml down
-      docker volume rm albatecrest_mysql_data
-      echo "Volume albatecrest_mysql_data removido. Rode o job backend:deploy novamente."
+      docker volume rm moday_mysql_data
+      echo "Volume moday_mysql_data removido. Rode o job backend:deploy novamente."
 
 # ---------------------------------------------------------------------------
 # Frontend
@@ -286,7 +286,7 @@ frontend:test:
         npm install --no-audit --no-fund
       fi
       # Gate principal: build de produção
-      NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8002}" npm run build
+      NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8000}" npm run build
 
 frontend:deploy:
   stage: deploy
@@ -306,7 +306,7 @@ frontend:deploy:
   script:
     - |
       set -e
-      FRONTEND_APP_DIR="${HOME}/apps/albatecrest-frontend"
+      FRONTEND_APP_DIR="/home/ubuntu/apps/moday-frontend"
       export FRONTEND_APP_DIR
       sudo -n timedatectl set-timezone America/Sao_Paulo 2>/dev/null || true
       if ! command -v rsync >/dev/null 2>&1; then
@@ -353,11 +353,11 @@ frontend:deploy:
       rm -rf .next
       npm run build:deploy
 
-      # Restart via systemd: requer albatecrest-frontend.service instalada/enabled
-      # no servidor e sudoers liberando "systemctl restart/status albatecrest-frontend"
-      # (sem sufixo .service) pro usuario do runner. Ver deploy/restart-albatecrest-frontend.sh.
-      chmod +x "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
-      "$CI_PROJECT_DIR/deploy/restart-albatecrest-frontend.sh"
+      # Restart via systemd: requer moday-frontend.service instalada/enabled
+      # no servidor e sudoers liberando "systemctl restart/status moday-frontend"
+      # (sem sufixo .service) pro usuario do runner. Ver deploy/restart-moday-frontend.sh.
+      chmod +x "$CI_PROJECT_DIR/deploy/restart-moday-frontend.sh"
+      "$CI_PROJECT_DIR/deploy/restart-moday-frontend.sh"
       code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${FRONTEND_PORT}/" || echo "000")
       echo "Frontend local :${FRONTEND_PORT} -> HTTP ${code}"
       login_url="http://127.0.0.1:${FRONTEND_PORT}/auth/login"
