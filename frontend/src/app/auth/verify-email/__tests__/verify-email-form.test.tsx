@@ -9,6 +9,7 @@ import {
 
 const push = jest.fn()
 const replace = jest.fn()
+const logout = jest.fn()
 const setUser = jest.fn()
 
 jest.mock('@/lib/auth-email-verification', () => ({
@@ -35,6 +36,7 @@ jest.mock('@/contexts/auth-context', () => ({
       email_verified: false,
     },
     setUser,
+    logout,
     isAuthenticated: true,
     isLoading: false,
   }),
@@ -58,6 +60,7 @@ describe('VerifyEmailForm', () => {
     expect(screen.getByLabelText(/código de 6 dígitos/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /confirmar e-mail/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /reenviar código/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /voltar para o login/i }).length).toBeGreaterThan(0)
   })
 
   it('mostra erro quando o código é inválido', async () => {
@@ -136,5 +139,18 @@ describe('VerifyEmailForm', () => {
       expect(screen.getByText(/o código deve ter 6 dígitos/i)).toBeInTheDocument()
     })
     expect(verifyEmailCode).not.toHaveBeenCalled()
+  })
+
+  it('encerra a sessão e volta ao login para informar outro e-mail', async () => {
+    const user = userEvent.setup()
+    logout.mockResolvedValue(undefined)
+
+    render(<VerifyEmailForm />)
+
+    await user.click(screen.getAllByRole('button', { name: /voltar para o login/i })[0])
+
+    await waitFor(() => {
+      expect(logout).toHaveBeenCalled()
+    })
   })
 })

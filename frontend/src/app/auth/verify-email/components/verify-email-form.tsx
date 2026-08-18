@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -21,7 +20,7 @@ import {
 } from "@/lib/auth-email-verification"
 import { persistAuthUser } from "@/lib/auth-storage"
 import { toast } from "sonner"
-import { CheckCircle2, Mail, ShieldCheck } from "lucide-react"
+import { ArrowLeft, CheckCircle2, Mail, ShieldCheck } from "lucide-react"
 
 const verifySchema = z.object({
   code: z
@@ -38,9 +37,10 @@ export function VerifyEmailForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, setUser, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { user, setUser, isAuthenticated, isLoading: authLoading, logout } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const [isLeavingToLogin, setIsLeavingToLogin] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
@@ -61,10 +61,11 @@ export function VerifyEmailForm({
   })
 
   useEffect(() => {
+    if (isLeavingToLogin) return
     if (!authLoading && !isAuthenticated) {
       router.replace("/auth/login?redirect=/auth/verify-email")
     }
-  }, [authLoading, isAuthenticated, router])
+  }, [authLoading, isAuthenticated, isLeavingToLogin, router])
 
   useEffect(() => {
     if (user?.email_verified) {
@@ -127,6 +128,11 @@ export function VerifyEmailForm({
     }
   }
 
+  const onBackToLogin = async () => {
+    setIsLeavingToLogin(true)
+    await logout()
+  }
+
   if (authLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -141,6 +147,16 @@ export function VerifyEmailForm({
         <CardContent className="grid p-0 lg:grid-cols-2">
           <div className="flex flex-col justify-center bg-card p-8 md:p-10 lg:p-12">
             <div className="mx-auto w-full max-w-sm flex flex-col gap-7">
+              <Button
+                type="button"
+                variant="ghost"
+                className="self-start -mt-2 h-9 px-2 text-muted-foreground"
+                onClick={onBackToLogin}
+                disabled={isLeavingToLogin}
+              >
+                <ArrowLeft className="size-4" />
+                {isLeavingToLogin ? "Saindo…" : "Voltar para o login"}
+              </Button>
               <div className="flex flex-col items-center gap-4 text-center">
                 <AlbaTecLogo href="/" variant="full" height={80} adaptive />
                 <div>
@@ -217,10 +233,15 @@ export function VerifyEmailForm({
                           : "Reenviar código"}
                     </Button>
                     <p>
-                      E-mail errado?{" "}
-                      <Link href="/auth/register" className="underline underline-offset-4">
-                        Voltar ao cadastro
-                      </Link>
+                      Informou o e-mail ou a senha errados?{" "}
+                      <button
+                        type="button"
+                        className="text-primary font-medium underline underline-offset-4 disabled:opacity-50"
+                        onClick={onBackToLogin}
+                        disabled={isLeavingToLogin}
+                      >
+                        Voltar para o login
+                      </button>
                     </p>
                   </div>
                 </form>
