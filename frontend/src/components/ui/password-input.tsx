@@ -12,26 +12,22 @@ const PasswordInput = React.forwardRef<
   const [show, setShow] = React.useState(false)
 
   return (
-    <div
-      className={cn(
-        "flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-transparent shadow-xs",
-        "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
-        className,
-      )}
-    >
+    <div className="relative w-full">
       <Input
         {...props}
         ref={ref}
         type={show ? "text" : "password"}
         disabled={disabled}
-        className="h-full min-h-0 flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
+        className={cn(
+          "pr-11 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden",
+          className,
+        )}
       />
       <button
         type="button"
         disabled={disabled}
-        className="flex h-full w-11 shrink-0 items-center justify-center border-l border-input text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        className="absolute inset-y-0 right-0 z-10 flex w-11 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         onClick={() => setShow((prev) => !prev)}
-        tabIndex={-1}
         aria-pressed={show}
         aria-label={show ? "Ocultar senha" : "Mostrar senha"}
       >
