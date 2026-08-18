@@ -136,13 +136,7 @@ backend:deploy:
         --exclude='vendor' \
         --exclude='.env' \
         --exclude='public/storage' \
-        --exclude='storage/app/public/*' \
-        --exclude='storage/logs/*' \
-        --exclude='storage/framework/cache/*' \
-        --exclude='storage/framework/sessions/*' \
-        --exclude='storage/framework/views/*' \
-        --exclude='storage/framework/testing/*' \
-        --exclude='storage/debugbar/*' \
+        --exclude='storage/' \
         --exclude='bootstrap/cache/*' \
         "$CI_PROJECT_DIR/backend/" /home/ubuntu/apps/moday-backend/
     - |
