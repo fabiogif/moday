@@ -27,7 +27,7 @@ class UserRgJobPositionApiTest extends TestCase
     {
         parent::setUp();
 
-        $plan = Plan::factory()->create();
+        $plan = Plan::factory()->create(['max_users' => 10]);
         $this->tenant = Tenant::factory()->create(['plan_id' => $plan->id]);
 
         $profile = Profile::factory()->create(['tenant_id' => $this->tenant->id]);
