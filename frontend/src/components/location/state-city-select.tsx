@@ -85,13 +85,16 @@ export function StateCitySelect({
         <label className={cn("text-sm font-medium", labelClassName)}>
           Cidade {required && <span className="text-red-500">*</span>}
         </label>
-        {loadingCities ? (
+        {loadingCities && !cityValue ? (
           <Skeleton className="h-10 w-full" />
         ) : (
           <Select
             value={cityValue || undefined}
-            onValueChange={onCityChange}
-            disabled={disabled || !stateValue || loadingCities}
+            onValueChange={(value) => {
+              if (value === '_loading' || value === '_empty') return
+              onCityChange(value)
+            }}
+            disabled={disabled || !stateValue}
           >
             <SelectTrigger className={cn(triggerClassName, cityError && "border-red-500")}>
               <SelectValue

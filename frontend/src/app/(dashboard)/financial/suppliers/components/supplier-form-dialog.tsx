@@ -559,8 +559,11 @@ export function SupplierFormDialog({
                     stateValue={stateValue || ''}
                     cityValue={cityValue || ''}
                     onStateChange={(value) => {
+                      const currentState = getValues('state')
                       setValue('state', value, { shouldDirty: true })
-                      setValue('city', '', { shouldDirty: true })
+                      if (currentState !== value) {
+                        setValue('city', '', { shouldDirty: true })
+                      }
                     }}
                     onCityChange={(value) => setValue('city', value, { shouldDirty: true })}
                     disabled={cepFound}

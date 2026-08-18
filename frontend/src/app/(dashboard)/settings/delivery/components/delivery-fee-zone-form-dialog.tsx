@@ -159,7 +159,9 @@ export function DeliveryFeeZoneFormDialog({ open, onOpenChange, zone, onSuccess 
             cityValue={city}
             onStateChange={(value) => {
               setState(value)
-              setCity('')
+              if (value !== state) {
+                setCity('')
+              }
             }}
             onCityChange={setCity}
             cityError={backendErrors.city}

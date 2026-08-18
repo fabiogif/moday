@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { apiClient, endpoints } from '@/lib/api-client'
 
 export interface State {
@@ -87,64 +87,69 @@ export function useStates() {
 }
 
 /**
- * Carrega municípios da base local IBGE pelo ID do estado.
- * Aceita também UF para compatibilidade: resolve o id via lista de estados.
+ * Carrega municípios da base local IBGE.
+ * A API aceita id numérico ou UF — não espera a lista de estados resolver o id.
  */
 export function useCitiesByState(stateKey: string | number | null) {
-  const { states } = useStates()
   const [cities, setCities] = useState<City[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const stateId = useMemo(() => {
-    if (stateKey === null || stateKey === undefined || stateKey === '') {
-      return null
-    }
-    if (typeof stateKey === 'number') {
-      return stateKey
-    }
-    if (/^\d+$/.test(stateKey)) {
-      return Number(stateKey)
-    }
-    const match = states.find((s) => s.uf === stateKey.toUpperCase())
-    return match?.id ?? null
-  }, [stateKey, states])
+  const requestKey =
+    stateKey === null || stateKey === undefined || stateKey === ''
+      ? null
+      : String(stateKey)
 
   useEffect(() => {
-    if (stateId) {
-      loadCities(stateId)
-    } else {
+    if (!requestKey) {
       setCities([])
-    }
-  }, [stateId])
-
-  async function loadCities(id: number) {
-    try {
-      setLoading(true)
-      setError(null)
-      const response = await apiClient.get<{ state: State; cities: City[] } | { data: { state: State; cities: City[] } }>(
-        endpoints.states.cities(id)
-      )
-
-      if (response.success) {
-        setCities(unwrapCitiesPayload(response.data))
-      } else {
-        setError('Erro ao carregar cidades')
-        setCities([])
-      }
-    } catch {
-      setError('Erro ao carregar cidades')
-      setCities([])
-    } finally {
       setLoading(false)
+      setError(null)
+      return
     }
-  }
+
+    const key = requestKey
+    let cancelled = false
+
+    async function loadCities() {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await apiClient.get<{ state: State; cities: City[] } | { data: { state: State; cities: City[] } }>(
+          endpoints.states.cities(key)
+        )
+
+        if (cancelled) return
+
+        if (response.success) {
+          setCities(unwrapCitiesPayload(response.data))
+        } else {
+          setError('Erro ao carregar cidades')
+          setCities([])
+        }
+      } catch {
+        if (!cancelled) {
+          setError('Erro ao carregar cidades')
+          setCities([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadCities()
+    return () => {
+      cancelled = true
+    }
+  }, [requestKey])
 
   return {
     cities: cities || [],
     loading,
     error,
-    refresh: () => stateId && loadCities(stateId),
+    refresh: () => undefined,
   }
 }
 

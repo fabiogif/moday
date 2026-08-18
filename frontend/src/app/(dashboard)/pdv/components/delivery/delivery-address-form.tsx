@@ -142,7 +142,11 @@ export function DeliveryAddressForm({
             stateValue={address.state}
             cityValue={address.city}
             onStateChange={(value) =>
-              onAddressChange({ ...address, state: value, city: "" })
+              onAddressChange({
+                ...address,
+                state: value,
+                city: address.state === value ? address.city : "",
+              })
             }
             onCityChange={(value) =>
               onAddressChange({ ...address, city: value })

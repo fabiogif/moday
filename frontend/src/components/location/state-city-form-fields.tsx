@@ -82,7 +82,10 @@ export function StateCityFormFields<T extends FieldValues>({
             </FormLabel>
             <Select
               value={field.value || undefined}
-              onValueChange={field.onChange}
+              onValueChange={(value) => {
+                if (value === '_loading' || value === '_empty') return
+                field.onChange(value)
+              }}
               disabled={disabled || loadingStates}
             >
               <FormControl>
@@ -121,8 +124,11 @@ export function StateCityFormFields<T extends FieldValues>({
             </FormLabel>
             <Select
               value={field.value || undefined}
-              onValueChange={field.onChange}
-              disabled={disabled || !stateField || loadingCities}
+              onValueChange={(value) => {
+                if (value === '_loading' || value === '_empty') return
+                field.onChange(value)
+              }}
+              disabled={disabled || !stateField}
             >
               <FormControl>
                 <SelectTrigger>
@@ -138,13 +144,13 @@ export function StateCityFormFields<T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent className="max-h-[300px]">
-                {loadingCities && (
+                {field.value && !cities.some((city) => city.name === field.value) && (
+                  <SelectItem value={field.value}>{field.value}</SelectItem>
+                )}
+                {loadingCities && cities.length === 0 && !field.value && (
                   <SelectItem value="_loading" disabled>
                     Carregando...
                   </SelectItem>
-                )}
-                {field.value && !cities.some((city) => city.name === field.value) && (
-                  <SelectItem value={field.value}>{field.value}</SelectItem>
                 )}
                 {cities.map((city) => (
                   <SelectItem key={city.id} value={city.name}>
