@@ -200,6 +200,11 @@ backend:deploy:
 
       docker compose -f docker-compose.production.yml restart app queue-worker
       sleep 8
+      # nginx resolve o hostname "app" uma unica vez na inicializacao; se so o
+      # app reiniciar (IP novo na rede Docker), o nginx fica preso no IP antigo
+      # e retorna 502 ate ser reiniciado tambem.
+      docker compose -f docker-compose.production.yml restart nginx
+      sleep 3
     - |
       set -e
       cd /home/ubuntu/apps/moday-backend
