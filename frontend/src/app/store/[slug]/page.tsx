@@ -1983,7 +1983,9 @@ export default function PublicStorePage() {
                               variant="outline"
                               size="icon"
                               className="h-10 w-10 shrink-0 sm:h-11 sm:w-11"
-                              onClick={handleSearchCEP}
+                              onClick={() => {
+                                void handleSearchCEP()
+                              }}
                               disabled={cepLoading || deliveryData.zip_code.replace(/\D/g, '').length !== 8}
                               title="Buscar endereço pelo CEP"
                             >
