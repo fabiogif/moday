@@ -38,6 +38,7 @@ class UpdateTenantRequest extends FormRequest
             'logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,webp,svg|max:5120|dimensions:max_width=1024,max_height=1024', // 5MB, 1024x1024
             'remove_logo' => 'sometimes|boolean',
             'settings' => 'sometimes|array',
+            'settings.require_email_verification' => 'sometimes|boolean',
             'settings.delivery_pickup' => 'sometimes|array',
             'settings.delivery_pickup.pickup_enabled' => 'sometimes|boolean',
             'settings.delivery_pickup.pickup_time_minutes' => 'sometimes|integer|min:0',

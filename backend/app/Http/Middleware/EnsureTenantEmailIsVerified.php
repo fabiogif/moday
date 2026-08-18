@@ -20,6 +20,12 @@ class EnsureTenantEmailIsVerified
             return $next($request);
         }
 
+        $requiresVerification = $user->tenant?->settings['require_email_verification'] ?? true;
+
+        if (!$requiresVerification) {
+            return $next($request);
+        }
+
         return response()->json([
             'success' => false,
             'error' => 'email_unverified',

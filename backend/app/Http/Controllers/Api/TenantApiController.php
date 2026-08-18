@@ -6,6 +6,7 @@ use App\Classes\ApiResponseClass;
 use App\Http\Requests\StoreTenantRequest;
 use App\Http\Requests\UpdateTenantRequest;
 use App\Http\Resources\TenantResource;
+use App\Services\AuthTenantService;
 use App\Services\TenantService;
 use Illuminate\Http\{Request, JsonResponse, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -13,8 +14,10 @@ use Illuminate\Support\Facades\Storage;
 
 class TenantApiController extends Controller
 {
-    public function __construct(private readonly TenantService $tenantService)
-    {
+    public function __construct(
+        private readonly TenantService $tenantService,
+        private readonly AuthTenantService $authTenantService,
+    ) {
     }
 
     public function index(Request $request): AnonymousResourceCollection|JsonResponse
@@ -47,8 +50,15 @@ class TenantApiController extends Controller
     public function update(UpdateTenantRequest $request, string $uuid):JsonResponse
     {
         try {
+            [$_user, $tenantId] = $this->authTenantService->requireAuthenticatedTenant();
+
             $data = $request->validated();
-            
+
+            $ownerCheck = $this->tenantService->getTenantByUuid($uuid);
+            if (!$ownerCheck || $ownerCheck->id !== $tenantId) {
+                return ApiResponseClass::sendResponse(null, 'Empresa não encontrada', 404);
+            }
+
             // Lidar com upload de logo
             if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
                 $tenant = $this->tenantService->getTenantByUuid($uuid);

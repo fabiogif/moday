@@ -183,6 +183,7 @@ function buildNavGroups(openOrdersCount?: number) {
           { title: "Horários de Funcionamento", url: "/settings/store-hours" },
           { title: "Delivery e Retirada", url: "/settings/delivery" },
           { title: "Status de Pedidos", url: "/configuracoes/status-pedidos" },
+          { title: "Segurança", url: "/settings/security" },
         ],
       },
     ],

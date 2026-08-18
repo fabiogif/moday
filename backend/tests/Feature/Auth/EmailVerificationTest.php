@@ -197,6 +197,32 @@ class EmailVerificationTest extends TestCase
     }
 
     #[Test]
+    public function middleware_permite_rota_quando_tenant_desativa_exigencia(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $user->tenant->update(['settings' => ['require_email_verification' => false]]);
+
+        $response = $this->withHeaders($this->authHeaders($user))
+            ->getJson('/api/subscription/trial-status');
+
+        $this->assertNotEquals(403, $response->status());
+        $this->assertNotEquals('email_unverified', $response->json('error'));
+    }
+
+    #[Test]
+    public function middleware_bloqueia_rota_quando_tenant_reativa_exigencia(): void
+    {
+        $user = User::factory()->unverified()->create();
+        $user->tenant->update(['settings' => ['require_email_verification' => true]]);
+
+        $response = $this->withHeaders($this->authHeaders($user))
+            ->getJson('/api/subscription/trial-status');
+
+        $response->assertStatus(403)
+            ->assertJsonPath('error', 'email_unverified');
+    }
+
+    #[Test]
     public function reenvio_respeita_cooldown(): void
     {
         $user = User::factory()->unverified()->create();

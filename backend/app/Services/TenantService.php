@@ -78,9 +78,16 @@ class TenantService
     public function update(string $uuid, array $data)
     {
         $tenant = $this->getTenantByUuid($uuid);
-        
+
         if (!$tenant) {
             return null;
+        }
+
+        // settings e um blob JSON compartilhado por varias telas (delivery, fiscal,
+        // seguranca...). Mesclar em vez de substituir evita que salvar uma tela apague
+        // chaves gravadas por outra.
+        if (array_key_exists('settings', $data) && is_array($data['settings'])) {
+            $data['settings'] = array_merge($tenant->settings ?? [], $data['settings']);
         }
 
         // Se o nome foi alterado, atualizar o slug
