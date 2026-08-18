@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
 import { useStates, useCitiesByState } from "@/hooks/use-location"
 import {
   Select,
@@ -43,21 +42,6 @@ export function StateCitySelect({
 }: StateCitySelectProps) {
   const { states, loading: loadingStates } = useStates()
   const { cities, loading: loadingCities } = useCitiesByState(stateValue || null)
-
-  useEffect(() => {
-    if (stateValue && cityValue && cities.length > 0) {
-      const cityExists = cities.some((city) => city.name === cityValue)
-      if (!cityExists) {
-        const timer = setTimeout(() => {
-          const stillNotExists = !cities.some((city) => city.name === cityValue)
-          if (stillNotExists) {
-            onCityChange("")
-          }
-        }, 100)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [stateValue, cities, cityValue, onCityChange])
 
   return (
     <div className={cn("grid grid-cols-1 gap-4 md:grid-cols-3", className)}>

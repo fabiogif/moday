@@ -285,7 +285,7 @@ export default function PublicStorePage() {
   }, [])
 
   // Hook para buscar CEP
-  const { searchCEP, loading: cepLoading } = useViaCEP()
+  const { searchCEP, loading: cepLoading, found: cepFound, notifyCepChange } = useViaCEP()
 
   // Extrair categorias únicas dos produtos
   const categories = Array.from(
@@ -669,19 +669,22 @@ export default function PublicStorePage() {
   // Helper function to handle CEP input
   const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCEP(e.target.value)
-    setDeliveryData({ ...deliveryData, zip_code: formatted })
+    const shouldClear = notifyCepChange(formatted)
+    setDeliveryData((prev) => {
+      const next = { ...prev, zip_code: formatted }
+      if (shouldClear) {
+        next.address = ''
+        next.neighborhood = ''
+        next.city = ''
+        next.state = ''
+      }
+      return next
+    })
   }
 
-  // Buscar endereço por CEP
-  const handleSearchCEP = async () => {
-    const cep = deliveryData.zip_code.replace(/\D/g, '')
-    
-    if (cep.length !== 8) {
-      return
-    }
+  const handleSearchCEP = async (cepValue?: string) => {
+    const result = await searchCEP(cepValue ?? deliveryData.zip_code)
 
-    const result = await searchCEP(cep)
-    
     if (result) {
       applyCepToStateHandlers(result, {
         setAddress: (v) => setDeliveryData((prev) => ({ ...prev, address: v })),
@@ -1952,6 +1955,7 @@ export default function PublicStorePage() {
                         stateError={validationErrors['delivery.state']}
                         cityError={validationErrors['delivery.city']}
                         required={shippingMethod === "delivery"}
+                        disabled={cepFound}
                         className={storeFormGridClass}
                         fieldClassName={storeFormFieldClass}
                         labelClassName={storeFormLabelClass}
@@ -1966,7 +1970,9 @@ export default function PublicStorePage() {
                               id="zip_code"
                               value={deliveryData.zip_code}
                               onChange={handleCEPChange}
-                              onBlur={handleSearchCEP}
+                              onBlur={(e) => {
+                                void handleSearchCEP(e.target.value)
+                              }}
                               maxLength={9}
                               required={shippingMethod === "delivery"}
                               placeholder="00000-000"

@@ -46,12 +46,19 @@ jest.mock('sonner', () => ({
 }))
 
 // Mock hooks
-jest.mock('@/hooks/use-viacep', () => ({
-  useViaCEP: () => ({
-    searchCEP: jest.fn(),
-    loading: false,
-  }),
-}))
+jest.mock('@/hooks/use-viacep', () => {
+  const reset = jest.fn()
+  const searchCEP = jest.fn()
+  return {
+    useViaCEP: () => ({
+      searchCEP,
+      loading: false,
+      found: false,
+      notifyCepChange: () => false,
+      reset,
+    }),
+  }
+})
 
 // Mock de produtos para teste
 const mockProducts = [

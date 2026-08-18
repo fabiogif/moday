@@ -17,7 +17,7 @@ import { extractValidationErrors } from '@/lib/error-formatter'
 import { OrderStepper } from '@/components/order-stepper'
 import { useViaCEP } from '@/hooks/use-viacep'
 import { StateCitySelect } from '@/components/location/state-city-select'
-import { applyCepToForm } from '@/lib/apply-cep-to-form'
+import { applyCepToForm, clearCepLinkedFields } from '@/lib/apply-cep-to-form'
 import { useReceitaWS } from '@/hooks/use-receitaws'
 import { formatReceitaWSCEP, type CompanyData } from '@/services/receitaws'
 import { maskCNPJ, maskCPF, maskPhone, maskZipCode } from '@/lib/masks'
@@ -99,7 +99,7 @@ export function SupplierFormDialog({
     mode: 'onBlur',
   })
 
-  const { loading: loadingCEP, searchCEP } = useViaCEP()
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
   const { loading: loadingCNPJ, searchCNPJ } = useReceitaWS()
 
   const documentType = watch('document_type')
@@ -120,9 +120,11 @@ export function SupplierFormDialog({
       Object.entries(supplier).forEach(([key, value]) => {
         setValue(key as any, value)
       })
+      resetCepLookup()
       setBackendErrors({})
     } else {
       reset()
+      resetCepLookup()
       setValue('document_type', 'cnpj')
       setValue('is_active', true)
       setBackendErrors({})
@@ -184,7 +186,16 @@ export function SupplierFormDialog({
   }
 
   const handleZipCodeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    applyMaskedValue('zip_code', e.target.value, maskZipCode)
+    const masked = maskZipCode(e.target.value)
+    applyMaskedValue('zip_code', masked, (value) => value)
+    if (notifyCepChange(masked)) {
+      clearCepLinkedFields(setValue, {
+        address: 'address',
+        neighborhood: 'neighborhood',
+        state: 'state',
+        city: 'city',
+      })
+    }
   }
 
   const handleSearchCNPJ = async (cnpj: string) => {
@@ -201,9 +212,6 @@ export function SupplierFormDialog({
   }
 
   const handleSearchCEP = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, '')
-    if (cleanCEP.length !== 8) return
-
     try {
       const address = await searchCEP(cep)
       if (!address) return
@@ -494,7 +502,6 @@ export function SupplierFormDialog({
                       }}
                       placeholder="00000-000"
                       maxLength={9}
-                      disabled={loadingCEP}
                     />
                     {loadingCEP && (
                       <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -556,6 +563,7 @@ export function SupplierFormDialog({
                       setValue('city', '', { shouldDirty: true })
                     }}
                     onCityChange={(value) => setValue('city', value, { shouldDirty: true })}
+                    disabled={cepFound}
                   />
                 </div>
               </div>

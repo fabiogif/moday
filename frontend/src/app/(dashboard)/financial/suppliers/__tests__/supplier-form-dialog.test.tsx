@@ -2,9 +2,19 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SupplierFormDialog } from '../components/supplier-form-dialog'
 
-jest.mock('@/hooks/use-viacep', () => ({
-  useViaCEP: () => ({ loading: false, searchCEP: jest.fn() }),
-}))
+jest.mock('@/hooks/use-viacep', () => {
+  const reset = jest.fn()
+  const searchCEP = jest.fn()
+  return {
+    useViaCEP: () => ({
+      loading: false,
+      searchCEP,
+      found: false,
+      notifyCepChange: () => false,
+      reset,
+    }),
+  }
+})
 
 jest.mock('@/hooks/use-receitaws', () => ({
   useReceitaWS: () => ({ loading: false, companyData: null, searchCNPJ: jest.fn() }),

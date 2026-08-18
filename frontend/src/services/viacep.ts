@@ -25,17 +25,17 @@ interface CepApiResponse {
   neighborhood: string
   complement?: string
   zip_code: string
-  state: {
-    id: number
+  state?: {
+    id?: number | null
     uf: string
     name: string
-    ibge_code?: string
-  }
-  city: {
-    id: number
+    ibge_code?: string | null
+  } | null
+  city?: {
+    id?: number | null
     name: string
-    ibge_code?: string
-  }
+    ibge_code?: string | null
+  } | null
 }
 
 /**

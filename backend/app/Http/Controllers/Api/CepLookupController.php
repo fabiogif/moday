@@ -25,21 +25,42 @@ class CepLookupController extends Controller
             return ApiResponseClass::sendResponse(null, 'CEP inválido', 422);
         }
 
-        $result = $this->cepLookupService->lookup($clean);
+        try {
+            $result = $this->cepLookupService->lookup($clean);
+        } catch (\Throwable) {
+            return ApiResponseClass::sendResponse(null, 'Erro ao consultar CEP. Tente novamente.', 503);
+        }
 
         if (!$result) {
             return ApiResponseClass::sendResponse(null, 'CEP não encontrado', 404);
         }
 
         $city = $result['city'];
+        $uf = $result['uf'] ?? null;
+        $localidade = $result['localidade'] ?? null;
+        $estado = $result['estado'] ?? $uf;
 
         return ApiResponseClass::sendResponse([
             'address' => $result['address'],
             'neighborhood' => $result['neighborhood'],
             'complement' => $result['complement'],
             'zip_code' => $result['zip_code'],
-            'city' => $city ? (new CityResource($city))->resolve() : null,
-            'state' => $city?->state ? (new StateResource($city->state))->resolve() : null,
+            'city' => $city
+                ? (new CityResource($city))->resolve()
+                : ($localidade ? [
+                    'id' => null,
+                    'name' => $localidade,
+                    'ibge_code' => null,
+                    'is_capital' => false,
+                ] : null),
+            'state' => $city?->state
+                ? (new StateResource($city->state))->resolve()
+                : ($uf ? [
+                    'id' => null,
+                    'uf' => $uf,
+                    'name' => $estado,
+                    'region' => null,
+                ] : null),
         ], 'CEP encontrado', 200);
     }
 }

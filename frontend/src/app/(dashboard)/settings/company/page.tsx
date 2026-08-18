@@ -30,7 +30,7 @@ import { useReceitaWS } from "@/hooks/use-receitaws"
 import { type CompanyData } from "@/services/receitaws"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
-import { applyCepToForm } from "@/lib/apply-cep-to-form"
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
 import { PlansSection } from "./components/plans-section"
 import { resolveImageUrl } from "@/lib/resolve-image-url"
 import { OrderStepper } from "@/components/order-stepper"
@@ -222,19 +222,13 @@ export default function CompanySettings() {
       setCurrentStep(step)
     }
   }
-  const { loading: loadingCEP, searchCEP } = useViaCEP()
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
   const { loading: loadingCNPJ, companyData, searchCNPJ } = useReceitaWS()
   
   // Função para buscar endereço pelo CEP
   const handleSearchCEP = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, '');
-    
-    if (cleanCEP.length !== 8) {
-      return;
-    }
-    
     const address = await searchCEP(cep);
-    
+
     if (address) {
       applyCepToForm(form.setValue, address, {
         address: 'address',
@@ -308,8 +302,7 @@ export default function CompanySettings() {
             if (tenantResponse.success && tenantResponse.data) {
               const tenantInfo = tenantResponse.data as TenantData
               setTenantData(tenantInfo)
-              
-              // Preencher formulário com dados do tenant
+              resetCepLookup()
               form.reset({
                 name: tenantInfo.name || "",
                 email: tenantInfo.email || "",
@@ -914,6 +907,7 @@ export default function CompanySettings() {
                   cityFieldName="city"
                   stateLabel="Estado"
                   cityLabel="Cidade"
+                  disabled={cepFound}
                 />
               </div>
               
@@ -922,7 +916,16 @@ export default function CompanySettings() {
                   control={form.control}
                   name="zipcode"
                   render={({ field }) => {
-                    const handleZipCodeChange = useInputMask('zipCode', field.onChange);
+                    const handleZipCodeChange = useInputMask('zipCode', (value) => {
+                      field.onChange(value)
+                      if (notifyCepChange(value)) {
+                        clearCepLinkedFields(form.setValue, {
+                          address: 'address',
+                          state: 'state',
+                          city: 'city',
+                        })
+                      }
+                    });
                     
                     return (
                       <FormItem>
@@ -939,7 +942,6 @@ export default function CompanySettings() {
                               }}
                               name={field.name}
                               maxLength={9}
-                              disabled={loadingCEP}
                             />
                             {loadingCEP && (
                               <div className="absolute right-2 top-1/2 -translate-y-1/2">

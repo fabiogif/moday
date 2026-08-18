@@ -37,7 +37,7 @@ import { SuccessAlert } from "./success-alert"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
 import { ClientFormDialog } from "../../clients/components/client-form-dialog"
 import { useViaCEP } from "@/hooks/use-viacep"
-import { applyCepToForm } from "@/lib/apply-cep-to-form"
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
 import { maskZipCode } from "@/lib/masks"
 
 const orderFormSchema = z.object({
@@ -164,7 +164,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
   const { data: productsData, loading: productsLoading, error: productsError } = useAuthenticatedCatalogProducts()
   const { data: tablesData, loading: tablesLoading, error: tablesError } = useAuthenticatedTables()
   const { mutate: createClient } = useMutation()
-  const { loading: loadingCEP, searchCEP } = useViaCEP()
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
   
   // Estado local para forçar atualização de clientes
   const [localClients, setLocalClients] = useState<any[]>([])
@@ -232,9 +232,6 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
     async (cepValue: string) => {
       if (!cepValue || useClientAddress) return
 
-      const cleanCEP = cepValue.replace(/\D/g, "")
-      if (cleanCEP.length !== 8) return
-
       const address = await searchCEP(cepValue)
       if (address) {
         applyCepToForm(form.setValue, address, {
@@ -272,6 +269,11 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
       form.setValue("deliveryComplement", "")
     }
   }, [useClientAddress, selectedClient, isDelivery, form])
+
+  useEffect(() => {
+    resetCepLookup()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useClientAddress])
 
   // Calcular total automaticamente
   useEffect(() => {
@@ -702,6 +704,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                     cityLabel="Cidade"
                     required
                     gridCols="equal"
+                    disabled={cepFound || useClientAddress}
                   />
                 </div>
 
@@ -719,13 +722,21 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             onChange={(event) => {
                               const masked = maskZipCode(event.target.value)
                               field.onChange(masked)
+                              if (notifyCepChange(masked)) {
+                                clearCepLinkedFields(form.setValue, {
+                                  address: "deliveryAddress",
+                                  neighborhood: "deliveryNeighborhood",
+                                  state: "deliveryState",
+                                  city: "deliveryCity",
+                                })
+                              }
                             }}
                             onBlur={(event) => {
                               field.onBlur()
                               void handleDeliveryCepLookup(event.target.value)
                             }}
                             maxLength={9}
-                            disabled={loadingCEP || useClientAddress}
+                            disabled={useClientAddress}
                           />
                           {loadingCEP && (
                             <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -1347,6 +1358,7 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                             cityLabel="Cidade"
                             required
                             gridCols="equal"
+                            disabled={cepFound || useClientAddress}
                           />
                         </div>
 
@@ -1364,13 +1376,21 @@ export function OrderFormDialog({ onAddOrder, renderAsPage = false }: OrderFormD
                                     onChange={(event) => {
                                       const masked = maskZipCode(event.target.value)
                                       field.onChange(masked)
+                                      if (notifyCepChange(masked)) {
+                                        clearCepLinkedFields(form.setValue, {
+                                          address: "deliveryAddress",
+                                          neighborhood: "deliveryNeighborhood",
+                                          state: "deliveryState",
+                                          city: "deliveryCity",
+                                        })
+                                      }
                                     }}
                                     onBlur={(event) => {
                                       field.onBlur()
                                       void handleDeliveryCepLookup(event.target.value)
                                     }}
                                     maxLength={9}
-                                    disabled={loadingCEP || useClientAddress}
+                                    disabled={useClientAddress}
                                   />
                                   {loadingCEP && (
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2">

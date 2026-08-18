@@ -9,9 +9,19 @@ jest.mock('@/hooks/use-location', () => ({
   useSearchCities: () => ({ cities: [], loading: false, error: null }),
 }))
 
-jest.mock('@/hooks/use-viacep', () => ({
-  useViaCEP: () => ({ loading: false, searchCEP: jest.fn() }),
-}))
+jest.mock('@/hooks/use-viacep', () => {
+  const reset = jest.fn()
+  const searchCEP = jest.fn()
+  return {
+    useViaCEP: () => ({
+      loading: false,
+      searchCEP,
+      found: false,
+      notifyCepChange: () => false,
+      reset,
+    }),
+  }
+})
 
 jest.mock('@/lib/api-client', () => {
   const actual = jest.requireActual('@/lib/api-client')

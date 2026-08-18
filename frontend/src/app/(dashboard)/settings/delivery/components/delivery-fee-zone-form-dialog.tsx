@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DeliveryFeeZone, DeliveryFeeZoneFormData, useDeliveryFeeZoneMutation } from '@/hooks/use-delivery-fee-zones'
 import { useViaCEP } from '@/hooks/use-viacep'
 import { StateCitySelect } from '@/components/location/state-city-select'
-import { applyCepToStateHandlers } from '@/lib/apply-cep-to-form'
+import { applyCepToStateHandlers, clearCepLinkedStateHandlers } from '@/lib/apply-cep-to-form'
 import { endpoints } from '@/lib/api-client'
 import { maskZipCode } from '@/lib/masks'
 import { extractValidationErrors } from '@/lib/error-formatter'
@@ -26,7 +26,7 @@ interface DeliveryFeeZoneFormDialogProps {
 
 export function DeliveryFeeZoneFormDialog({ open, onOpenChange, zone, onSuccess }: DeliveryFeeZoneFormDialogProps) {
   const { mutate, loading } = useDeliveryFeeZoneMutation()
-  const { loading: loadingCep, searchCEP } = useViaCEP()
+  const { loading: loadingCep, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
 
   const [zipCode, setZipCode] = useState('')
   const [state, setState] = useState('')
@@ -56,13 +56,11 @@ export function DeliveryFeeZoneFormDialog({ open, onOpenChange, zone, onSuccess 
       setEstimatedTime('40')
     }
     setBackendErrors({})
-  }, [zone, open])
+    resetCepLookup()
+  }, [zone, open, resetCepLookup])
 
   const handleCepBlur = async () => {
-    const digits = zipCode.replace(/\D/g, '')
-    if (digits.length !== 8) return
-
-    const address = await searchCEP(digits)
+    const address = await searchCEP(zipCode)
     if (address) {
       applyCepToStateHandlers(address, {
         setState,
@@ -137,7 +135,17 @@ export function DeliveryFeeZoneFormDialog({ open, onOpenChange, zone, onSuccess 
               <Input
                 id="zone_zip_code"
                 value={zipCode}
-                onChange={(e) => setZipCode(maskZipCode(e.target.value))}
+                onChange={(e) => {
+                  const masked = maskZipCode(e.target.value)
+                  setZipCode(masked)
+                  if (notifyCepChange(masked)) {
+                    clearCepLinkedStateHandlers({
+                      setState,
+                      setCity,
+                      setNeighborhood,
+                    })
+                  }
+                }}
                 onBlur={handleCepBlur}
                 placeholder="00000-000"
                 maxLength={9}
@@ -156,6 +164,7 @@ export function DeliveryFeeZoneFormDialog({ open, onOpenChange, zone, onSuccess 
             onCityChange={setCity}
             cityError={backendErrors.city}
             required
+            disabled={cepFound}
           />
 
           <div className="space-y-2">

@@ -26,7 +26,7 @@ import { useBackendValidation } from "@/hooks/use-backend-validation";
 import { ClientFormDialog } from "../../clients/components/client-form-dialog";
 import { StateCityFormFields } from "@/components/location/state-city-form-fields";
 import { useViaCEP } from "@/hooks/use-viacep";
-import { applyCepToForm } from "@/lib/apply-cep-to-form";
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form";
 import { maskZipCode } from "@/lib/masks";
 import { SuccessAlert } from "../components/success-alert";
 
@@ -185,7 +185,7 @@ export default function NewOrderPage() {
   const { data: tablesData, loading: tablesLoading } = useAuthenticatedTables();
   const { data: paymentMethodsData, loading: paymentMethodsLoading } = useAuthenticatedActivePaymentMethods();
   const { mutate: createClient } = useMutation();
-  const { loading: loadingCEP, searchCEP } = useViaCEP();
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP();
   const [creating, setCreating] = useState(false);
   const [validatingStep, setValidatingStep] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -248,11 +248,6 @@ export default function NewOrderPage() {
   const handleDeliveryCepLookup = useCallback(
     async (cepValue: string) => {
       if (!cepValue || useClientAddress) return;
-
-      const cleanCEP = cepValue.replace(/\D/g, "");
-      if (cleanCEP.length !== 8) {
-        return;
-      }
 
       try {
         const address = await searchCEP(cepValue);
@@ -379,6 +374,12 @@ export default function NewOrderPage() {
       form.setValue("deliveryComplement", "");
     }
   }, [useClientAddress, selectedClient, isDelivery, form]);
+
+  useEffect(() => {
+    resetCepLookup()
+    // resetCepLookup is stable in the real hook; omit from deps to avoid mock identity loops in tests
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useClientAddress])
 
   // Função helper para converter preço para número
   const getPriceAsNumber = (price: string | number | undefined): number => {
@@ -1063,7 +1064,39 @@ export default function NewOrderPage() {
                         {(!useClientAddress || !selectedClient?.has_complete_address) && (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FormField control={form.control} name="deliveryZipCode" render={({ field }) => (
-                              <FormItem><FormLabel>CEP</FormLabel><FormControl><Input placeholder="01000-000" value={field.value || ""} onChange={(e) => field.onChange(maskZipCode(e.target.value))} onBlur={(e) => { field.onBlur(); handleDeliveryCepLookup(e.target.value); }} maxLength={9} disabled={loadingCEP} /></FormControl></FormItem>
+                              <FormItem>
+                                <FormLabel>CEP</FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <Input
+                                      placeholder="01000-000"
+                                      value={field.value || ""}
+                                      onChange={(e) => {
+                                        const masked = maskZipCode(e.target.value)
+                                        field.onChange(masked)
+                                        if (notifyCepChange(masked)) {
+                                          clearCepLinkedFields(form.setValue, {
+                                            address: "deliveryAddress",
+                                            neighborhood: "deliveryNeighborhood",
+                                            state: "deliveryState",
+                                            city: "deliveryCity",
+                                          })
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        field.onBlur()
+                                        handleDeliveryCepLookup(e.target.value)
+                                      }}
+                                      maxLength={9}
+                                    />
+                                    {loadingCEP && (
+                                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </FormControl>
+                              </FormItem>
                             )} />
                             <FormField control={form.control} name="deliveryAddress" render={({ field }) => (
                               <FormItem className="sm:col-span-2"><FormLabel>Endereço *</FormLabel><FormControl><Input placeholder="Rua..." {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
@@ -1074,7 +1107,7 @@ export default function NewOrderPage() {
                             <FormField control={form.control} name="deliveryNeighborhood" render={({ field }) => (
                               <FormItem><FormLabel>Bairro</FormLabel><FormControl><Input placeholder="Centro" {...field} value={field.value || ""} /></FormControl></FormItem>
                             )} />
-                            <StateCityFormFields control={form.control} stateFieldName="deliveryState" cityFieldName="deliveryCity" stateLabel="Estado" cityLabel="Cidade" required gridCols="equal" />
+                            <StateCityFormFields control={form.control} stateFieldName="deliveryState" cityFieldName="deliveryCity" stateLabel="Estado" cityLabel="Cidade" required gridCols="equal" disabled={cepFound || useClientAddress} />
                             <FormField control={form.control} name="deliveryComplement" render={({ field }) => (
                               <FormItem className="sm:col-span-2"><FormLabel>Complemento</FormLabel><FormControl><Input placeholder="Apto 101" {...field} value={field.value || ""} /></FormControl></FormItem>
                             )} />

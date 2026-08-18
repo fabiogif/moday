@@ -51,7 +51,7 @@ import { validateCPF, validateEmail, validatePhone } from "@/lib/masks"
 import { showErrorToast } from "@/components/ui/error-toast"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
-import { applyCepToForm } from "@/lib/apply-cep-to-form"
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
 
 // Schema de validação
 const clientSchema = z.object({
@@ -120,7 +120,7 @@ export default function ClientDetailPage() {
   
   const { mutate: updateClient, loading: updating } = useMutation()
   const { mutate: deleteClient, loading: deleting } = useMutation()
-  const { loading: loadingCEP, searchCEP } = useViaCEP()
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
   
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientSchema),
@@ -140,9 +140,6 @@ export default function ClientDetailPage() {
   })
 
   const handleSearchCEP = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, "")
-    if (cleanCEP.length !== 8) return
-
     const address = await searchCEP(cep)
     if (address) {
       applyCepToForm(form.setValue, address, {
@@ -157,6 +154,7 @@ export default function ClientDetailPage() {
   // Atualizar formulário quando cliente carregar
   useEffect(() => {
     if (client) {
+      resetCepLookup()
       form.reset({
         name: client.name || "",
         cpf: client.cpf || "",
@@ -171,7 +169,7 @@ export default function ClientDetailPage() {
         complement: client.complement || "",
       })
     }
-  }, [client, form])
+  }, [client, form, resetCepLookup])
   
   const onSubmit = async (data: ClientFormValues) => {
     try {
@@ -445,7 +443,17 @@ export default function ClientDetailPage() {
                   control={form.control}
                   name="zip_code"
                   render={({ field }) => {
-                    const handleZipCodeChange = useInputMask('zipCode', field.onChange);
+                    const handleZipCodeChange = useInputMask('zipCode', (value) => {
+                      field.onChange(value)
+                      if (notifyCepChange(value)) {
+                        clearCepLinkedFields(form.setValue, {
+                          address: 'address',
+                          neighborhood: 'neighborhood',
+                          state: 'state',
+                          city: 'city',
+                        })
+                      }
+                    });
                     
                     return (
                       <FormItem>
@@ -462,7 +470,7 @@ export default function ClientDetailPage() {
                                 }
                               }}
                               name={field.name}
-                              disabled={!isEditing || loadingCEP}
+                              disabled={!isEditing}
                               placeholder="00000-000"
                               maxLength={9}
                             />
@@ -492,7 +500,7 @@ export default function ClientDetailPage() {
                   cityFieldName="city"
                   stateLabel="Estado"
                   cityLabel="Cidade"
-                  disabled={!isEditing}
+                  disabled={!isEditing || cepFound}
                 />
               </div>
               

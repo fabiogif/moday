@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { maskZipCode } from "@/lib/masks"
 import { StateCitySelect } from "@/components/location/state-city-select"
-import { applyCepToStateHandlers } from "@/lib/apply-cep-to-form"
+import { applyCepToStateHandlers, clearCepLinkedStateHandlers } from "@/lib/apply-cep-to-form"
 
 interface DeliveryAddress {
   zip: string
@@ -30,38 +30,52 @@ export function DeliveryAddressForm({
   className,
   disabled = false,
 }: DeliveryAddressFormProps) {
-  const { searchCEP, loading: loadingCEP } = useViaCEP()
+  const { searchCEP, loading: loadingCEP, found: cepFound, notifyCepChange } = useViaCEP()
 
   const handleZipChange = async (zip: string) => {
     const maskedZip = maskZipCode(zip)
     const newAddress = { ...address, zip: maskedZip }
+
+    if (notifyCepChange(maskedZip)) {
+      clearCepLinkedStateHandlers({
+        setAddress: (v) => {
+          newAddress.address = v
+        },
+        setNeighborhood: (v) => {
+          newAddress.neighborhood = v
+        },
+        setState: (v) => {
+          newAddress.state = v
+        },
+        setCity: (v) => {
+          newAddress.city = v
+        },
+      })
+    }
+
     onAddressChange(newAddress)
 
-    if (maskedZip.replace(/\D/g, "").length === 8) {
-      try {
-        const cepData = await searchCEP(maskedZip.replace(/\D/g, ""))
-        if (cepData) {
-          const next = { ...newAddress }
-          applyCepToStateHandlers(cepData, {
-            setAddress: (v) => {
-              next.address = v
-            },
-            setNeighborhood: (v) => {
-              next.neighborhood = v
-            },
-            setState: (v) => {
-              next.state = v
-              onAddressChange({ ...next })
-            },
-            setCity: (v) => {
-              next.city = v
-              onAddressChange({ ...next })
-            },
-          })
-        }
-      } catch (error) {
-        console.error("Erro ao buscar CEP:", error)
-      }
+    if (maskedZip.replace(/\D/g, '').length !== 8) {
+      return
+    }
+
+    const cepData = await searchCEP(maskedZip)
+    if (cepData) {
+      applyCepToStateHandlers(cepData, {
+        setAddress: (v) => {
+          newAddress.address = v
+        },
+        setNeighborhood: (v) => {
+          newAddress.neighborhood = v
+        },
+        setState: (v) => {
+          newAddress.state = v
+        },
+        setCity: (v) => {
+          newAddress.city = v
+        },
+      })
+      onAddressChange({ ...newAddress })
     }
   }
 
@@ -77,7 +91,7 @@ export function DeliveryAddressForm({
                 value={address.zip}
                 onChange={(e) => handleZipChange(e.target.value)}
                 className="h-9 text-sm pr-10 bg-white dark:bg-gray-800"
-                disabled={disabled || loadingCEP}
+                disabled={disabled}
                 maxLength={9}
               />
               {loadingCEP && (
@@ -133,7 +147,7 @@ export function DeliveryAddressForm({
             onCityChange={(value) =>
               onAddressChange({ ...address, city: value })
             }
-            disabled={disabled}
+            disabled={disabled || cepFound}
             className="gap-2"
             fieldClassName="space-y-1"
             labelClassName="sr-only"

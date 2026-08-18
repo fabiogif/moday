@@ -51,7 +51,7 @@ import { toast } from "sonner"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { maskZipCode } from "@/lib/masks"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
-import { applyCepToForm } from "@/lib/apply-cep-to-form"
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
 
 // Schema de validação para edição de pedido
 const orderEditSchema = z.object({
@@ -102,7 +102,7 @@ export default function EditOrderPage() {
   )
 
   const { mutate: updateOrder, loading: updating } = useMutation()
-  const { loading: loadingCEP, searchCEP } = useViaCEP()
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP()
 
   const form = useForm<OrderEditFormValues>({
     resolver: zodResolver(orderEditSchema),
@@ -129,11 +129,6 @@ export default function EditOrderPage() {
     async (cepValue: string) => {
       if (!cepValue || useClientAddress) return
 
-      const cleanCEP = cepValue.replace(/\D/g, "")
-      if (cleanCEP.length !== 8) {
-        return
-      }
-
       try {
         const address = await searchCEP(cepValue)
         if (address) {
@@ -152,10 +147,14 @@ export default function EditOrderPage() {
   )
 
   useEffect(() => {
+    resetCepLookup()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useClientAddress])
+
+  useEffect(() => {
     if (orderData) {
       setOrder(orderData)
-      
-      // Preencher formulário com dados do pedido
+      resetCepLookup()
       form.reset({
         status: orderData.status || "Pendente",
         comment: orderData.comment || "",
@@ -180,7 +179,7 @@ export default function EditOrderPage() {
     if (!apiLoading && !orderData && !apiError) {
       setLoading(false)
     }
-  }, [orderData, apiLoading, apiError, form])
+  }, [orderData, apiLoading, apiError, form, resetCepLookup])
 
   const onSubmit = async (data: OrderEditFormValues) => {
     // Verificar se o pedido está finalizado antes de tentar atualizar
@@ -518,7 +517,7 @@ export default function EditOrderPage() {
                               control={form.control}
                               stateFieldName="delivery_state"
                               cityFieldName="delivery_city"
-                              disabled={orderIsFinal}
+                              disabled={orderIsFinal || cepFound}
                               gridCols="state-small"
                             />
 
@@ -541,13 +540,21 @@ export default function EditOrderPage() {
                                         onChange={(event) => {
                                           const masked = maskZipCode(event.target.value)
                                           field.onChange(masked)
+                                          if (notifyCepChange(masked)) {
+                                            clearCepLinkedFields(form.setValue, {
+                                              address: "delivery_address",
+                                              neighborhood: "delivery_neighborhood",
+                                              state: "delivery_state",
+                                              city: "delivery_city",
+                                            })
+                                          }
                                         }}
                                         onBlur={(event) => {
                                           field.onBlur()
                                           handleDeliveryCepLookup(event.target.value)
                                         }}
                                         maxLength={9}
-                                        disabled={orderIsFinal || loadingCEP}
+                                        disabled={orderIsFinal}
                                       />
                                       {loadingCEP && (
                                         <div className="absolute right-2 top-1/2 -translate-y-1/2">

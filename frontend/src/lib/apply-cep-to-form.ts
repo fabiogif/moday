@@ -10,9 +10,11 @@ export interface ApplyCepFieldMap {
   zipCode?: string
 }
 
+const SET_OPTS = { shouldDirty: true, shouldValidate: false }
+
 /**
  * Aplica o resultado do CEP nos campos do formulário.
- * Define estado (UF) primeiro e cidade no próximo tick para aguardar o carregamento local.
+ * Estado e cidade são definidos juntos para o select local conseguir casar o município.
  */
 export function applyCepToForm<T extends FieldValues>(
   setValue: UseFormSetValue<T>,
@@ -39,11 +41,25 @@ export function applyCepToForm<T extends FieldValues>(
   }
 
   setValue(fields.state as Path<T>, (address.state || '') as never, opts)
+  setValue(fields.city as Path<T>, (address.city || '') as never, opts)
+}
 
-  // Aguarda o select de cidades carregar a lista do estado selecionado
-  window.setTimeout(() => {
-    setValue(fields.city as Path<T>, (address.city || '') as never, opts)
-  }, 300)
+/**
+ * Remove dados vinculados a um CEP encontrado anteriormente.
+ * Não deve ser chamado quando a consulta simplesmente não encontrou o CEP.
+ */
+export function clearCepLinkedFields<T extends FieldValues>(
+  setValue: UseFormSetValue<T>,
+  fields: ApplyCepFieldMap
+): void {
+  if (fields.address) {
+    setValue(fields.address as Path<T>, '' as never, SET_OPTS)
+  }
+  if (fields.neighborhood) {
+    setValue(fields.neighborhood as Path<T>, '' as never, SET_OPTS)
+  }
+  setValue(fields.state as Path<T>, '' as never, SET_OPTS)
+  setValue(fields.city as Path<T>, '' as never, SET_OPTS)
 }
 
 /**
@@ -65,7 +81,17 @@ export function applyCepToStateHandlers(
   handlers.setComplement?.(address.complement || '')
   handlers.setZipCode?.(address.zipCode || '')
   handlers.setState(address.state || '')
-  window.setTimeout(() => {
-    handlers.setCity(address.city || '')
-  }, 300)
+  handlers.setCity(address.city || '')
+}
+
+export function clearCepLinkedStateHandlers(handlers: {
+  setAddress?: (v: string) => void
+  setNeighborhood?: (v: string) => void
+  setState: (v: string) => void
+  setCity: (v: string) => void
+}): void {
+  handlers.setAddress?.('')
+  handlers.setNeighborhood?.('')
+  handlers.setState('')
+  handlers.setCity('')
 }

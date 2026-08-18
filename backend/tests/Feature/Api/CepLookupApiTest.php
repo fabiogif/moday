@@ -66,8 +66,8 @@ class CepLookupApiTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.address', 'Praça da Sé');
-        $response->assertJsonPath('data.city', null);
-        $response->assertJsonPath('data.state', null);
+        $response->assertJsonPath('data.city.name', 'São Paulo');
+        $response->assertJsonPath('data.state.uf', 'SP');
     }
 
     #[Test]
@@ -91,13 +91,13 @@ class CepLookupApiTest extends TestCase
     }
 
     #[Test]
-    public function retorna_404_quando_viacep_falha(): void
+    public function retorna_503_quando_viacep_falha(): void
     {
         Http::fake([
             'viacep.test/ws/*' => Http::response(null, 500),
         ]);
 
-        $this->getJson('/api/cep/01001000')->assertStatus(404);
+        $this->getJson('/api/cep/01001000')->assertStatus(503);
     }
 
     #[Test]

@@ -30,7 +30,7 @@ import { useInputMask } from "@/hooks/use-input-mask"
 import { validateCPF, validateEmail, validatePhone, maskCPF, maskPhone, maskZipCode } from "@/lib/masks"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
-import { applyCepToForm } from "@/lib/apply-cep-to-form"
+import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
 import { useBackendValidation } from "@/hooks/use-backend-validation"
 import { showErrorToast } from "@/components/ui/error-toast"
 import { OrderStepper } from "@/components/order-stepper"
@@ -131,7 +131,7 @@ export function ClientFormDialog({
   hideTrigger = false 
 }: ClientFormDialogProps) {
   const isEditing = !!editingClient
-  const { loading: loadingCEP, searchCEP } = useViaCEP();
+  const { loading: loadingCEP, searchCEP, found: cepFound, notifyCepChange, reset: resetCepLookup } = useViaCEP();
   const [submitting, setSubmitting] = React.useState(false);
   const [validatingStep, setValidatingStep] = React.useState(false);
   const [currentStep, setCurrentStep] = React.useState(0);
@@ -307,12 +307,6 @@ export function ClientFormDialog({
 
   // Função para buscar endereço pelo CEP
   const handleSearchCEP = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, '');
-    
-    if (cleanCEP.length !== 8) {
-      return;
-    }
-    
     try {
       const address = await searchCEP(cep);
       
@@ -335,6 +329,7 @@ export function ClientFormDialog({
     setCompletedSteps(new Set());
     setBackendErrors({});
     setErrorSnapshot(null);
+    resetCepLookup();
 
     if (editingClient) {
       form.reset({
@@ -613,6 +608,7 @@ export function ClientFormDialog({
                     stateLabel="Estado"
                     cityLabel="Cidade"
                     gridCols="equal"
+                    disabled={cepFound}
                   />
                 </div>
 
@@ -620,7 +616,17 @@ export function ClientFormDialog({
                   control={form.control}
                   name="zip_code"
                   render={({ field }) => {
-                    const handleZipCodeChange = useInputMask('zipCode', field.onChange);
+                    const handleZipCodeChange = useInputMask('zipCode', (value) => {
+                      field.onChange(value)
+                      if (notifyCepChange(value)) {
+                        clearCepLinkedFields(form.setValue, {
+                          address: 'address',
+                          neighborhood: 'neighborhood',
+                          state: 'state',
+                          city: 'city',
+                        })
+                      }
+                    });
                     
                     return (
                       <FormItem>
@@ -637,7 +643,6 @@ export function ClientFormDialog({
                               }}
                               name={field.name}
                               maxLength={9}
-                              disabled={loadingCEP}
                             />
                             {loadingCEP && (
                               <div className="absolute right-2 top-1/2 -translate-y-1/2">

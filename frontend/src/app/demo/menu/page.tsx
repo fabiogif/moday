@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -419,6 +419,8 @@ export default function DemoMenuPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>('pix')
   const [paymentMethodName, setPaymentMethodName] = useState<string>('PIX')
   const [cepLoading, setCepLoading] = useState(false)
+  const [cepFound, setCepFound] = useState(false)
+  const cepRequestIdRef = useRef(0)
   const [orderResult, setOrderResult] = useState<any>(null)
 
   const categories = Array.from(new Set(demoProducts.map(p => p.category)))
@@ -608,28 +610,51 @@ export default function DemoMenuPage() {
 
   const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCEP(e.target.value)
-    setDeliveryData({ ...deliveryData, zip_code: formatted })
+    const digits = formatted.replace(/\D/g, '')
+    setDeliveryData((prev) => {
+      const next = { ...prev, zip_code: formatted }
+      if (cepFound && digits.length !== 8) {
+        next.address = ''
+        next.neighborhood = ''
+        next.city = ''
+        next.state = ''
+      }
+      return next
+    })
+    if (digits.length !== 8) {
+      cepRequestIdRef.current += 1
+      setCepLoading(false)
+      if (cepFound) {
+        setCepFound(false)
+      }
+    }
   }
 
   const handleSearchCEP = async () => {
     const cep = deliveryData.zip_code.replace(/\D/g, '')
     
     if (cep.length !== 8) {
+      setCepFound(false)
       return
     }
 
+    setCepFound(false)
     setCepLoading(true)
+    const requestId = ++cepRequestIdRef.current
     
     // Simulação de busca de CEP (sem API real)
     setTimeout(() => {
-      // Dados fictícios para demonstração
-      setDeliveryData({
-        ...deliveryData,
+      if (requestId !== cepRequestIdRef.current) {
+        return
+      }
+      setDeliveryData((prev) => ({
+        ...prev,
         address: 'Rua Exemplo',
         neighborhood: 'Centro',
         city: 'São Paulo',
         state: 'SP',
-      })
+      }))
+      setCepFound(true)
       setCepLoading(false)
       toast.success('CEP encontrado! Endereço preenchido automaticamente.')
     }, 1000)
@@ -1281,6 +1306,7 @@ export default function DemoMenuPage() {
                               required={shippingMethod === "delivery"}
                               placeholder="SP"
                               maxLength={2}
+                              disabled={cepFound}
                             />
                           </div>
                           <div>
@@ -1291,6 +1317,7 @@ export default function DemoMenuPage() {
                               onChange={(e) => setDeliveryData({ ...deliveryData, city: e.target.value })}
                               required={shippingMethod === "delivery"}
                               placeholder="São Paulo"
+                              disabled={cepFound}
                             />
                           </div>
                         </div>
