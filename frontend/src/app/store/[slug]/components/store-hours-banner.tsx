@@ -93,7 +93,7 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
   const todayHours = allHours[hoursData.current_day] || []
   const hasHours = Object.keys(allHours).length > 0
   const canExpand = hasHours
-  const statusLabel = isOpen ? '🟢 Loja aberta' : '🔴 Loja fechada no momento'
+  const statusLabel = isOpen ? '🟢 Restaurante aberto' : '🔴 Restaurante fechado no momento'
 
   const toggleExpanded = () => {
     if (!canExpand) return
