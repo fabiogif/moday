@@ -16,6 +16,7 @@ use App\Services\OrderEmailService;
 use Illuminate\Http\{JsonResponse, Request, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 
 class OrderApiController extends Controller
@@ -36,6 +37,31 @@ class OrderApiController extends Controller
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }
+    }
+
+    /**
+     * Valida os campos de uma etapa do wizard de pedido sem persistir.
+     * POST /api/order/validate
+     */
+    public function validateStep(Request $request): JsonResponse
+    {
+        $fields = $request->except(['step']);
+        $rules = StoreOrderRequest::rulesForPayload($fields);
+
+        $formRequest = StoreOrderRequest::createFrom($request);
+        $formRequest->setContainer(app());
+        $formRequest->setUserResolver(fn () => $request->user());
+
+        $validator = Validator::make($request->all(), $rules);
+        $validator->after(function ($validator) use ($formRequest) {
+            $formRequest->validateExists($validator);
+        });
+
+        if ($validator->fails()) {
+            return ApiResponseClass::validationError($validator->errors()->toArray());
+        }
+
+        return ApiResponseClass::sendResponse(null, 'Dados válidos', 200);
     }
 
     public function show($identify):JsonResponse

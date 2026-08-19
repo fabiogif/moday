@@ -19,7 +19,10 @@ class StoreOrderRequest extends BaseRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
+    /**
+     * @return array<string, mixed>
+     */
+    public static function fieldRules(): array
     {
         return [
            'token_company' => ['required', 'string'],
@@ -30,20 +33,20 @@ class StoreOrderRequest extends BaseRequest
            'products.*.identify'=> ['required', 'string'],
            'products.*.qty'=> ['required', 'integer', 'min:1'],
            'products.*.price'=> ['nullable', 'numeric', 'min:0'],
-           
+
            // Payment method - obrigatório se não usar split_payments
            'payment_method_id' => ['required_without:split_payments', 'nullable', 'string'],
-           
+
            // Split payments - alternativa ao payment_method_id
            'split_payments' => ['required_without:payment_method_id', 'nullable', 'array', 'min:1'],
            'split_payments.*.payment_method_id' => ['required', 'string'],
            'split_payments.*.amount' => ['required', 'numeric', 'min:0.01'],
            'split_payments.*.needs_change' => ['nullable', 'boolean'],
-           
+
            // Change fields (for cash payment)
            'precisa_troco' => ['nullable', 'boolean'],
            'valor_recebido' => ['nullable', 'numeric', 'min:0'],
-           
+
            // Delivery fields
            'is_delivery' => ['boolean'],
            'use_client_address' => ['boolean'],
@@ -56,6 +59,30 @@ class StoreOrderRequest extends BaseRequest
            'delivery_complement' => ['nullable', 'string', 'max:100'],
            'delivery_notes' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    /**
+     * Regras só dos campos enviados (wizard valida uma etapa por vez).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    public static function rulesForPayload(array $input): array
+    {
+        $rules = [];
+        foreach (self::fieldRules() as $key => $rule) {
+            $topLevel = explode('.', $key)[0];
+            if (array_key_exists($topLevel, $input)) {
+                $rules[$key] = $rule;
+            }
+        }
+
+        return $rules;
+    }
+
+    public function rules(): array
+    {
+        return self::fieldRules();
     }
 
     /**
@@ -137,7 +164,7 @@ class StoreOrderRequest extends BaseRequest
     /**
      * Custom exists validation
      */
-    private function validateExists($validator)
+    public function validateExists($validator)
     {
         $tenantId = null;
         

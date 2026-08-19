@@ -268,6 +268,8 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
     Route::get('/order/by-table', [OrderApiController::class , 'getOpenOrdersByTable'])->middleware('throttle:read');
     Route::get('/order/today', [OrderApiController::class , 'getTodayOrders'])->middleware('throttle:read');
     Route::get('/order/recommendations', [OrderApiController::class , 'getProductRecommendations'])->middleware('throttle:read');
+    // Precisa vir antes de GET/PUT/DELETE /order/{identify}: sem isso, "validate" é capturado como identify.
+    Route::post('/order/validate', [OrderApiController::class, 'validateStep'])->middleware('throttle:read');
     Route::get('/order/{identify}', [OrderApiController::class , 'show'])->middleware('throttle:read');
     Route::get('/order/{identify}/receipt', [OrderApiController::class , 'receipt'])->middleware('throttle:read');
     Route::post('/order/{identify}/receipt/email', [OrderApiController::class, 'sendReceiptEmail'])->middleware('throttle:critical');
