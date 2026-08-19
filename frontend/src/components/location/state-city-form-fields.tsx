@@ -83,7 +83,7 @@ export function StateCityFormFields<T extends FieldValues>({
             <Select
               value={field.value || undefined}
               onValueChange={(value) => {
-                if (value === '_loading' || value === '_empty') return
+                if (!value || value === '_loading' || value === '_empty') return
                 field.onChange(value)
               }}
               disabled={disabled || loadingStates}
@@ -125,7 +125,7 @@ export function StateCityFormFields<T extends FieldValues>({
             <Select
               value={field.value || undefined}
               onValueChange={(value) => {
-                if (value === '_loading' || value === '_empty') return
+                if (!value || value === '_loading' || value === '_empty') return
                 field.onChange(value)
               }}
               disabled={disabled || !stateField}

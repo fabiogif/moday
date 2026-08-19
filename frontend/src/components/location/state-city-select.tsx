@@ -54,7 +54,14 @@ export function StateCitySelect({
         ) : (
           <Select
             value={stateValue || undefined}
-            onValueChange={onStateChange}
+            onValueChange={(value) => {
+              // O <select> nativo espelhado pelo Radix pode disparar um
+              // onValueChange('') espúrio quando a option selecionada é
+              // trocada de identidade (ex.: item de fallback vira item real
+              // assim que a lista de estados/cidades termina de carregar).
+              if (!value || value === '_loading' || value === '_empty') return
+              onStateChange(value)
+            }}
             disabled={disabled || loadingStates}
           >
             <SelectTrigger className={cn(triggerClassName, stateError && "border-red-500")}>
@@ -91,7 +98,7 @@ export function StateCitySelect({
           <Select
             value={cityValue || undefined}
             onValueChange={(value) => {
-              if (value === '_loading' || value === '_empty') return
+              if (!value || value === '_loading' || value === '_empty') return
               onCityChange(value)
             }}
             disabled={disabled || !stateValue}
