@@ -4,8 +4,12 @@ namespace App\Services;
 
 use App\Models\AdminUser;
 use App\Repositories\Contracts\AdminUserRepositoryInterface;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 readonly class AdminAuthService
 {
@@ -97,6 +101,48 @@ readonly class AdminAuthService
             'is_active' => $admin->is_active,
             'last_login_at' => $admin->last_login_at,
         ];
+    }
+
+    public function sendPasswordResetLink(string $email): array
+    {
+        $status = Password::broker('admin_users')->sendResetLink(['email' => $email]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            Log::info('Admin password reset link não enviado', ['email' => $email, 'status' => $status]);
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Se este e-mail estiver cadastrado, enviamos um link de recuperação.',
+        ];
+    }
+
+    public function resetPassword(array $data): array
+    {
+        $status = Password::broker('admin_users')->reset(
+            [
+                'email' => $data['email'],
+                'password' => $data['password'],
+                'token' => $data['token'],
+            ],
+            function (AdminUser $admin, string $password) {
+                $admin->forceFill([
+                    'password' => Hash::make($password),
+                ])->setRememberToken(Str::random(60));
+
+                $admin->save();
+
+                event(new PasswordReset($admin));
+
+                Cache::forget("admin_data_{$admin->id}");
+            }
+        );
+
+        if ($status === Password::PASSWORD_RESET) {
+            return ['success' => true, 'message' => 'Senha redefinida com sucesso'];
+        }
+
+        return ['success' => false, 'message' => 'Token inválido ou expirado'];
     }
 
     public function getPermissionsForRole(string $role): array

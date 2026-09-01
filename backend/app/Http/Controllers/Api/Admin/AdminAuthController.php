@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Admin\AdminLoginRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Services\AdminAuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,6 +53,42 @@ class AdminAuthController extends Controller
             ]);
 
             return ApiResponseClass::throw($e, 'Erro ao realizar login');
+        }
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->authService->sendPasswordResetLink($request->validated()['email']);
+
+            return ApiResponseClass::sendResponse('', $result['message']);
+        } catch (\Exception $e) {
+            Log::error('AdminAuthController forgotPassword error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return ApiResponseClass::throw($e, 'Erro ao enviar link de recuperação');
+        }
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->authService->resetPassword($request->validated());
+
+            if (!$result['success']) {
+                return ApiResponseClass::unauthorized($result['message']);
+            }
+
+            return ApiResponseClass::sendResponse('', $result['message']);
+        } catch (\Exception $e) {
+            Log::error('AdminAuthController resetPassword error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return ApiResponseClass::throw($e, 'Erro ao redefinir senha');
         }
     }
 

@@ -166,5 +166,65 @@ class AdminAuthTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    #[Test]
+    public function forgot_password_envia_link_para_admin_existente()
+    {
+        AdminUser::factory()->create(['email' => 'forgot@admin.com']);
+
+        $response = $this->postJson('/api/admin/auth/forgot-password', [
+            'email' => 'forgot@admin.com',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'forgot@admin.com']);
+    }
+
+    #[Test]
+    public function forgot_password_nao_revela_se_email_nao_existe()
+    {
+        $response = $this->postJson('/api/admin/auth/forgot-password', [
+            'email' => 'nao-existe@admin.com',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+    }
+
+    #[Test]
+    public function reset_password_com_token_valido_atualiza_senha()
+    {
+        $admin = AdminUser::factory()->create(['email' => 'reset@admin.com']);
+        $token = \Illuminate\Support\Facades\Password::broker('admin_users')->createToken($admin);
+
+        $response = $this->postJson('/api/admin/auth/reset-password', [
+            'token' => $token,
+            'email' => 'reset@admin.com',
+            'password' => 'nova-senha-123',
+            'password_confirmation' => 'nova-senha-123',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+
+        $loginResponse = $this->postJson('/api/admin/auth/login', [
+            'email' => 'reset@admin.com',
+            'password' => 'nova-senha-123',
+        ]);
+        $loginResponse->assertStatus(200);
+    }
+
+    #[Test]
+    public function reset_password_com_token_invalido_e_rejeitado()
+    {
+        AdminUser::factory()->create(['email' => 'reset2@admin.com']);
+
+        $response = $this->postJson('/api/admin/auth/reset-password', [
+            'token' => 'token-invalido',
+            'email' => 'reset2@admin.com',
+            'password' => 'nova-senha-123',
+            'password_confirmation' => 'nova-senha-123',
+        ]);
+
+        $response->assertStatus(401)->assertJson(['success' => false]);
+    }
 }
 

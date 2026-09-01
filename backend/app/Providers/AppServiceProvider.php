@@ -88,14 +88,16 @@ class AppServiceProvider extends ServiceProvider
         ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
             $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
             $email = urlencode($notifiable->getEmailForPasswordReset());
+            $path = $notifiable instanceof \App\Models\AdminUser ? '/admin/reset-password' : '/auth/reset-password';
 
-            return "{$frontend}/auth/reset-password?token={$token}&email={$email}";
+            return "{$frontend}{$path}?token={$token}&email={$email}";
         });
 
         ResetPassword::toMailUsing(function (object $notifiable, string $token) {
             $frontend = rtrim(config('app.frontend_url', config('app.url')), '/');
             $email = urlencode($notifiable->getEmailForPasswordReset());
-            $url = "{$frontend}/auth/reset-password?token={$token}&email={$email}";
+            $path = $notifiable instanceof \App\Models\AdminUser ? '/admin/reset-password' : '/auth/reset-password';
+            $url = "{$frontend}{$path}?token={$token}&email={$email}";
             $brand = config('mail.brand.name', 'DistribTec');
             $expire = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
 

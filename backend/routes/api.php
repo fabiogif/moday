@@ -1069,6 +1069,10 @@ use App\Http\Controllers\Api\Admin\{
 Route::prefix('admin/auth')->group(function () {
     Route::post('/login', [AdminAuthController::class, 'login'])
         ->middleware('throttle:login');
+    Route::post('/forgot-password', [AdminAuthController::class, 'forgotPassword'])
+        ->middleware('throttle:password-reset');
+    Route::post('/reset-password', [AdminAuthController::class, 'resetPassword'])
+        ->middleware('throttle:password-reset');
 });
 
 // Admin Protected Routes
