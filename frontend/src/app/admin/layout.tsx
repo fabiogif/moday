@@ -11,7 +11,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAdminAuth()
 
   // Páginas que NÃO precisam de sidebar (como login)
-  const publicPages = ['/admin/login']
+  const publicPages = ['/admin/login', '/admin/forgot-password', '/admin/reset-password']
   const isPublicPage = publicPages.includes(pathname)
 
   useEffect(() => {
