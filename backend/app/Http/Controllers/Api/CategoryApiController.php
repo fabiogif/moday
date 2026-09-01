@@ -164,4 +164,29 @@ class CategoryApiController extends Controller
             return ApiResponseClass::rollback($ex, 'Erro ao carregar estatísticas');
         }
     }
+
+    public function active(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            $categories = $this->categoryService->getActiveByTenant($user->tenant_id);
+
+            return ApiResponseClass::sendResponse(
+                CategoryResource::collection($categories),
+                'Categorias ativas listadas com sucesso',
+                200
+            );
+        } catch (\Exception $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao listar categorias ativas');
+        }
+    }
 }

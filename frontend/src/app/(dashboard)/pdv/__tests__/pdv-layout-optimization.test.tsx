@@ -5,7 +5,7 @@ import { setupPdvMocks, defaultProducts } from '../testing/pdv-mocks'
 jest.mock('@/hooks/use-authenticated-api', () => ({
   useAuthenticatedProducts: jest.fn(),
   useAuthenticatedCatalogProducts: jest.fn(),
-  useAuthenticatedCategories: jest.fn(),
+  useAuthenticatedActiveCategories: jest.fn(),
   useAuthenticatedTables: jest.fn(),
   useAuthenticatedActivePaymentMethods: jest.fn(),
   useAuthenticatedClients: jest.fn(),

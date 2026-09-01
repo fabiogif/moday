@@ -80,6 +80,7 @@ jest.mock('@/hooks/use-authenticated-api', () => ({
   useAuthenticatedPermissions: jest.fn(() => createDefaultApiState()),
   useAuthenticatedProductStats: jest.fn(() => createDefaultApiState({ total: 0, active: 0, inactive: 0, out_of_stock: 0 })),
   useAuthenticatedCategories: jest.fn(() => createDefaultApiState()),
+  useAuthenticatedActiveCategories: jest.fn(() => createDefaultApiState()),
   useAuthenticatedCategoryStats: jest.fn(() =>
     createDefaultApiState({
       total_categories: 0,

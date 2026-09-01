@@ -56,6 +56,7 @@ export default function CategoriesPage() {
 
   const refreshCategories = async () => {
     invalidateCache(endpoints.categories.list)
+    invalidateCache(endpoints.categories.active)
     invalidateCache(endpoints.categories.stats)
     await refetch()
   }

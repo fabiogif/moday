@@ -47,6 +47,15 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
             ->paginate(perPage: $totalPerPage, columns: ['*'], pageName:'page', page: $page, total: null);
         return new PaginatePresenter($result);
     }
+
+    public function getActiveByTenant(int $tenantId)
+    {
+        return $this->entity
+            ->where('tenant_id', $tenantId)
+            ->where('status', 'A')
+            ->orderBy('name')
+            ->get();
+    }
     
     public function updateByTenant(array $data, int $id, int $tenantId)
     {
@@ -75,6 +84,7 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
 
         $category->update([
             'status' => 'I',
+            'is_active' => false,
         ]);
 
         return $category->fresh();

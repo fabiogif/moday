@@ -378,4 +378,64 @@ class CategoryTest extends TestCase
             ->where('name', 'Bebidas')
             ->count());
     }
+
+    #[Test]
+    public function lista_ativa_nao_inclui_categoria_inativada(): void
+    {
+        $active = Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Lanches',
+            'status' => 'A',
+        ]);
+        Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Arquivados',
+            'status' => 'I',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/category/active');
+
+        $response->assertOk()
+            ->assertJson(['success' => true]);
+
+        $names = array_column($response->json('data') ?? [], 'name');
+        $this->assertContains('Lanches', $names);
+        $this->assertNotContains('Arquivados', $names);
+        $this->assertDatabaseHas('categories', [
+            'id' => $active->id,
+            'status' => 'A',
+        ]);
+    }
+
+    #[Test]
+    public function inativar_categoria_remove_da_lista_ativa(): void
+    {
+        $category = Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Sobremesas',
+            'status' => 'A',
+        ]);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->deleteJson("/api/category/{$category->uuid}")
+            ->assertOk();
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->getJson('/api/category/active');
+
+        $names = array_column($response->json('data') ?? [], 'name');
+        $this->assertNotContains('Sobremesas', $names);
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'status' => 'I',
+            'is_active' => false,
+        ]);
+    }
 }

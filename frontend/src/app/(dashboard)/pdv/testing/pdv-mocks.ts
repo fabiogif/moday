@@ -1,7 +1,6 @@
 import {
-  useAuthenticatedProducts,
   useAuthenticatedCatalogProducts,
-  useAuthenticatedCategories,
+  useAuthenticatedActiveCategories,
   useAuthenticatedTables,
   useAuthenticatedActivePaymentMethods,
   useAuthenticatedClients,
@@ -40,9 +39,8 @@ export const defaultServiceTypes = [{ uuid: 'st-1', name: 'Balcão', is_active: 
 
 export const pdvTestMocks = {
   jestAuthenticatedApi: () => ({
-    useAuthenticatedProducts: jest.fn(),
     useAuthenticatedCatalogProducts: jest.fn(),
-    useAuthenticatedCategories: jest.fn(),
+    useAuthenticatedActiveCategories: jest.fn(),
     useAuthenticatedTables: jest.fn(),
     useAuthenticatedActivePaymentMethods: jest.fn(),
     useAuthenticatedClients: jest.fn(),
@@ -91,12 +89,8 @@ export function setupPdvMocks(overrides: {
     mutate: overrides.mutate ?? jest.fn().mockResolvedValue({ identify: 'order-123' }),
   }
 
-  ;(useAuthenticatedCategories as jest.Mock).mockReturnValue({
+  ;(useAuthenticatedActiveCategories as jest.Mock).mockReturnValue({
     data: mocks.categories,
-    ...defaultPdvHookReturn,
-  })
-  ;(useAuthenticatedProducts as jest.Mock).mockReturnValue({
-    data: mocks.products,
     ...defaultPdvHookReturn,
   })
   ;(useAuthenticatedCatalogProducts as jest.Mock).mockReturnValue({

@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import {
   useAuthenticatedCatalogProducts,
-  useAuthenticatedCategories,
+  useAuthenticatedActiveCategories,
   useAuthenticatedTables,
   useAuthenticatedActivePaymentMethods,
   useAuthenticatedClients,
@@ -725,7 +725,7 @@ export default function POSPage() {
     data: categoriesData,
     loading: categoriesLoading,
     error: categoriesError,
-  } = useAuthenticatedCategories()
+  } = useAuthenticatedActiveCategories()
   const {
     data: productsData,
     loading: productsLoading,

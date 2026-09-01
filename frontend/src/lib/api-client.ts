@@ -334,6 +334,7 @@ export const endpoints = {
   // Categorias
   categories: {
     list: '/api/category',
+    active: '/api/category/active',
     stats: '/api/category/stats',
     create: '/api/category',
     show: (id: string) => `/api/category/${id}`,

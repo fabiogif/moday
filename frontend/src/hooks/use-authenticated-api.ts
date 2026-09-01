@@ -234,6 +234,10 @@ export function useAuthenticatedCategories() {
   })
 }
 
+export function useAuthenticatedActiveCategories() {
+  return useAuthenticatedApi(endpoints.categories.active, { ttl: 60_000 })
+}
+
 export function useAuthenticatedCategoryStats() {
   return useAuthenticatedApi(endpoints.categories.stats, { ttl: 60_000 })
 }

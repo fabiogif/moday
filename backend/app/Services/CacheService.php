@@ -229,6 +229,14 @@ class CacheService
         return $this->remember($cacheKey, $ttl, $callback);
     }
 
+    public function getActiveCategoryList(int $tenantId, callable $callback)
+    {
+        $cacheKey = "category_active_list_{$tenantId}";
+        $ttl = self::CACHE_TTL['category_list'];
+
+        return $this->remember($cacheKey, $ttl, $callback);
+    }
+
     /**
      * Get cached table list
      */
@@ -427,6 +435,7 @@ class CacheService
     {
         Cache::forget("category_stats_{$tenantId}");
         Cache::forget("category_list_{$tenantId}");
+        Cache::forget("category_active_list_{$tenantId}");
         Cache::forget("dashboard_data_{$tenantId}");
     }
 

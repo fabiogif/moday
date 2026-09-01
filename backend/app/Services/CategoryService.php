@@ -32,8 +32,8 @@ readonly class CategoryService
 
             if ($inactive) {
                 $payload = array_intersect_key(
-                    array_merge($data, ['status' => 'A']),
-                    array_flip(['name', 'description', 'url', 'status'])
+                    array_merge($this->syncActiveFlags($data), ['status' => 'A', 'is_active' => true]),
+                    array_flip(['name', 'description', 'url', 'status', 'is_active'])
                 );
                 $category = $this->categoryRepositoryInterface->updateByTenant(
                     $payload,
@@ -47,8 +47,10 @@ readonly class CategoryService
             }
         }
 
+        $data = $this->syncActiveFlags($data);
         if (!isset($data['status'])) {
             $data['status'] = 'A';
+            $data['is_active'] = true;
         }
 
         $category = $this->categoryRepositoryInterface->store($data);
@@ -70,8 +72,11 @@ readonly class CategoryService
 
     public function update(array $data, int $id, int $tenantId = null)
     {
+        $data = $this->syncActiveFlags($data);
         if($tenantId) {
-            return $this->categoryRepositoryInterface->updateByTenant($data, $id, $tenantId);
+            $category = $this->categoryRepositoryInterface->updateByTenant($data, $id, $tenantId);
+            $this->cacheService->invalidateCategoryCache($tenantId);
+            return $category;
         }
         return $this->categoryRepositoryInterface->update($data, $id);
     }
@@ -79,7 +84,9 @@ readonly class CategoryService
     public function delete(string $identify, int $tenantId = null)
     {
         if($tenantId) {
-            return $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
+            $deleted = $this->categoryRepositoryInterface->deleteByTenant($identify, $tenantId);
+            $this->cacheService->invalidateCategoryCache($tenantId);
+            return $deleted;
         }
         return $this->categoryRepositoryInterface->delete($identify);
     }
@@ -97,6 +104,30 @@ readonly class CategoryService
     public function getStats(int $tenantId): array
     {
         return $this->categoryRepositoryInterface->getStats($tenantId);
+    }
+
+    public function getActiveByTenant(int $tenantId)
+    {
+        return $this->cacheService->getActiveCategoryList($tenantId, function () use ($tenantId) {
+            return $this->categoryRepositoryInterface->getActiveByTenant($tenantId);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function syncActiveFlags(array $data): array
+    {
+        if (array_key_exists('isActive', $data)) {
+            $data['is_active'] = (bool) $data['isActive'];
+            $data['status'] = $data['is_active'] ? 'A' : 'I';
+            unset($data['isActive']);
+        } elseif (isset($data['status'])) {
+            $data['is_active'] = $data['status'] === 'A';
+        }
+
+        return $data;
     }
 
 }

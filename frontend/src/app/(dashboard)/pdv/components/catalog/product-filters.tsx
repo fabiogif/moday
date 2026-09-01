@@ -30,28 +30,23 @@ export function ProductFilters({
 }: ProductFiltersProps) {
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium">Categorias</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">Categorias</p>
         {selectedCategory && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onCategorySelect(null)}
-            className="h-5 text-[10px] px-2 ml-auto"
+            className="h-8 px-2 text-xs"
           >
-            <X className="h-3 w-3 mr-1" />
+            <X className="mr-1 h-3.5 w-3.5" />
             Limpar
           </Button>
         )}
       </div>
-      {/* Rolagem horizontal suave */}
       <div
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide scroll-smooth"
+        className="flex max-h-[8.5rem] flex-wrap content-start gap-2 overflow-y-auto pr-0.5"
         data-testid="touch-grid-categories"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
       >
         {categories.map((category) => {
           const key = category.uuid || category.identify || category.name
@@ -61,45 +56,46 @@ export function ProductFilters({
           return (
             <button
               key={key}
+              type="button"
               data-testid={`touch-category-${key}`}
+              aria-pressed={active}
               onClick={() => onCategorySelect(active ? null : key)}
-              className={cn(
-                "flex flex-col items-center gap-1 p-1 rounded-full transition-all min-w-[80px] h-[80px] flex-shrink-0",
-                active
-                  ? "border-2 border-primary bg-primary/10 shadow-lg scale-105"
-                  : "border-1 border-gray-200 hover:border-gray-300 hover:scale-102"
-              )}
               title={category.name}
+              className={cn(
+                "inline-flex min-h-11 max-w-full shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-left text-sm font-medium transition-colors",
+                active
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-muted"
+              )}
             >
               {categoryImage ? (
                 <Image
                   src={categoryImage}
-                  alt={category.name}
-                  width={48}
-                  height={48}
-                  className="rounded-full object-cover"
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="h-7 w-7 shrink-0 rounded-full object-cover"
                   unoptimized
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                    {category.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                    active
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {category.name.charAt(0).toUpperCase()}
+                </span>
               )}
-              <span className="text-xs font-medium truncate max-w-[80px] text-center">
+              <span className="max-w-[12rem] leading-tight line-clamp-2 sm:max-w-[16rem]">
                 {category.name}
               </span>
             </button>
           )
         })}
       </div>
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }
-
