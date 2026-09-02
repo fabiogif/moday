@@ -25,7 +25,7 @@ export function PdvFlowAnimation() {
       <GlassCard className="hero-float-slow relative z-10 mx-auto mt-12 w-[92%] overflow-hidden border-zinc-200 bg-white">
         <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-orange-600" />
+            <ShoppingBag className="h-4 w-4 text-orange-700" />
             <span className="text-sm font-semibold text-zinc-900">PDV — Pedido #2847</span>
           </div>
           <span className="text-[10px] text-amber-700">Em preparo</span>

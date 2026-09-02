@@ -51,6 +51,13 @@ type LandingFlowSectionProps = {
   features: FlowFeature[]
   reverse?: boolean
   id?: string
+  tone?: 'cream' | 'mint' | 'white'
+}
+
+const TONE_CLASSES: Record<'cream' | 'mint' | 'white', string> = {
+  cream: 'bg-orange-50 border-orange-100',
+  mint: 'bg-emerald-50 border-emerald-100',
+  white: 'bg-white border-zinc-200',
 }
 
 function FlowFeatureCard({ icon, title, description }: FlowFeature) {
@@ -83,18 +90,19 @@ export function LandingFlowSection({
   features,
   reverse = false,
   id,
+  tone = 'white',
 }: LandingFlowSectionProps) {
   const trackCTA = useLandingCTAClick(ctaEvent)
 
   return (
     <section
       id={id}
-      className="py-20 sm:py-28 bg-white border-t border-zinc-200"
+      className={cn('py-12 sm:py-16 border-t', TONE_CLASSES[tone])}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            'grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20',
+            'grid items-center gap-8 lg:grid-cols-2 lg:gap-10 xl:gap-8',
             reverse && 'lg:[&>*:first-child]:order-2',
           )}
         >
@@ -102,7 +110,7 @@ export function LandingFlowSection({
 
           <div className="flow-reveal-up [animation-delay:150ms]">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium">
                 {eyebrow}
               </p>
               {badge ? (
@@ -122,7 +130,7 @@ export function LandingFlowSection({
 
             <Button
               size="lg"
-              className="bg-zinc-900 text-white hover:bg-zinc-700 rounded-md h-11 px-6 text-sm font-medium transition-colors"
+              className="bg-orange-700 text-white hover:bg-orange-800 rounded-md h-11 px-6 text-sm font-medium transition-colors"
               asChild
             >
               <Link href={ctaHref} onClick={() => trackCTA(ctaHref)}>
@@ -133,7 +141,7 @@ export function LandingFlowSection({
           </div>
         </div>
 
-        <div className="mt-16 sm:mt-20 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+        <div className="mt-10 sm:mt-20 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
           {features.map((feature) => (
             <FlowFeatureCard key={feature.title} {...feature} />
           ))}

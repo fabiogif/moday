@@ -33,7 +33,7 @@ export function FloatingCTABar() {
       <div className="flex items-center gap-3">
         <Button
           size="lg"
-          className="flex-1 bg-zinc-900 text-white hover:bg-zinc-700 rounded-md"
+          className="flex-1 bg-orange-700 text-white hover:bg-orange-800 rounded-md"
           asChild
         >
           <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>

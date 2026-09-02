@@ -9,6 +9,7 @@ export function OperationFlowSection() {
   return (
     <LandingFlowSection
       id="operacao-flow"
+      tone="cream"
       eyebrow="Operação Flow"
       title="Venda em todos os canais sem perder o controle"
       description="Automatize pedidos do salão, delivery e cardápio digital. Quando um pedido chega, o Alba Tec organiza a cozinha, atualiza o estoque e mantém sua equipe sincronizada."
@@ -44,6 +45,7 @@ export function FinanceFlowSection() {
   return (
     <LandingFlowSection
       id="financeiro-flow"
+      tone="mint"
       eyebrow="Financeiro Flow"
       title="Seja proativo com os números do restaurante"
       description="Configure automações que convertem dados em decisão. Contas a pagar, receber, despesas e fluxo de caixa projetado — tudo visível antes que vire problema."

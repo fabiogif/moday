@@ -109,7 +109,7 @@ export function LandingFooter() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="cursor-pointer rounded-md bg-zinc-900 text-white hover:bg-zinc-700 transition-colors" disabled={isSubmitting}>
+                <Button type="submit" className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800 transition-colors" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

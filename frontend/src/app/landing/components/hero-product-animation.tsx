@@ -50,7 +50,7 @@ export function HeroProductAnimation({ className }: { className?: string }) {
         <GlassCard className="hero-float-slow relative z-10 mx-auto mt-16 w-[88%] overflow-hidden border-zinc-200/90 bg-white">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-orange-600" />
+              <ShoppingBag className="h-4 w-4 text-orange-700" />
               <span className="text-sm font-semibold text-zinc-900">Pedidos em tempo real</span>
             </div>
             <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">

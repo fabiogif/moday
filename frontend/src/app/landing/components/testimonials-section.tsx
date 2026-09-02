@@ -54,10 +54,10 @@ const useCases: UseCase[] = [
 
 export function TestimonialsSection() {
   return (
-    <section id="testimonials" className="py-24 sm:py-32 bg-stone-50 border-t border-zinc-200">
+    <section id="testimonials" className="py-14 sm:py-20 bg-emerald-50 border-t border-emerald-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-16">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-600 font-medium mb-4">
+        <div className="max-w-2xl mb-10">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-700 font-medium mb-4">
             Casos de uso
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-4">

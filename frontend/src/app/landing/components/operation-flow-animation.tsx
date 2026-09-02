@@ -44,7 +44,7 @@ export function OperationFlowAnimation() {
                 <div className="inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-bold text-white">
                   Abrir cardápio
                 </div>
-                <MousePointer2 className="flow-cursor-drift absolute -bottom-2 right-3 h-5 w-5 text-orange-600 drop-shadow-sm" />
+                <MousePointer2 className="flow-cursor-drift absolute -bottom-2 right-3 h-5 w-5 text-orange-700 drop-shadow-sm" />
               </div>
             </div>
 
@@ -52,7 +52,7 @@ export function OperationFlowAnimation() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.8),transparent_55%)]" />
               <div className="relative flex h-full flex-col items-center justify-center text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md">
-                  <UtensilsCrossed className="h-7 w-7 text-orange-600" />
+                  <UtensilsCrossed className="h-7 w-7 text-orange-700" />
                 </div>
                 <p className="mt-3 text-sm font-bold text-zinc-900">Cardápio ao vivo</p>
                 <p className="text-[10px] text-zinc-500">QR Code · Variações · Fotos</p>

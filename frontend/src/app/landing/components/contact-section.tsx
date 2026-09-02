@@ -60,10 +60,10 @@ export function ContactSection() {
   }
 
   return (
-    <section id="contact" className="py-20 sm:py-24 bg-stone-50 border-t border-zinc-200">
+    <section id="contact" className="py-12 sm:py-16 bg-orange-50 border-t border-orange-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center mb-16">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-600 font-medium mb-4">
+        <div className="mx-auto max-w-2xl text-center mb-10">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-700 font-medium mb-4">
             Entre em Contato
           </p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
@@ -80,7 +80,7 @@ export function ContactSection() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                   <div className="p-2.5 rounded-lg bg-orange-50">
-                    <Mail className="h-5 w-5 text-orange-600" />
+                    <Mail className="h-5 w-5 text-orange-700" />
                   </div>
                   Contato geral
                 </CardTitle>
@@ -178,7 +178,7 @@ export function ContactSection() {
                     <FormField control={form.control} name="message" render={({ field }) => (
                       <FormItem><FormLabel>Mensagem</FormLabel><FormControl><Textarea placeholder="Conte-nos como podemos ajudá-lo com o Alba Tec..." rows={10} className="min-h-50" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <Button type="submit" className="w-full cursor-pointer bg-zinc-900 text-white hover:bg-zinc-700" disabled={isLoading}>
+                    <Button type="submit" className="w-full cursor-pointer bg-orange-700 text-white hover:bg-orange-800" disabled={isLoading}>
                       {isLoading ? "Enviando..." : "Enviar Mensagem"}
                     </Button>
                   </form>

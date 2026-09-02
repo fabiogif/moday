@@ -97,15 +97,15 @@ export function FeaturesSection() {
     <div id="features">
 
       {/* Painel de Controle */}
-      <section className="py-24 sm:py-32 bg-stone-50 border-t border-zinc-200">
+      <section className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-12 xl:gap-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8 xl:gap-8">
             <div className="flow-reveal-up">
               <DashboardFlowAnimation />
             </div>
 
             <div className="flow-reveal-up [animation-delay:150ms]">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
                 Painel de Controle
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 text-balance mb-4">
@@ -127,7 +127,7 @@ export function FeaturesSection() {
                         <f.icon className="h-4 w-4 text-zinc-600" />
                       </div>
                       {f.badge && (
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">
                           {f.badge}
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function FeaturesSection() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  className="rounded-md bg-zinc-900 text-white hover:bg-zinc-700 h-11 px-7 text-sm font-semibold transition-colors"
+                  className="rounded-md bg-orange-700 text-white hover:bg-orange-800 h-11 px-7 text-sm font-semibold transition-colors"
                   asChild
                 >
                   <a href="#pricing">Ver Planos</a>
@@ -161,10 +161,10 @@ export function FeaturesSection() {
       </section>
 
       {/* Recursos Avançados */}
-      <section className="py-20 sm:py-24 bg-white border-t border-zinc-200">
+      <section className="py-12 sm:py-16 bg-white border-t border-zinc-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+          <div className="max-w-2xl mb-8">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
               Recursos Avançados
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">
@@ -193,11 +193,11 @@ export function FeaturesSection() {
       </section>
 
       {/* Gestão Financeira */}
-      <section className="py-24 sm:py-32 bg-stone-50 border-t border-zinc-200">
+      <section className="py-14 sm:py-20 bg-emerald-50 border-t border-emerald-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-16 lg:grid-cols-2 lg:gap-12 xl:gap-20">
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8 xl:gap-8">
             <div className="flow-reveal-up order-2 lg:order-1">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
                 Gestão Financeira
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 text-balance mb-4">
@@ -233,7 +233,7 @@ export function FeaturesSection() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  className="rounded-md bg-zinc-900 text-white hover:bg-zinc-700 h-11 px-7 text-sm font-semibold transition-colors"
+                  className="rounded-md bg-orange-700 text-white hover:bg-orange-800 h-11 px-7 text-sm font-semibold transition-colors"
                   asChild
                 >
                   <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
@@ -260,10 +260,10 @@ export function FeaturesSection() {
       </section>
 
       {/* PDV */}
-      <section className="py-24 sm:py-32 bg-white border-t border-zinc-200">
+      <section className="py-14 sm:py-20 bg-white border-t border-zinc-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+          <div className="max-w-2xl mb-8">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
               PDV
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">
@@ -274,7 +274,7 @@ export function FeaturesSection() {
             </p>
           </div>
 
-          <div className="flow-reveal-up mb-12">
+          <div className="flow-reveal-up mb-8">
             <PdvFlowAnimation />
           </div>
 
@@ -303,10 +303,10 @@ export function FeaturesSection() {
       </section>
 
       {/* Variações e Opcionais */}
-      <section className="py-20 sm:py-24 bg-stone-50 border-t border-zinc-200">
+      <section className="py-12 sm:py-16 bg-orange-50 border-t border-orange-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-12">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+          <div className="max-w-2xl mb-8">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
               Cardápio Inteligente
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">

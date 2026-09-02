@@ -87,7 +87,7 @@ export function LandingNavbar() {
               Login
             </Button>
           </Link>
-          <Button asChild className="cursor-pointer rounded-md bg-zinc-900 text-white hover:bg-zinc-700">
+          <Button asChild className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800">
             <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
               {TRIAL_CTA_LABEL}
             </Link>
@@ -141,7 +141,7 @@ export function LandingNavbar() {
                       Login
                     </Button>
                   </Link>
-                  <Button asChild size="lg" className="cursor-pointer rounded-md bg-zinc-900 text-white hover:bg-zinc-700">
+                  <Button asChild size="lg" className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800">
                     <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
                       {TRIAL_CTA_LABEL}
                     </Link>

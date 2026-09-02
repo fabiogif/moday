@@ -8,7 +8,7 @@ export function MenuFlowAnimation() {
     <FlowStage minHeight="min-h-[380px] sm:min-h-[420px]">
       <GlassCard className="hero-float absolute left-2 top-6 z-20 max-w-[175px] p-3">
         <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-orange-600" />
+          <Layers className="h-4 w-4 text-orange-700" />
           <p className="text-xs font-semibold text-zinc-900">Tamanho G +R$ 10</p>
         </div>
       </GlassCard>
@@ -45,7 +45,7 @@ export function MenuFlowAnimation() {
                 <ShoppingCart className="h-4 w-4" />
                 Adicionar · R$ 67,00
               </div>
-              <MousePointer2 className="flow-cursor-drift absolute -bottom-1 right-4 h-4 w-4 text-orange-600" />
+              <MousePointer2 className="flow-cursor-drift absolute -bottom-1 right-4 h-4 w-4 text-orange-700" />
             </div>
           </div>
         </GlassCard>

@@ -10,6 +10,7 @@ import {
 } from './components/landing-flow-sections'
 import { FeaturesSection } from './components/features-section'
 import { DemoMenuCTA } from './components/demo-menu-cta'
+import { ComparisonSection } from './components/comparison-section'
 import { PricingSection } from './components/pricing-section'
 import { CTASection } from './components/cta-section'
 import { TrustBadges } from './components/trust-badges'
@@ -56,6 +57,7 @@ export function LandingPageContent() {
         <AppMobileFlowSection />
         <FeaturesSection />
         <DemoMenuCTA />
+        <ComparisonSection />
         <TestimonialsSection />
         <PricingSection />
         <FaqSection />

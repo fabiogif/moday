@@ -16,7 +16,7 @@ export function AppMobileFlowAnimation() {
 
       <GlassCard className="hero-float-delayed absolute right-1 top-10 z-20 max-w-[180px] p-3 [animation-delay:0.5s]">
         <div className="flex items-center gap-2">
-          <Clock3 className="h-4 w-4 text-orange-600" />
+          <Clock3 className="h-4 w-4 text-orange-700" />
           <p className="text-xs font-semibold text-zinc-900">Horários</p>
         </div>
         <p className="mt-1 text-[10px] text-zinc-500">Abrir / fechar pelo celular</p>

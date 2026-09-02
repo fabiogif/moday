@@ -34,7 +34,7 @@ export function DashboardFlowAnimation() {
         <GlassCard className="overflow-hidden border-zinc-200 bg-white">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-orange-600" />
+              <BarChart3 className="h-4 w-4 text-orange-700" />
               <span className="text-sm font-semibold text-zinc-900">Painel de Controle</span>
             </div>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-700">

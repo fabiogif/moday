@@ -126,7 +126,7 @@ export function PricingSection() {
 
   if (loading) {
     return (
-      <section id="pricing" className="py-24 sm:py-32 bg-stone-50 border-t border-zinc-200">
+      <section id="pricing" className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-400 mx-auto"></div>
@@ -138,10 +138,10 @@ export function PricingSection() {
   }
 
   return (
-    <section id="pricing" className="py-24 sm:py-32 bg-stone-50 border-t border-zinc-200">
+    <section id="pricing" className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center mb-12">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-orange-600 font-medium mb-4">
+        <div className="mx-auto max-w-2xl text-center mb-8">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
             Planos e Preços
           </p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-5xl mb-4">
@@ -182,7 +182,7 @@ export function PricingSection() {
             </p>
           ) : (
             <p className="text-sm text-zinc-500">
-              Troque para anual e <span className="text-orange-600 font-semibold">economize 20%</span>
+              Troque para anual e <span className="text-orange-700 font-semibold">economize 20%</span>
             </p>
           )}
         </div>
@@ -258,7 +258,7 @@ export function PricingSection() {
                     className={cn(
                       'w-full cursor-pointer mb-6 rounded-md h-11 text-sm font-semibold transition-colors',
                       popular
-                        ? 'bg-zinc-900 text-white hover:bg-zinc-700'
+                        ? 'bg-orange-700 text-white hover:bg-orange-800'
                         : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
                     )}
                     variant={popular ? 'default' : 'outline'}
@@ -274,7 +274,7 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="mt-16 text-center">
+        <div className="mt-10 text-center">
           <p className="text-zinc-500">
             Precisa de recursos personalizados?{' '}
             <a href="#contact" className="text-zinc-900 underline decoration-zinc-300 hover:decoration-zinc-600 transition-colors">
