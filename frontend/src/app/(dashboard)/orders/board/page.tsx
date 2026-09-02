@@ -97,48 +97,31 @@ interface Order {
 
 type OrderStatus = "Pendente" | "Aceito" | "Preparo" | "Concluído" | "Cancelado"
 
-const COLUMNS: Array<{ 
+// ponytail: Tailwind não gera classes de cor a partir de valores dinâmicos
+// (ex.: `bg-[${status.color}]`), então a cor de cada status é aplicada via
+// inline style a partir de um hex, e não de classes utilitárias.
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = hex?.replace('#', '') || '3b82f6'
+  const full = normalized.length === 3
+    ? normalized.split('').map((c) => c + c).join('')
+    : normalized.padEnd(6, '0').slice(0, 6)
+  const r = parseInt(full.slice(0, 2), 16)
+  const g = parseInt(full.slice(2, 4), 16)
+  const b = parseInt(full.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const COLUMNS: Array<{
   id: OrderStatus
   title: string
-  badgeColor: string
-  headerGradient: string
+  color: string
   icon: React.ReactNode
 }> = [
-  { 
-    id: "Pendente", 
-    title: "Pendente", 
-    badgeColor: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    headerGradient: "from-amber-50 to-amber-100/50 dark:from-amber-950/50 dark:to-amber-900/30",
-    icon: <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-  },
-  { 
-    id: "Aceito", 
-    title: "Aceito", 
-    badgeColor: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800",
-    headerGradient: "from-indigo-50 to-indigo-100/50 dark:from-indigo-950/50 dark:to-indigo-900/30",
-    icon: <Package className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-  },
-  { 
-    id: "Preparo", 
-    title: "Preparo", 
-    badgeColor: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-    headerGradient: "from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30",
-    icon: <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-  },
-  {
-    id: "Concluído",
-    title: "Concluído", 
-    badgeColor: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
-    headerGradient: "from-emerald-50 to-emerald-100/50 dark:from-emerald-950/50 dark:to-emerald-900/30",
-    icon: <Package className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-  },
-  { 
-    id: "Cancelado", 
-    title: "Cancelado", 
-    badgeColor: "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
-    headerGradient: "from-rose-50 to-rose-100/50 dark:from-rose-950/50 dark:to-rose-900/30",
-    icon: <RefreshCw className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-  },
+  { id: "Pendente", title: "Pendente", color: "#f59e0b", icon: <Clock className="h-4 w-4" /> },
+  { id: "Aceito", title: "Aceito", color: "#6366f1", icon: <Package className="h-4 w-4" /> },
+  { id: "Preparo", title: "Preparo", color: "#3b82f6", icon: <Clock className="h-4 w-4" /> },
+  { id: "Concluído", title: "Concluído", color: "#10b981", icon: <Package className="h-4 w-4" /> },
+  { id: "Cancelado", title: "Cancelado", color: "#f43f5e", icon: <RefreshCw className="h-4 w-4" /> },
 ]
 
 interface OrderCardProps {
@@ -149,7 +132,7 @@ interface OrderCardProps {
   onMoveRight?: (order: Order) => void
   canMoveLeft?: boolean
   canMoveRight?: boolean
-  columns?: Array<{ id: OrderStatus; title: string }>
+  columns?: Array<{ id: OrderStatus; title: string; color: string; icon?: React.ReactNode }>
 }
 
 function OrderCard({ 
@@ -187,7 +170,7 @@ function OrderCard({
   const customerName = order.client?.name || order.client_full_name
   const total = typeof order.total === 'string' ? parseFloat(order.total) : order.total
   
-  const columnInfo = COLUMNS.find(col => col.id === order.status)
+  const columnInfo = columns.find(col => col.id === order.status) || COLUMNS.find(col => col.id === order.status)
   
   return (
     <div
@@ -205,26 +188,31 @@ function OrderCard({
       {...listeners}
     >
       {/* Barra de cor superior */}
-      <div className={cn(
-        "h-1 rounded-t-lg",
-        order.status === "Pendente" && "bg-gradient-to-r from-amber-400 to-amber-600",
-        order.status === "Aceito" && "bg-gradient-to-r from-indigo-400 to-indigo-600",
-        order.status === "Preparo" && "bg-gradient-to-r from-blue-400 to-blue-600",
-        order.status === "Concluído" && "bg-gradient-to-r from-green-400 to-green-600",
-        order.status === "Cancelado" && "bg-gradient-to-r from-rose-400 to-rose-600"
-      )} />
-      
+      <div
+        className="h-1 rounded-t-lg"
+        style={{ backgroundColor: columnInfo?.color || "#6b7280" }}
+      />
+
       <div className="p-3 space-y-2.5 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            {columnInfo?.icon && <span className="shrink-0">{columnInfo.icon}</span>}
+            {columnInfo?.icon && (
+              <span className="shrink-0" style={{ color: columnInfo.color }}>
+                {columnInfo.icon}
+              </span>
+            )}
             <span className="font-semibold text-sm tracking-tight truncate">#{order.identify}</span>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <Badge 
-              variant="outline" 
-              className={cn("text-[10px] font-medium border px-1.5 py-0.5", columnInfo?.badgeColor)}
+            <Badge
+              variant="outline"
+              className="text-[10px] font-medium border px-1.5 py-0.5"
+              style={{
+                backgroundColor: hexToRgba(columnInfo?.color || "#6b7280", 0.1),
+                color: columnInfo?.color || "#6b7280",
+                borderColor: hexToRgba(columnInfo?.color || "#6b7280", 0.3),
+              }}
             >
               <span className="truncate max-w-[80px] block">{order.status}</span>
             </Badge>
@@ -382,18 +370,17 @@ function DroppableColumnArea({ columnId, children }: DroppableColumnAreaProps) {
 }
 
 interface BoardColumnProps {
-  column: { 
+  column: {
     id: OrderStatus
     title: string
-    badgeColor: string
-    headerGradient: string
+    color: string
     icon: React.ReactNode
   }
   orders: Order[]
   isUpdating: boolean
   onArchive: (order: Order) => void
   onMoveOrder?: (order: Order, newStatus: OrderStatus) => void
-  allColumns?: Array<{ id: OrderStatus; title: string }>
+  allColumns?: Array<{ id: OrderStatus; title: string; color: string }>
 }
 
 function BoardColumn({ column, orders, isUpdating, onArchive, onMoveOrder, allColumns = [] }: BoardColumnProps) {
@@ -421,20 +408,24 @@ function BoardColumn({ column, orders, isUpdating, onArchive, onMoveOrder, allCo
         "w-full min-w-0 overflow-hidden py-0 gap-0 max-xl:min-w-[260px]"
       )}
     >
-      <CardHeader className={cn(
-        "flex flex-row items-center justify-between space-y-0 px-3 py-3 min-w-0 rounded-t-lg bg-gradient-to-br",
-        column.headerGradient
-      )}>
+      <CardHeader
+        className="flex flex-row items-center justify-between space-y-0 px-3 py-3 min-w-0 rounded-t-lg"
+        style={{
+          backgroundImage: `linear-gradient(to bottom right, ${hexToRgba(column.color, 0.12)}, ${hexToRgba(column.color, 0.06)})`,
+        }}
+      >
         <CardTitle className="flex items-center gap-2.5">
-          {column.icon}
+          <span style={{ color: column.color }}>{column.icon}</span>
           <span className="text-lg font-bold tracking-tight">{column.title}</span>
         </CardTitle>
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-sm font-bold px-2.5 py-1 border-2",
-            column.badgeColor
-          )}
+        <Badge
+          variant="outline"
+          className="text-sm font-bold px-2.5 py-1 border-2"
+          style={{
+            backgroundColor: hexToRgba(column.color, 0.1),
+            color: column.color,
+            borderColor: hexToRgba(column.color, 0.3),
+          }}
         >
           {orders.length}
         </Badge>
@@ -444,7 +435,7 @@ function BoardColumn({ column, orders, isUpdating, onArchive, onMoveOrder, allCo
           <DroppableColumnArea columnId={column.id}>
             {orders.length === 0 && !isUpdating && (
               <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
-                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center" style={{ color: column.color }}>
                   {column.icon}
                 </div>
                 <p className="text-sm text-muted-foreground font-medium">
@@ -641,8 +632,7 @@ export default function OrdersBoardPage() {
         const columns = res.data.map((status: any) => ({
           id: status.name,
           title: status.name,
-          badgeColor: `bg-[${status.color}]/10 text-[${status.color}] border-[${status.color}]/20`,
-          headerGradient: `from-[${status.color}]/5 to-[${status.color}]/10`,
+          color: status.color || "#6b7280",
           icon: iconMap[status.icon] || <Package className="h-4 w-4" />,
         }))
 
