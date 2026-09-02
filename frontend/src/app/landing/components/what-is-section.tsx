@@ -46,11 +46,11 @@ export function WhatIsSection() {
     <section
       id="o-que-e"
       aria-labelledby="what-is-heading"
-      className="py-12 sm:py-16 bg-white border-b border-zinc-200"
+      className="py-10 sm:py-12 bg-primary-50 border-b border-zinc-200"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-10">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-700 font-medium mb-4">
+        <div className="max-w-2xl mb-6">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-primary-700 font-medium mb-4">
             O que é o Alba Tec
           </p>
           <h2
@@ -66,10 +66,10 @@ export function WhatIsSection() {
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-6">
           {pillars.map((item) => (
             <div key={item.title} className="rounded-xl border border-zinc-200 bg-stone-50 p-5">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-700">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-700">
                 <item.icon className="h-5 w-5" aria-hidden />
               </div>
               <h3 className="text-sm font-semibold text-zinc-900 mb-1.5">{item.title}</h3>
@@ -80,7 +80,7 @@ export function WhatIsSection() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button
-            className="bg-orange-700 text-white hover:bg-orange-800 rounded-md h-10 px-6 text-sm"
+            className="bg-primary text-white hover:bg-primary-600 rounded-md h-10 px-6 text-sm"
             asChild
           >
             <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>

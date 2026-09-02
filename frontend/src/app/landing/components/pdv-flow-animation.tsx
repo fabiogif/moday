@@ -22,7 +22,7 @@ export function PdvFlowAnimation() {
         <p className="mt-1 text-[10px] text-zinc-500">70% menos cliques</p>
       </GlassCard>
 
-      <GlassCard className="hero-float-slow relative z-10 mx-auto mt-12 w-[92%] overflow-hidden border-zinc-200 bg-white">
+      <GlassCard className="hero-float-slow relative z-10 mx-auto mt-12 w-[92%] overflow-hidden border-zinc-200 bg-primary-50">
         <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-4 w-4 text-orange-700" />

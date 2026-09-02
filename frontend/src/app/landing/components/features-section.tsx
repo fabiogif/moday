@@ -97,37 +97,37 @@ export function FeaturesSection() {
     <div id="features">
 
       {/* Painel de Controle */}
-      <section className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
+      <section className="py-10 sm:py-14 bg-primary-50 border-t border-primary-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8 xl:gap-8">
+          <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-6 xl:gap-6">
             <div className="flow-reveal-up">
               <DashboardFlowAnimation />
             </div>
 
             <div className="flow-reveal-up [animation-delay:150ms]">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
                 Painel de Controle
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 text-balance mb-4">
                 Métricas e gráficos que mostram o pulso do negócio
               </h2>
-              <p className="text-lg text-zinc-500 leading-relaxed mb-8">
+              <p className="text-lg text-zinc-500 leading-relaxed mb-6">
                 Receita, pedidos, clientes ativos e taxa de conversão em tempo real.
                 Gráficos de volume e evolução para decisões rápidas com dados.
               </p>
 
-              <div className="grid gap-3 sm:grid-cols-2 mb-8">
+              <div className="grid gap-3 sm:grid-cols-2 mb-6">
                 {mainFeatures.map((f) => (
                   <div
                     key={f.title}
-                    className="rounded-xl border border-zinc-200 bg-white p-4"
+                    className="rounded-xl border border-zinc-200 bg-primary-50 p-4"
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100">
                         <f.icon className="h-4 w-4 text-zinc-600" />
                       </div>
                       {f.badge && (
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-primary-700 bg-primary-50 px-1.5 py-0.5 rounded">
                           {f.badge}
                         </span>
                       )}
@@ -141,7 +141,7 @@ export function FeaturesSection() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  className="rounded-md bg-orange-700 text-white hover:bg-orange-800 h-11 px-7 text-sm font-semibold transition-colors"
+                  className="rounded-md bg-primary text-white hover:bg-primary-600 h-11 px-7 text-sm font-semibold transition-colors"
                   asChild
                 >
                   <a href="#pricing">Ver Planos</a>
@@ -161,10 +161,10 @@ export function FeaturesSection() {
       </section>
 
       {/* Recursos Avançados */}
-      <section className="py-12 sm:py-16 bg-white border-t border-zinc-200">
+      <section className="py-10 sm:py-12 bg-primary-50 border-t border-zinc-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+          <div className="max-w-2xl mb-6">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
               Recursos Avançados
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">
@@ -193,33 +193,33 @@ export function FeaturesSection() {
       </section>
 
       {/* Gestão Financeira */}
-      <section className="py-14 sm:py-20 bg-emerald-50 border-t border-emerald-100">
+      <section className="py-10 sm:py-14 bg-primary-100 border-t border-primary-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-8 xl:gap-8">
+          <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-6 xl:gap-6">
             <div className="flow-reveal-up order-2 lg:order-1">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
                 Gestão Financeira
               </p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 text-balance mb-4">
                 Controle financeiro completo em um só painel
               </h2>
-              <p className="text-lg text-zinc-500 leading-relaxed mb-8">
+              <p className="text-lg text-zinc-500 leading-relaxed mb-6">
                 Contas a receber e a pagar, despesas do mês e saldo projetado.
                 Fornecedores, categorias e dados bancários integrados à operação.
               </p>
 
-              <div className="grid gap-3 sm:grid-cols-2 mb-8">
+              <div className="grid gap-3 sm:grid-cols-2 mb-6">
                 {secondaryFeatures.map((f) => (
                   <div
                     key={f.title}
-                    className="rounded-xl border border-zinc-200 bg-white p-4"
+                    className="rounded-xl border border-zinc-200 bg-primary-50 p-4"
                   >
                     <div className="mb-2 flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100">
                         <f.icon className="h-4 w-4 text-zinc-600" />
                       </div>
                       {'badge' in f && f.badge ? (
-                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
+                        <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-700">
                           {f.badge}
                         </span>
                       ) : null}
@@ -233,7 +233,7 @@ export function FeaturesSection() {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button
                   size="lg"
-                  className="rounded-md bg-orange-700 text-white hover:bg-orange-800 h-11 px-7 text-sm font-semibold transition-colors"
+                  className="rounded-md bg-primary text-white hover:bg-primary-600 h-11 px-7 text-sm font-semibold transition-colors"
                   asChild
                 >
                   <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
@@ -260,10 +260,10 @@ export function FeaturesSection() {
       </section>
 
       {/* PDV */}
-      <section className="py-14 sm:py-20 bg-white border-t border-zinc-200">
+      <section className="py-10 sm:py-14 bg-primary-50 border-t border-zinc-200">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+          <div className="max-w-2xl mb-6">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
               PDV
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">
@@ -274,7 +274,7 @@ export function FeaturesSection() {
             </p>
           </div>
 
-          <div className="flow-reveal-up mb-8">
+          <div className="flow-reveal-up mb-6">
             <PdvFlowAnimation />
           </div>
 
@@ -291,7 +291,7 @@ export function FeaturesSection() {
                 <ul className="space-y-2.5">
                   {h.bullets.map((b, i) => (
                     <li key={i} className="flex items-start gap-2.5">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" />
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shrink-0" />
                       <span className="text-sm text-zinc-500 leading-relaxed">{b}</span>
                     </li>
                   ))}
@@ -303,10 +303,10 @@ export function FeaturesSection() {
       </section>
 
       {/* Variações e Opcionais */}
-      <section className="py-12 sm:py-16 bg-orange-50 border-t border-orange-100">
+      <section className="py-10 sm:py-12 bg-primary-50 border-t border-primary-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl mb-8">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+          <div className="max-w-2xl mb-6">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
               Cardápio Inteligente
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-3">
@@ -317,8 +317,8 @@ export function FeaturesSection() {
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-3 mb-8">
-            <div className="rounded-xl border border-zinc-200 bg-white p-6">
+          <div className="grid gap-5 md:grid-cols-3 mb-6">
+            <div className="rounded-xl border border-zinc-200 bg-primary-50 p-6">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
                 <Layers className="h-5 w-5 text-zinc-600" />
               </div>
@@ -336,7 +336,7 @@ export function FeaturesSection() {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-zinc-200 bg-white p-6">
+            <div className="rounded-xl border border-zinc-200 bg-primary-50 p-6">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
                 <PlusCircle className="h-5 w-5 text-zinc-600" />
               </div>
@@ -354,7 +354,7 @@ export function FeaturesSection() {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-zinc-200 bg-white p-6">
+            <div className="rounded-xl border border-zinc-200 bg-primary-50 p-6">
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100">
                 <TrendingUp className="h-5 w-5 text-zinc-600" />
               </div>
@@ -373,7 +373,7 @@ export function FeaturesSection() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 md:p-8">
+          <div className="rounded-xl border border-zinc-200 bg-primary-50 p-6 md:p-8">
             <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-6">
               Exemplo prático — Pizza Margherita
             </h3>
@@ -384,7 +384,7 @@ export function FeaturesSection() {
               </div>
               <div className="rounded-lg border border-zinc-200 p-4">
                 <p className="text-[11px] uppercase tracking-wider text-zinc-400 mb-1">Variação: Grande</p>
-                <p className="text-2xl font-bold text-emerald-600">+R$ 10,00</p>
+                <p className="text-2xl font-bold text-primary-600">+R$ 10,00</p>
               </div>
               <div className="rounded-lg border border-zinc-200 p-4">
                 <p className="text-[11px] uppercase tracking-wider text-zinc-400 mb-1">Opcionais</p>

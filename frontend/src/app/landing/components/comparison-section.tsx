@@ -23,11 +23,11 @@ export function ComparisonSection() {
     <section
       id="comparacao"
       aria-labelledby="comparison-heading"
-      className="py-12 sm:py-16 bg-white border-t border-zinc-200"
+      className="py-10 sm:py-12 bg-primary-50 border-t border-zinc-200"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-10">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+        <div className="max-w-2xl mb-6">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
             Antes e depois
           </p>
           <h2
@@ -59,15 +59,15 @@ export function ComparisonSection() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-orange-200 bg-orange-50/60 p-6 sm:p-8">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-orange-800 mb-5">
+          <div className="rounded-2xl border border-primary-200 bg-primary-50/60 p-6 sm:p-8">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-primary-800 mb-5">
               Gestão centralizada com o Alba Tec
             </h3>
             <ul className="space-y-4">
               {withSystem.map((item) => (
                 <li key={item} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                    <Check className="h-3 w-3 text-emerald-700" aria-hidden />
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100">
+                    <Check className="h-3 w-3 text-primary-700" aria-hidden />
                   </span>
                   <span className="text-sm text-zinc-700 leading-relaxed font-medium">{item}</span>
                 </li>

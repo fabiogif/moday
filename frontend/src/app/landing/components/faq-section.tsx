@@ -7,10 +7,10 @@ import { LANDING_FAQ_ITEMS } from '@/lib/landing-faq'
 
 const FaqSection = () => {
   return (
-    <section id="faq" className="py-12 sm:py-16 bg-white border-t border-zinc-200">
+    <section id="faq" className="py-10 sm:py-12 bg-primary-50 border-t border-zinc-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-10">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-700 font-medium mb-4">
+        <div className="max-w-2xl mb-6">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-primary-700 font-medium mb-4">
             Perguntas Frequentes
           </p>
           <h2 className="text-3xl font-bold tracking-[-0.02em] sm:text-4xl mb-4 text-zinc-900">
@@ -36,7 +36,7 @@ const FaqSection = () => {
               >
                 <AccordionTrigger className="cursor-pointer items-center gap-4 rounded-none bg-transparent py-2 ps-3 pe-4 hover:no-underline data-[state=open]:border-b data-[state=open]:border-zinc-200">
                   <div className="flex items-center gap-4">
-                    <div className="bg-orange-50 text-orange-700 flex size-9 shrink-0 items-center justify-center rounded-lg">
+                    <div className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-lg">
                       <CircleHelp className="size-4" />
                     </div>
                     <span className="text-start font-semibold text-zinc-900 text-sm">
@@ -54,7 +54,7 @@ const FaqSection = () => {
           <div className="mt-12 text-center">
             <p className="text-zinc-500 mb-4">Ainda tem dúvidas? Estamos aqui para ajudar.</p>
             <Button
-              className="bg-orange-700 text-white hover:bg-orange-800 rounded-md h-10 px-6 text-sm cursor-pointer"
+              className="bg-primary text-white hover:bg-primary-600 rounded-md h-10 px-6 text-sm cursor-pointer"
               asChild
             >
               <a href="#contact">Fale Conosco</a>

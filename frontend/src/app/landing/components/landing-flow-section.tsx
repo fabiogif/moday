@@ -55,9 +55,9 @@ type LandingFlowSectionProps = {
 }
 
 const TONE_CLASSES: Record<'cream' | 'mint' | 'white', string> = {
-  cream: 'bg-orange-50 border-orange-100',
-  mint: 'bg-emerald-50 border-emerald-100',
-  white: 'bg-white border-zinc-200',
+  cream: 'bg-primary-50 border-primary-100',
+  mint: 'bg-primary-100 border-primary-200',
+  white: 'bg-primary-50 border-primary-100',
 }
 
 function FlowFeatureCard({ icon, title, description }: FlowFeature) {
@@ -97,12 +97,12 @@ export function LandingFlowSection({
   return (
     <section
       id={id}
-      className={cn('py-12 sm:py-16 border-t', TONE_CLASSES[tone])}
+      className={cn('py-10 sm:py-12 border-t', TONE_CLASSES[tone])}
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div
           className={cn(
-            'grid items-center gap-8 lg:grid-cols-2 lg:gap-10 xl:gap-8',
+            'grid items-center gap-6 lg:grid-cols-2 lg:gap-6 xl:gap-6',
             reverse && 'lg:[&>*:first-child]:order-2',
           )}
         >
@@ -110,11 +110,11 @@ export function LandingFlowSection({
 
           <div className="flow-reveal-up [animation-delay:150ms]">
             <div className="mb-4 flex flex-wrap items-center gap-2">
-              <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium">
+              <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium">
                 {eyebrow}
               </p>
               {badge ? (
-                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
+                <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-700">
                   {badge}
                 </span>
               ) : null}
@@ -124,13 +124,13 @@ export function LandingFlowSection({
               {title}
             </h2>
 
-            <p className="max-w-lg text-base sm:text-lg leading-relaxed text-zinc-500 text-balance mb-8">
+            <p className="max-w-lg text-base sm:text-lg leading-relaxed text-zinc-500 text-balance mb-6">
               {description}
             </p>
 
             <Button
               size="lg"
-              className="bg-orange-700 text-white hover:bg-orange-800 rounded-md h-11 px-6 text-sm font-medium transition-colors"
+              className="bg-primary text-white hover:bg-primary-600 rounded-md h-11 px-6 text-sm font-medium transition-colors"
               asChild
             >
               <Link href={ctaHref} onClick={() => trackCTA(ctaHref)}>
@@ -141,7 +141,7 @@ export function LandingFlowSection({
           </div>
         </div>
 
-        <div className="mt-10 sm:mt-20 grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+        <div className="mt-8 sm:mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
           {features.map((feature) => (
             <FlowFeatureCard key={feature.title} {...feature} />
           ))}

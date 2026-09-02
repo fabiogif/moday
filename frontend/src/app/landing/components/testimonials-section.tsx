@@ -54,10 +54,10 @@ const useCases: UseCase[] = [
 
 export function TestimonialsSection() {
   return (
-    <section id="testimonials" className="py-14 sm:py-20 bg-emerald-50 border-t border-emerald-100">
+    <section id="testimonials" className="py-10 sm:py-14 bg-primary-100 border-t border-primary-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-10">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-orange-700 font-medium mb-4">
+        <div className="max-w-2xl mb-6">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-primary-700 font-medium mb-4">
             Casos de uso
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-zinc-900 mb-4">
@@ -73,15 +73,15 @@ export function TestimonialsSection() {
           {useCases.map((item) => (
             <article
               key={item.title}
-              className="rounded-xl border border-zinc-200 bg-white p-6 hover:border-zinc-300 transition-colors"
+              className="rounded-xl border border-zinc-200 bg-primary-50 p-6 hover:border-zinc-300 transition-colors"
             >
               <h3 className="font-semibold text-zinc-900 text-base mb-1">{item.title}</h3>
               <p className="text-xs text-zinc-500 mb-3">{item.context}</p>
-              <p className="text-sm font-medium text-orange-700 mb-4">{item.outcome}</p>
+              <p className="text-sm font-medium text-primary-700 mb-4">{item.outcome}</p>
               <ul className="space-y-2">
                 {item.points.map((point) => (
                   <li key={point} className="flex gap-2 text-sm text-zinc-600 leading-relaxed">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" aria-hidden />
+                    <CheckCircle2 className="h-4 w-4 text-primary-600 shrink-0 mt-0.5" aria-hidden />
                     <span>{point}</span>
                   </li>
                 ))}

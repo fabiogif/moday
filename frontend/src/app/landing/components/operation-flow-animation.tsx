@@ -29,14 +29,14 @@ export function OperationFlowAnimation() {
       </GlassCard>
 
       <div className="flow-tilt-float relative z-10 mx-auto mt-14 w-[92%] max-w-md">
-        <GlassCard className="overflow-hidden border-zinc-200 bg-white p-0">
+        <GlassCard className="overflow-hidden border-zinc-200 bg-primary-50 p-0">
           <div className="grid grid-cols-2">
             <div className="flex flex-col justify-between bg-stone-50 p-4 sm:p-5">
               <div>
                 <p className="text-sm font-semibold leading-snug text-zinc-900">
                   Peça pelo cardápio digital do seu restaurante
                 </p>
-                <div className="mt-4 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-xs text-zinc-400">
+                <div className="mt-4 rounded-lg border border-zinc-200 bg-primary-50 px-3 py-2.5 text-xs text-zinc-400">
                   seu@email.com
                 </div>
               </div>
@@ -51,7 +51,7 @@ export function OperationFlowAnimation() {
             <div className="relative min-h-[180px] bg-gradient-to-br from-orange-100 via-orange-50 to-amber-100 p-4">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.8),transparent_55%)]" />
               <div className="relative flex h-full flex-col items-center justify-center text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-md">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 shadow-md">
                   <UtensilsCrossed className="h-7 w-7 text-orange-700" />
                 </div>
                 <p className="mt-3 text-sm font-bold text-zinc-900">Cardápio ao vivo</p>

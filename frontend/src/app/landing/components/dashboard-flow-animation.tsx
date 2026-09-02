@@ -31,7 +31,7 @@ export function DashboardFlowAnimation() {
       </GlassCard>
 
       <div className="flow-tilt-float relative z-10 mx-auto mt-12 w-[92%]">
-        <GlassCard className="overflow-hidden border-zinc-200 bg-white">
+        <GlassCard className="overflow-hidden border-zinc-200 bg-primary-50">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-orange-700" />

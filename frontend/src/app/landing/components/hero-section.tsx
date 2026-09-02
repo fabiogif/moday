@@ -28,15 +28,15 @@ export function HeroSection() {
     <section
       id="inicio"
       aria-label="Apresentação do Alba Tec, sistema de gestão para restaurantes"
-      className="bg-gradient-to-b from-white to-orange-50/70 pt-14 sm:pt-20 pb-10 sm:pb-14 border-b border-gray-200"
+      className="bg-gradient-to-b from-primary-50 to-primary-100 pt-12 sm:pt-16 pb-8 sm:pb-10 border-b border-primary-100"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10 xl:gap-8">
+        <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-6 xl:gap-6">
 
           {/* Left column */}
           <div>
             <div className="flex items-center gap-2.5 mb-6">
-              <span className="w-7 h-px bg-orange-600 flex-shrink-0" />
+              <span className="w-7 h-px bg-primary flex-shrink-0" />
               <p className="text-[11px] uppercase tracking-[0.22em] text-zinc-500 font-medium">
                 Alba Tec · Sistema para Restaurantes
               </p>
@@ -50,11 +50,11 @@ export function HeroSection() {
               {variant.subtitle}
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-8">
+            <div className="flex flex-wrap gap-2 mb-6">
               {['PDV touch-first', 'App mobile de pedidos', 'Cardápio digital', 'Relatórios em tempo real'].map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-orange-50 text-orange-800 border border-orange-200"
+                  className="text-xs font-medium px-2.5 py-1 rounded-md bg-primary-50 text-primary-800 border border-primary-200"
                 >
                   {tag}
                 </span>
@@ -64,7 +64,7 @@ export function HeroSection() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button
                 size="lg"
-                className="bg-orange-700 text-white hover:bg-orange-800 rounded-md h-11 px-7 text-sm font-semibold transition-colors"
+                className="bg-primary text-white hover:bg-primary-600 rounded-md h-11 px-7 text-sm font-semibold transition-colors"
                 asChild
               >
                 <Link href="/auth/register" className="flex items-center gap-2" onClick={() => trackCTA('/auth/register')}>

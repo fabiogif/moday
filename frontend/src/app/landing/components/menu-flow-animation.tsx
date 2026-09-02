@@ -21,12 +21,12 @@ export function MenuFlowAnimation() {
       </GlassCard>
 
       <div className="flow-tilt-float relative z-10 mx-auto mt-14 w-[90%] max-w-sm">
-        <GlassCard className="overflow-hidden border-zinc-200 bg-white p-0">
+        <GlassCard className="overflow-hidden border-zinc-200 bg-primary-50 p-0">
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4">
             <p className="text-sm font-bold text-white">Pizza Margherita</p>
             <p className="text-xs text-orange-50">Escolha tamanho e opcionais</p>
           </div>
-          <div className="space-y-2 bg-white p-4">
+          <div className="space-y-2 bg-primary-50 p-4">
             {['Pequena', 'Média', 'Grande'].map((size, i) => (
               <div
                 key={size}

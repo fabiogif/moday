@@ -26,14 +26,14 @@ export function FloatingCTABar() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-zinc-200 bg-white/95 backdrop-blur-xl p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-zinc-200 bg-primary-50/95 backdrop-blur-xl p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       role="region"
       aria-label="Ação rápida de cadastro"
     >
       <div className="flex items-center gap-3">
         <Button
           size="lg"
-          className="flex-1 bg-orange-700 text-white hover:bg-orange-800 rounded-md"
+          className="flex-1 bg-primary text-white hover:bg-primary-600 rounded-md"
           asChild
         >
           <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>

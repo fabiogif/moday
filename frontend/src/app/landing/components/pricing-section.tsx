@@ -126,7 +126,7 @@ export function PricingSection() {
 
   if (loading) {
     return (
-      <section id="pricing" className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
+      <section id="pricing" className="py-10 sm:py-14 bg-primary-50 border-t border-primary-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-400 mx-auto"></div>
@@ -138,10 +138,10 @@ export function PricingSection() {
   }
 
   return (
-    <section id="pricing" className="py-14 sm:py-20 bg-orange-50 border-t border-orange-100">
+    <section id="pricing" className="py-10 sm:py-14 bg-primary-50 border-t border-primary-100">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center mb-8">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-orange-700 font-medium mb-4">
+        <div className="mx-auto max-w-2xl text-center mb-6">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary-700 font-medium mb-4">
             Planos e Preços
           </p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-5xl mb-4">
@@ -150,7 +150,7 @@ export function PricingSection() {
           <p className="text-lg text-muted-foreground mb-3">
             Escolha o plano ideal para o seu negócio. Comece grátis e escale quando precisar.
           </p>
-          <p className="text-sm font-medium text-emerald-600 mb-8">
+          <p className="text-sm font-medium text-primary-600 mb-6">
             Planos Básico e Premium incluem {TRIAL_DAYS} dias de teste grátis com acesso completo. Sem cartão de crédito.
           </p>
 
@@ -177,12 +177,12 @@ export function PricingSection() {
           </div>
 
           {isYearly ? (
-            <p className="text-sm font-medium text-emerald-600">
+            <p className="text-sm font-medium text-primary-600">
               Economize 20% com o plano anual
             </p>
           ) : (
             <p className="text-sm text-zinc-500">
-              Troque para anual e <span className="text-orange-700 font-semibold">economize 20%</span>
+              Troque para anual e <span className="text-primary-700 font-semibold">economize 20%</span>
             </p>
           )}
         </div>
@@ -199,14 +199,14 @@ export function PricingSection() {
                   className={cn(
                     'relative flex flex-1 min-w-0 flex-col rounded-2xl border p-5 xl:p-6 transition-colors flow-reveal-up',
                     popular
-                      ? 'border-zinc-900 bg-white ring-1 ring-zinc-900 shadow-md'
-                      : 'border-zinc-200 bg-white'
+                      ? 'border-zinc-900 bg-primary-50 ring-1 ring-zinc-900 shadow-md'
+                      : 'border-zinc-200 bg-primary-50'
                   )}
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white border border-zinc-200 px-4 py-1 text-xs font-semibold text-zinc-900 shadow-sm">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 border border-zinc-200 px-4 py-1 text-xs font-semibold text-zinc-900 shadow-sm">
                         <Zap className="h-3 w-3" />
                         Mais popular
                       </span>
@@ -247,7 +247,7 @@ export function PricingSection() {
                       <p className="text-xs mt-1 text-zinc-500">Para sempre, sem cartão</p>
                     )}
                     {!isFree && (
-                      <p className="text-xs font-medium text-emerald-500 mt-1">
+                      <p className="text-xs font-medium text-primary-500 mt-1">
                         {TRIAL_DAYS} dias de teste grátis
                       </p>
                     )}
@@ -258,7 +258,7 @@ export function PricingSection() {
                     className={cn(
                       'w-full cursor-pointer mb-6 rounded-md h-11 text-sm font-semibold transition-colors',
                       popular
-                        ? 'bg-orange-700 text-white hover:bg-orange-800'
+                        ? 'bg-primary text-white hover:bg-primary-600'
                         : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100'
                     )}
                     variant={popular ? 'default' : 'outline'}
@@ -274,7 +274,7 @@ export function PricingSection() {
           </div>
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-6 text-center">
           <p className="text-zinc-500">
             Precisa de recursos personalizados?{' '}
             <a href="#contact" className="text-zinc-900 underline decoration-zinc-300 hover:decoration-zinc-600 transition-colors">

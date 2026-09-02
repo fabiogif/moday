@@ -82,9 +82,9 @@ export function LandingFooter() {
   }
 
   return (
-    <footer className="border-t bg-background" role="contentinfo">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-16">
+    <footer className="border-t border-primary-100 bg-primary-50" role="contentinfo">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="mb-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-bold mb-4">Fique por dentro</h2>
             <p className="text-muted-foreground mb-6">
@@ -109,7 +109,7 @@ export function LandingFooter() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800 transition-colors" disabled={isSubmitting}>
+                <Button type="submit" className="cursor-pointer rounded-md bg-primary text-white hover:bg-primary-600 transition-colors" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

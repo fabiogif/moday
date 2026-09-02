@@ -22,7 +22,7 @@ export function AppMobileFlowAnimation() {
         <p className="mt-1 text-[10px] text-zinc-500">Abrir / fechar pelo celular</p>
       </GlassCard>
 
-      <GlassCard className="hero-float-slow relative z-10 mx-auto mt-10 w-[min(100%,260px)] overflow-hidden border-zinc-200 bg-white shadow-lg">
+      <GlassCard className="hero-float-slow relative z-10 mx-auto mt-10 w-[min(100%,260px)] overflow-hidden border-zinc-200 bg-primary-50 shadow-lg">
         <div className="bg-violet-600 px-4 py-3 text-white">
           <div className="flex items-center gap-2">
             <Smartphone className="h-4 w-4 opacity-90" />

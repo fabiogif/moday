@@ -51,7 +51,7 @@ export function LandingNavbar() {
 
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white/90 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80"
+      className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-primary-50/90 backdrop-blur-xl supports-[backdrop-filter]:bg-primary-50/80"
       role="banner"
     >
       <div className="container mx-auto flex h-24 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -87,7 +87,7 @@ export function LandingNavbar() {
               Login
             </Button>
           </Link>
-          <Button asChild className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800">
+          <Button asChild className="cursor-pointer rounded-md bg-primary text-white hover:bg-primary-600">
             <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
               {TRIAL_CTA_LABEL}
             </Link>
@@ -102,7 +102,7 @@ export function LandingNavbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:w-[400px] [&>button]:hidden">
-            <div className="flex h-full flex-col bg-white">
+            <div className="flex h-full flex-col bg-primary-50">
               <SheetHeader className="space-y-0 border-b p-4 pb-2">
                 <div className="flex items-center gap-2">
                   <AlbaTecLogo variant="full" height={80} adaptive />
@@ -141,7 +141,7 @@ export function LandingNavbar() {
                       Login
                     </Button>
                   </Link>
-                  <Button asChild size="lg" className="cursor-pointer rounded-md bg-orange-700 text-white hover:bg-orange-800">
+                  <Button asChild size="lg" className="cursor-pointer rounded-md bg-primary text-white hover:bg-primary-600">
                     <Link href="/auth/register" onClick={() => trackCTA('/auth/register')}>
                       {TRIAL_CTA_LABEL}
                     </Link>

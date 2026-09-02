@@ -13,29 +13,29 @@ const features = [
 
 export function DemoMenuCTA() {
   return (
-    <section className="py-14 sm:py-20 bg-stone-900 border-t border-stone-800">
+    <section className="py-10 sm:py-14 bg-primary-900 border-t border-primary-800">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="grid items-center gap-6 lg:grid-cols-2 lg:gap-6">
 
           <div className="flow-reveal-up order-2 lg:order-1">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-orange-400 font-medium mb-4">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-primary-300 font-medium mb-4">
               Experimente Agora
             </p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-[-0.02em] text-stone-50 text-balance mb-4">
               Veja o Cardápio em Ação
             </h2>
-            <p className="max-w-lg text-lg leading-relaxed text-stone-400 mb-8">
+            <p className="max-w-lg text-lg leading-relaxed text-stone-400 mb-6">
               Explore nosso cardápio interativo de demonstração e descubra como seus clientes podem
               personalizar pedidos com variações, opcionais e cálculo de preços em tempo real.
             </p>
 
-            <div className="grid gap-3 sm:grid-cols-3 mb-8">
+            <div className="grid gap-3 sm:grid-cols-3 mb-6">
               {features.map((item) => (
                 <div
                   key={item.title}
-                  className="rounded-xl border border-stone-700 bg-stone-800/50 p-4"
+                  className="rounded-xl border border-primary-700 bg-primary-800/50 p-4"
                 >
-                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-stone-700">
+                  <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-primary-700">
                     <item.icon className="h-4 w-4 text-stone-300" />
                   </div>
                   <h3 className="text-sm font-semibold text-stone-100">{item.title}</h3>
@@ -47,7 +47,7 @@ export function DemoMenuCTA() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 size="lg"
-                className="rounded-md bg-orange-500 text-stone-900 hover:bg-orange-400 h-11 px-7 text-sm font-semibold transition-colors"
+                className="rounded-md bg-primary-500 text-stone-900 hover:bg-primary-300 h-11 px-7 text-sm font-semibold transition-colors"
                 asChild
               >
                 <Link href="/demo/menu">
@@ -59,7 +59,7 @@ export function DemoMenuCTA() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-md border-stone-700 bg-transparent text-stone-200 hover:bg-stone-800 hover:text-white h-11 px-6 text-sm transition-colors"
+                className="rounded-md border-primary-700 bg-transparent text-stone-200 hover:bg-primary-800 hover:text-white h-11 px-6 text-sm transition-colors"
                 asChild
               >
                 <Link href="#pricing">Ver Planos e Preços</Link>
