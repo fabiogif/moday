@@ -12,8 +12,9 @@ class PlansTableSeeder extends Seeder
     {
         $plans = [
             [
-                'name' => 'Plano Básico',
-                'price' => 199,
+                'legacy_url' => 'plano-basico',
+                'name' => 'Sabor Start',
+                'price' => 39.90,
                 'description' => 'Até 3 usuários, módulos essenciais',
                 'is_active' => true,
                 'max_users' => 3,
@@ -24,8 +25,9 @@ class PlansTableSeeder extends Seeder
                 'has_reports' => true,
             ],
             [
-                'name' => 'Plano Profissional',
-                'price' => 399,
+                'legacy_url' => 'plano-profissional',
+                'name' => 'Sabor Pro',
+                'price' => 59.90,
                 'description' => 'Até 10 usuários, todos os módulos',
                 'is_active' => true,
                 'max_users' => 10,
@@ -36,8 +38,9 @@ class PlansTableSeeder extends Seeder
                 'has_reports' => true,
             ],
             [
-                'name' => 'Plano Enterprise',
-                'price' => 799,
+                'legacy_url' => 'plano-enterprise',
+                'name' => 'Sabor Chef',
+                'price' => 79.90,
                 'description' => 'Usuários ilimitados, suporte dedicado',
                 'is_active' => true,
                 'max_users' => 999999,
@@ -50,12 +53,18 @@ class PlansTableSeeder extends Seeder
         ];
 
         foreach ($plans as $data) {
+            $legacyUrl = $data['legacy_url'] ?? null;
             $url = Str::slug($data['name']);
+            unset($data['legacy_url']);
 
-            Plan::updateOrCreate(
-                ['url' => $url],
-                array_merge($data, ['url' => $url])
-            );
+            $plan = $legacyUrl ? Plan::where('url', $legacyUrl)->first() : null;
+            $plan ??= Plan::where('url', $url)->first();
+
+            if ($plan) {
+                $plan->update(array_merge($data, ['url' => $url]));
+            } else {
+                Plan::create(array_merge($data, ['url' => $url]));
+            }
         }
     }
 }
