@@ -26,7 +26,7 @@ class TenantRegistrationService
     ) {}
 
     /**
-     * @return array{tenant: Tenant, user: User, plan: Plan, token: string, trial_status: array, email_verified: bool}
+     * @return array{tenant: Tenant, user: User, plan: Plan, token: string, trial_status: array, email_verified: bool, email_verification_sent: bool}
      * @throws \Throwable
      */
     public function register(array $data): array
@@ -69,8 +69,11 @@ class TenantRegistrationService
 
             event(new CompanyRegistered($tenant, $user, $plan));
 
+            $emailVerificationSent = false;
+
             try {
                 $sent = $this->emailVerification->send($user);
+                $emailVerificationSent = $sent['success'];
                 if (!$sent['success']) {
                     Log::error('Falha ao enviar verificação de e-mail no registro', [
                         'user_id' => $user->id,
@@ -91,6 +94,7 @@ class TenantRegistrationService
                 'token' => $token,
                 'trial_status' => $tenant->toTrialStatusArray(),
                 'email_verified' => false,
+                'email_verification_sent' => $emailVerificationSent,
             ];
         } catch (\Throwable $e) {
             DB::rollBack();
