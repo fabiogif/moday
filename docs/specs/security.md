@@ -87,7 +87,11 @@ Guia para quem for fazer teste de penetração/red-team na API (`backend/routes/
 - **Tratamento de erro**: mensagens genéricas via `ApiResponseClass`/`Handler` (`## API`) — manter, nunca vazar `getMessage()` de exceção interna direto na resposta.
 - **Dados sensíveis em URL**: nenhuma rota hoje passa senha/token/API key em query string — manter esse padrão; credencial só em header/body.
 - **Códigos de resposta HTTP**: já padronizados via `ApiResponseClass` (`## API`) — usar o código semântico correto (`401` vs `403` vs `404` vs `429`), nunca `200` com `{"success": false}` para erro de autorização.
-- CORS: único middleware ativo é `GlobalCorsMiddleware` (registrado em `bootstrap/app.php`). `CustomCorsMiddleware` era código morto de uma correção antiga de CORS (não registrado em nenhum lugar) e foi removido — não recriar essa segunda implementação; qualquer ajuste de CORS entra em `GlobalCorsMiddleware`.
+- CORS: único middleware ativo é `GlobalCorsMiddleware` (`bootstrap/app.php`, `prepend`). Isso é deliberado, não descuido — confirmado também no produto irmão (distribtec, mesma origem de código):
+  - `HandleCors` nativo do Laravel está **comentado** em `app/Http/Kernel.php` — dois middlewares CORS ativos ao mesmo tempo causavam headers duplicados/inconsistentes.
+  - `config/cors.php` está **desabilitado de propósito** (`allowed_origins: []`, `supports_credentials: false`).
+  - `public/.htaccess` **não define** headers CORS — um `Access-Control-Allow-Origin: *` hardcoded aqui já causou incidente de produção (conflito com `credentials: include` do frontend); não reintroduzir.
+  - `CustomCorsMiddleware` era código morto de uma correção antiga (não registrado em nenhum lugar) e foi removido — não recriar essa segunda implementação; qualquer ajuste de CORS entra em `GlobalCorsMiddleware`.
 
 ## Frontend
 
