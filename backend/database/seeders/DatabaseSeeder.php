@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             
             // Seeders de usuários
             UsersTableSeeder::class,
+            FabioUserSeeder::class,
             AdminUserSeeder::class,
             
             // Seeders de roles (deprecated)

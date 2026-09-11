@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -79,6 +79,32 @@ export function VerifyEmailForm({
     const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
     return () => clearInterval(t)
   }, [cooldown])
+
+  const autoSendRef = useRef(false)
+  useEffect(() => {
+    if (autoSendRef.current) return
+    if (!user || user.email_verified) return
+    autoSendRef.current = true
+    ;(async () => {
+      setIsResending(true)
+      try {
+        const result = await resendVerificationEmail()
+        toast.success(result.message)
+        setCooldown(60)
+      } catch (error) {
+        const err = error instanceof EmailVerificationError ? error : null
+        if (err?.errorCode === "resend_cooldown") {
+          // Já existe um código enviado recentemente (outra aba/tentativa) — só sincroniza o cooldown, sem erro.
+          if (err.retryAfter) setCooldown(err.retryAfter)
+        } else if (err?.errorCode !== "already_verified") {
+          const message = error instanceof Error ? error.message : "Erro ao enviar código"
+          toast.error(message)
+        }
+      } finally {
+        setIsResending(false)
+      }
+    })()
+  }, [user])
 
   const onSubmit = async (data: VerifyFormData) => {
     setIsLoading(true)

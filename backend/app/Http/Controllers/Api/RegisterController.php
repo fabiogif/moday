@@ -40,6 +40,12 @@ class RegisterController extends Controller
                 'strict'
             );
 
+            $emailVerificationSent = $result['email_verification_sent'] ?? false;
+
+            $message = $emailVerificationSent
+                ? 'Cadastro realizado com sucesso! Confirme seu e-mail para continuar.'
+                : 'Cadastro realizado com sucesso! Não conseguimos enviar o código de confirmação agora — solicite o reenvio na próxima tela.';
+
             return ApiResponseClass::sendResponse([
                 'user' => [
                     'id' => $user->id,
@@ -60,7 +66,8 @@ class RegisterController extends Controller
                 'trial_status' => $result['trial_status'],
                 'email_verified' => false,
                 'requires_email_verification' => true,
-            ], 'Cadastro realizado com sucesso! Confirme seu e-mail para continuar.', 201)->withCookie($cookie);
+                'email_verification_sent' => $emailVerificationSent,
+            ], $message, 201)->withCookie($cookie);
         } catch (\Exception $e) {
             return ApiResponseClass::rollback($e, 'Erro ao realizar cadastro. Por favor, tente novamente.');
         }
