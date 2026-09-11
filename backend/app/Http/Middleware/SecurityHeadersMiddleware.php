@@ -20,9 +20,15 @@ class SecurityHeadersMiddleware
 
         // X-Content-Type-Options: Previne MIME type sniffing
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        
+
         // X-Frame-Options: Previne clickjacking
         $response->headers->set('X-Frame-Options', 'DENY');
+
+        // Content-Security-Policy: resposta de API não deve ser enquadrada em nenhum domínio
+        $response->headers->set('Content-Security-Policy', "frame-ancestors 'none'");
+
+        // Cache-Control: respostas de API contêm dado de tenant/usuário, nunca devem ser cacheadas
+        $response->headers->set('Cache-Control', 'no-store');
         
         // X-XSS-Protection: Habilita proteção XSS do navegador (legacy, mas ainda útil)
         $response->headers->set('X-XSS-Protection', '1; mode=block');
