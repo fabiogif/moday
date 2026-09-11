@@ -257,7 +257,7 @@ class PublicOrderService
                     $this->orderEmailService->sendOrderCompletedEmail($order);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::warning('PublicOrderService: falha ao enviar e-mail de confirmação', [
                 'sale_order_id' => $saleOrder->id,
                 'error' => $e->getMessage(),
@@ -310,7 +310,7 @@ class PublicOrderService
     {
         try {
             \App\Events\SaleOrderCreated::dispatch($order);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::warning('PublicOrderService: falha ao broadcast SaleOrderCreated', [
                 'sale_order_id' => $order->id,
                 'error'         => $e->getMessage(),
