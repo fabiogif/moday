@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { buildApiUrl } from '@/lib/api-config'
-
-const AUTO_COLLAPSE_MS = 4500
 
 interface StoreHourSlot {
   start: string
@@ -38,8 +36,7 @@ function formatSlots(hours: StoreHourSlot[], separator = ' e ') {
 export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps) {
   const [hoursData, setHoursData] = useState<StoreHoursData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState(true)
-  const userToggledRef = useRef(false)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     const fetchStoreHours = async () => {
@@ -72,18 +69,6 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
     return () => clearInterval(interval)
   }, [slug])
 
-  useEffect(() => {
-    if (!hoursData) return
-
-    const timeoutId = window.setTimeout(() => {
-      if (!userToggledRef.current) {
-        setExpanded(false)
-      }
-    }, AUTO_COLLAPSE_MS)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [hoursData])
-
   if (loading || !hoursData) {
     return null
   }
@@ -97,7 +82,6 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
 
   const toggleExpanded = () => {
     if (!canExpand) return
-    userToggledRef.current = true
     setExpanded((current) => !current)
   }
 

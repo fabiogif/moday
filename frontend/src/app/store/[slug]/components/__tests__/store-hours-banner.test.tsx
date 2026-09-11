@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { StoreHoursBanner } from '../store-hours-banner'
 
 jest.mock('@/lib/api-config', () => ({
@@ -45,68 +45,41 @@ const closedWithoutHoursPayload = {
 
 describe('StoreHoursBanner', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
     global.fetch = jest.fn()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
     jest.restoreAllMocks()
   })
 
-  it('mostra o status fechado e recolhe os horários depois de alguns segundos', async () => {
+  it('inicia oculto ao carregar e expande ao clicar no status', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       json: async () => closedPayload,
     })
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🔴 Loja fechada no momento')).toBeInTheDocument()
-    expect(screen.getByText(/Nossos horários de funcionamento/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /loja fechada no momento/i })).toHaveAttribute('aria-expanded', 'true')
+    expect(await screen.findByText('🔴 Restaurante fechado no momento')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /restaurante fechado no momento/i })).toHaveAttribute('aria-expanded', 'false')
 
-    act(() => {
-      jest.advanceTimersByTime(4500)
-    })
+    fireEvent.click(screen.getByRole('button', { name: /restaurante fechado no momento/i }))
 
-    expect(screen.getByRole('button', { name: /loja fechada no momento/i })).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.getByText('🔴 Loja fechada no momento')).toBeInTheDocument()
-  })
-
-  it('expande os horários ao clicar no status quando eles foram informados', async () => {
-    ;(global.fetch as jest.Mock).mockResolvedValue({
-      json: async () => closedPayload,
-    })
-
-    render(<StoreHoursBanner slug="loja-teste" />)
-    await screen.findByText('🔴 Loja fechada no momento')
-
-    act(() => {
-      jest.advanceTimersByTime(4500)
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /loja fechada no momento/i }))
-
-    expect(screen.getByRole('button', { name: /loja fechada no momento/i })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /restaurante fechado no momento/i })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/Nossos horários de funcionamento/i)).toBeInTheDocument()
   })
 
-  it('mostra Loja aberta e permite expandir os horários do dia', async () => {
+  it('mostra Restaurante aberto e permite expandir os horários do dia', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       json: async () => openPayload,
     })
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🟢 Loja aberta')).toBeInTheDocument()
-    expect(screen.getByText(/Horários de hoje/i)).toBeInTheDocument()
+    expect(await screen.findByText('🟢 Restaurante aberto')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /restaurante aberto/i })).toHaveAttribute('aria-expanded', 'false')
 
-    act(() => {
-      jest.advanceTimersByTime(4500)
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /loja aberta/i }))
-    expect(screen.getByRole('button', { name: /loja aberta/i })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: /restaurante aberto/i }))
+    expect(screen.getByRole('button', { name: /restaurante aberto/i })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/Horários de hoje/i)).toBeInTheDocument()
   })
 
@@ -117,7 +90,7 @@ describe('StoreHoursBanner', () => {
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🔴 Loja fechada no momento')).toBeInTheDocument()
+    expect(await screen.findByText('🔴 Restaurante fechado no momento')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /ver horários/i })).not.toBeInTheDocument()
   })
 })
