@@ -266,6 +266,10 @@ export function useAuthenticatedServiceTypes() {
   return useAuthenticatedApi(endpoints.serviceTypes.list, { immediate: true })
 }
 
+export function useAuthenticatedActiveOrderStatuses() {
+  return useAuthenticatedApi(endpoints.orderStatuses.list(true), { ttl: 60_000 })
+}
+
 export function useAuthenticatedActiveServiceTypes() {
   return useAuthenticatedApi(endpoints.serviceTypes.active, { ttl: 60_000 })
 }
