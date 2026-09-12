@@ -27,6 +27,7 @@ class PublicProductResource extends JsonResource
             'variations' => $this->resource['variations'] ?? [],
             'optionals' => $this->resource['optionals'] ?? [],
             'categories' => $this->resource['categories'] ?? [],
+            'sold_qty' => (int) ($this->resource['sold_qty'] ?? 0),
         ];
     }
 }
