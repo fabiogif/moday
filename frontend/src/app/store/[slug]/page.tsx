@@ -1195,7 +1195,7 @@ export default function PublicStorePage() {
 
   const showMobileSummaryButton = cart.length > 0 && currentStep === 0 && !orderSuccess && !mobileSummaryOpen && !isStoreOpen
 
-  const renderSummaryContent = (variant: 'cart' | 'checkout' | 'review', hideActions = false) => {
+  const renderSummaryContent = (variant: 'cart' | 'checkout' | 'review', hideActions = false, idPrefix = 'summary') => {
     if (cart.length === 0) {
       return (
         <div className="min-w-0 space-y-3 break-words text-sm text-muted-foreground">
@@ -1286,9 +1286,9 @@ export default function PublicStorePage() {
           <div className="space-y-2.5 sm:space-y-3">
             <div className="min-w-0 rounded-xl border bg-card/90 p-4 shadow-sm">
               <div className={storeFormFieldClass}>
-                <Label htmlFor="order-notes" className={storeFormLabelClass}>Alguma observação no pedido?</Label>
+                <Label htmlFor={`${idPrefix}-order-notes`} className={storeFormLabelClass}>Alguma observação no pedido?</Label>
                 <Textarea
-                  id="order-notes"
+                  id={`${idPrefix}-order-notes`}
                   value={deliveryData.notes}
                   onChange={(e) => setDeliveryData((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder="Ex.: sem cebola, ponto da carne, retirar ingredientes..."
@@ -1298,10 +1298,10 @@ export default function PublicStorePage() {
             </div>
             <div className="min-w-0 rounded-xl border bg-card/90 p-4 shadow-sm">
               <div className={storeFormFieldClass}>
-                <Label htmlFor="coupon-code" className={storeFormLabelClass}>Tem cupom de desconto?</Label>
+                <Label htmlFor={`${idPrefix}-coupon-code`} className={storeFormLabelClass}>Tem cupom de desconto?</Label>
                 <div className="flex min-w-0 items-center gap-2">
                   <Input
-                    id="coupon-code"
+                    id={`${idPrefix}-coupon-code`}
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="Digite o código"
@@ -1836,7 +1836,7 @@ export default function PublicStorePage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
-                        {renderSummaryContent('cart')}
+                        {renderSummaryContent('cart', false, 'aside')}
                       </CardContent>
                     </Card>
                   </aside>
@@ -2277,7 +2277,7 @@ export default function PublicStorePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
-                    {renderSummaryContent(currentStep === 4 ? 'review' : 'checkout', true)}
+                    {renderSummaryContent(currentStep === 4 ? 'review' : 'checkout', true, 'checkout-aside')}
                     {currentStep === 4 && (
                       <Button type="button" onClick={handleCheckout} disabled={submitting} className="w-full h-11 sm:h-12">
                         {getSubmitLabel(submitting)}
@@ -2680,12 +2680,12 @@ export default function PublicStorePage() {
       )}
 
       <Sheet open={mobileSummaryOpen} onOpenChange={setMobileSummaryOpen}>
-        <SheetContent side="bottom" className="z-[70] w-full max-h-[85vh] overflow-x-hidden overflow-y-auto px-4 py-4 pb-6 sm:mx-auto sm:max-w-lg sm:px-6 sm:py-6 sm:pb-8">
+        <SheetContent side="bottom" className="z-[70] w-full max-h-[85dvh] overflow-x-hidden overflow-y-auto px-4 py-4 pb-6 sm:mx-auto sm:max-w-lg sm:px-6 sm:py-6 sm:pb-8">
           <SheetHeader>
             <SheetTitle>Seu pedido</SheetTitle>
           </SheetHeader>
           <div className="mt-4 min-w-0 space-y-4 overflow-hidden pb-2 break-words">
-            {renderSummaryContent(currentStep === 0 ? 'cart' : currentStep === 4 ? 'review' : 'checkout', currentStep >= 1)}
+            {renderSummaryContent(currentStep === 0 ? 'cart' : currentStep === 4 ? 'review' : 'checkout', currentStep >= 1, 'sheet')}
           </div>
         </SheetContent>
       </Sheet>
