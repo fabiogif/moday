@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"
-import { Search, Loader2, X, Edit, Utensils } from "lucide-react"
+import { Search, Loader2, X, Edit, Utensils, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,10 +52,22 @@ type Table = {
   orderCount?: number
 }
 
+type Product = {
+  uuid?: string
+  identify?: string
+  name: string
+  [key: string]: any
+}
+
 interface CombinedSearchProps {
   onOrderSelect: (orderId: string) => void
   onTableSelect?: (table: Table) => void
   tables: Table[]
+  /** Quando informado, a busca também sugere produtos do catálogo para adicionar ao pedido. */
+  products?: Product[]
+  onProductSelect?: (product: Product) => void
+  /** Espelha o texto digitado — usado para filtrar a grade de produtos em tempo real. */
+  onSearchChange?: (query: string) => void
   placeholder?: string
   className?: string
 }
@@ -64,7 +76,10 @@ export function CombinedSearch({
   onOrderSelect,
   onTableSelect,
   tables,
-  placeholder = "Buscar pedido ou mesa... (Ctrl+F)",
+  products = [],
+  onProductSelect,
+  onSearchChange,
+  placeholder = "Buscar pedido, mesa ou produto... (Ctrl+F)",
   className,
 }: CombinedSearchProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -87,6 +102,22 @@ export function CombinedSearch({
       return name.includes(query) || identify.includes(query) || uuid.includes(query)
     })
   }, [tables, searchQuery])
+
+  // Filtrar produtos baseado na busca
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery || searchQuery.length < 1) {
+      return []
+    }
+
+    const query = searchQuery.toLowerCase().trim()
+    return products.filter((product) => {
+      const name = product.name?.toLowerCase() || ""
+      const identify = product.identify?.toLowerCase() || ""
+      const uuid = product.uuid?.toLowerCase() || ""
+      const description = product.description?.toLowerCase() || ""
+      return name.includes(query) || identify.includes(query) || uuid.includes(query) || description.includes(query)
+    }).slice(0, 8)
+  }, [products, searchQuery])
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -151,6 +182,7 @@ export function CombinedSearch({
     setSearchQuery("")
     setOrderResults([])
     setTableResults([])
+    onSearchChange?.("")
   }
 
   const handleOrderClick = (order: Order) => {
@@ -168,7 +200,12 @@ export function CombinedSearch({
     handleClear()
   }
 
-  const hasResults = orderResults.length > 0 || tableResults.length > 0
+  const handleProductClick = (product: Product) => {
+    onProductSelect?.(product)
+    handleClear()
+  }
+
+  const hasResults = orderResults.length > 0 || tableResults.length > 0 || filteredProducts.length > 0
   const showResults = hasResults && searchQuery.length >= 1
 
   return (
@@ -182,6 +219,7 @@ export function CombinedSearch({
           const value = e.target.value
           setSearchQuery(value)
           handleSearch(value)
+          onSearchChange?.(value)
         }}
         className="h-9 pl-10 pr-10 text-sm"
         data-combined-search-input
@@ -274,10 +312,35 @@ export function CombinedSearch({
             </div>
           )}
 
+          {/* Resultados de Produtos */}
+          {filteredProducts.length > 0 && (
+            <div className="p-2">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 px-2">Produtos</p>
+              {filteredProducts.map((product: Product) => {
+                const productId = product.identify || product.uuid || product.name
+                return (
+                  <button
+                    key={productId}
+                    onClick={() => handleProductClick(product)}
+                    className="flex w-full items-center justify-between gap-3 border-b p-3 text-left hover:bg-muted/50 last:border-0 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-semibold">{product.name}</p>
+                      {product.identify && (
+                        <p className="text-xs text-muted-foreground">Código: {product.identify}</p>
+                      )}
+                    </div>
+                    <Plus className="h-4 w-4 text-primary" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {/* Mensagem quando não há resultados */}
-          {searchQuery.length >= 2 && orderResults.length === 0 && tableResults.length === 0 && !isLoading && (
+          {searchQuery.length >= 2 && orderResults.length === 0 && tableResults.length === 0 && filteredProducts.length === 0 && !isLoading && (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              Nenhum pedido ou mesa encontrado
+              Nenhum pedido, mesa ou produto encontrado
             </div>
           )}
         </div>

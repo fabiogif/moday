@@ -61,9 +61,9 @@ export function ProductCard({
         className
       )}
     >
-      {/* Foto reduzida */}
-      <div className="relative w-full h-32 overflow-hidden bg-muted">
-        {productImage ? (
+      {/* Foto — produtos sem imagem usam um card mais baixo, sem bloco de imagem cheio */}
+      {productImage ? (
+        <div className="relative w-full h-24 overflow-hidden bg-muted">
           <Image
             src={productImage}
             alt={product.name}
@@ -73,28 +73,38 @@ export function ProductCard({
             loading="lazy"
             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-            <NotebookPen className="h-6 w-6" />
+          {hasPromo && (
+            <Badge
+              variant="destructive"
+              className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 font-bold bg-red-500"
+            >
+              PROMO
+            </Badge>
+          )}
+        </div>
+      ) : (
+        hasPromo && (
+          <div className="flex justify-end p-1.5 pb-0">
+            <Badge
+              variant="destructive"
+              className="text-[10px] px-1.5 py-0.5 font-bold bg-red-500"
+            >
+              PROMO
+            </Badge>
           </div>
-        )}
-        {hasPromo && (
-          <Badge
-            variant="destructive"
-            className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 font-bold bg-red-500"
-          >
-            PROMO
-          </Badge>
-        )}
-      </div>
-      
+        )
+      )}
+
       {/* Conteúdo */}
-      <div className="flex flex-1 flex-col gap-1.5 p-2.5">
+      <div className="flex flex-1 flex-col gap-1 p-2">
+        {!productImage && (
+          <NotebookPen className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+        )}
         {/* Nome com tipografia reduzida */}
         <p className="text-sm font-semibold leading-tight line-clamp-2">
           {product.name}
         </p>
-        
+
         {/* Preço destacado */}
         <div className="flex items-center gap-1.5">
           {hasPromo && (
@@ -102,11 +112,11 @@ export function ProductCard({
               {formatCurrency(parsePrice(product.price || 0))}
             </p>
           )}
-          <p className="text-lg font-bold text-primary">
+          <p className="text-base font-bold text-primary">
             {formatCurrency(displayPrice)}
           </p>
         </div>
-        
+
         {/* Ícone de observação integrado */}
         <div
           onClick={(e) => {
@@ -122,7 +132,7 @@ export function ProductCard({
           }}
           role="button"
           tabIndex={0}
-          className="text-[10px] text-gray-600 hover:text-primary flex items-center gap-1 mt-0.5 self-start cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+          className="text-[10px] text-gray-600 hover:text-primary flex items-center gap-1 self-start cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
         >
           <NotebookPen className="w-3 h-3" />
           <span>Observação</span>

@@ -57,11 +57,11 @@ describe('PDV - Melhorias Implementadas', () => {
     })
   })
 
-  it('renderiza busca de produtos', async () => {
+  it('renderiza busca unificada de pedido, mesa e produto', async () => {
     render(<POSPage />)
 
     expect(
-      await screen.findByPlaceholderText(/buscar produtos por nome ou código/i)
+      await screen.findByPlaceholderText(/buscar pedido, mesa ou produto/i)
     ).toBeInTheDocument()
   })
 

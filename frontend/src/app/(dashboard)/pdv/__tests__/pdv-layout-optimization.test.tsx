@@ -54,7 +54,8 @@ describe('PDV - Layout e Viewport', () => {
     expect(container.querySelector('#categories-section')).toBeInTheDocument()
     expect(container.querySelector('#products-section')).toBeInTheDocument()
     expect(container.querySelector('#order-summary')).toBeInTheDocument()
-    expect(container.querySelector('#search-section')).toBeInTheDocument()
+    // Busca unificada (pedido/mesa/produto) vive no cabeçalho, não em uma seção própria do catálogo.
+    expect(container.querySelector('[data-combined-search-input]')).toBeInTheDocument()
   })
 
   it('renderiza grids touch de categorias e produtos', async () => {

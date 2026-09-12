@@ -62,7 +62,7 @@ export function ProductGrid({
         ) : (
           <div className="flex-1 min-h-0 overflow-auto">
             <div
-              className="grid grid-cols-2 gap-1.5 pb-2 sm:grid-cols-3 sm:gap-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-1.5 pb-2 sm:gap-2"
               data-testid="touch-grid-products"
             >
               {products.map((product) => {

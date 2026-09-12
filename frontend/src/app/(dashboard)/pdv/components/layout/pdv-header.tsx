@@ -35,6 +35,13 @@ type Order = {
   status?: string | null
 }
 
+type Product = {
+  uuid?: string
+  identify?: string
+  name: string
+  [key: string]: any
+}
+
 interface PDVHeaderProps {
   // Operador
   operatorName?: string
@@ -44,6 +51,9 @@ interface PDVHeaderProps {
   tables: Table[]
   onTableSelect?: (table: Table) => void
   isDelivery: boolean
+  products?: Product[]
+  onProductSelect?: (product: Product) => void
+  onProductSearchChange?: (query: string) => void
 
   // Ações
   onNewOrder: () => void
@@ -76,6 +86,9 @@ export function PDVHeader({
   tables,
   onTableSelect,
   isDelivery,
+  products,
+  onProductSelect,
+  onProductSearchChange,
   onNewOrder,
   onFeedback,
   cartItemCount,
@@ -182,7 +195,10 @@ export function PDVHeader({
               onOrderSelect={onOrderSelect}
               onTableSelect={onTableSelect}
               tables={tables}
-              placeholder="Buscar produto ou mesa..."
+              products={products}
+              onProductSelect={onProductSelect}
+              onSearchChange={onProductSearchChange}
+              placeholder="Buscar pedido, mesa ou produto..."
             />
           ) : (
             <>

@@ -113,19 +113,19 @@ export function OrderActions({
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         {actions.map(({ key, icon: Icon, label, onClick }) => (
           <Button
             key={key}
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={onClick}
             disabled={disabled}
-            className="h-10 flex-col gap-0.5 px-1 text-[10px] font-medium"
+            className="h-9 w-9 shrink-0"
             title={label}
+            aria-label={label}
           >
-            <Icon className="h-3.5 w-3.5 shrink-0" />
-            <span className="leading-none">{label}</span>
+            <Icon className="h-4 w-4" />
           </Button>
         ))}
       </div>

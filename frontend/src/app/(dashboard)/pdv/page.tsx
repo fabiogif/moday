@@ -127,8 +127,7 @@ import { SplitPaymentForm, type SplitPaymentItem } from "./components/payment/sp
 import type { PaymentMethod as PaymentMethodType } from "./components/payment/payment-method-card"
 import { ProductGrid } from "./components/catalog/product-grid"
 import { ProductFilters } from "./components/catalog/product-filters"
-import { ProductSearch } from "./components/catalog/product-search"
-import { 
+import {
   isFinalStatus,
   canEditOrder,
   canAdvanceStatus,
@@ -807,7 +806,7 @@ export default function POSPage() {
   const [showCart, setShowCart] = useState(true)
   const [showDashboard, setShowDashboard] = useState(false)
   const [showTodayOrdersSheet, setShowTodayOrdersSheet] = useState(false)
-  const [showClientSection, setShowClientSection] = useState(true)
+  const [showClientSection, setShowClientSection] = useState(false)
   const [productSearchQuery, setProductSearchQuery] = useState("")
   const [showPaymentMethods, setShowPaymentMethods] = useState(true)
   const [showChangeDialog, setShowChangeDialog] = useState(false)
@@ -1718,6 +1717,7 @@ const handleClientChange = (value: string) => {
           setSelectedClientId(String(clientId || ""))
           setCustomerName(order.client.name || "")
           setCustomerPhone(order.client.phone || "")
+          setShowClientSection(true)
         }
         
         // Configurar método de pagamento se houver
@@ -2590,6 +2590,9 @@ const handleClientChange = (value: string) => {
           }
         }}
         isDelivery={isDelivery}
+        products={products as any}
+        onProductSelect={(product: any) => startProductSelection(product)}
+        onProductSearchChange={(query) => setProductSearchQuery(query)}
         onNewOrder={handleNewOrder}
         onFeedback={() => setShowFeedbackDialog(true)}
         cartItemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
@@ -2646,17 +2649,6 @@ const handleClientChange = (value: string) => {
         mobileActiveView={mobileView}
         leftColumn={
           <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-          {/* Busca de Produtos */}
-          <div id="search-section" className="flex-shrink-0">
-            <ProductSearch
-              products={products as any}
-              onProductSelect={(product: any) => startProductSelection(product)}
-              onSearchChange={(query) => setProductSearchQuery(query)}
-              placeholder="Buscar produtos por nome ou código..."
-              showRecentSearches={true}
-            />
-          </div>
-
           {/* Categorias */}
           <div id="categories-section" className="flex-shrink-0">
             <ProductFilters
