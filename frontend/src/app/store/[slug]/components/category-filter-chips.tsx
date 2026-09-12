@@ -13,7 +13,7 @@ interface CategoryFilterChipsProps {
 
 function chipClass(active: boolean) {
   return cn(
-    "shrink-0 max-w-[11rem] truncate rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+    "shrink-0 max-w-[14rem] truncate rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
     active
       ? "bg-primary text-primary-foreground shadow-sm"
       : "bg-muted text-muted-foreground hover:bg-muted/80",

@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState, useCallback, useRef, type MouseEvent } from "react"
-import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info } from "lucide-react"
 import { OrderStepper } from "@/components/order-stepper"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1385,9 +1385,6 @@ export default function PublicStorePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Store Hours Banner */}
-      <StoreHoursBanner slug={slug} onStatusChange={setIsStoreOpen} />
-      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur shadow-md">
         <div className="border-b">
@@ -1485,8 +1482,11 @@ export default function PublicStorePage() {
                 </div>
               )}
 
-              <div>
-                <h1 className="text-lg font-semibold sm:text-xl">{storeInfo.name}</h1>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-lg font-semibold sm:text-xl">{storeInfo.name}</h1>
+                  <StoreHoursBanner slug={slug} onStatusChange={setIsStoreOpen} className="shrink-0" />
+                </div>
                 {locationText && (
                   <p className="hidden text-xs text-muted-foreground sm:block">{locationText}</p>
                 )}
@@ -1539,6 +1539,7 @@ export default function PublicStorePage() {
                 steps={wizardSteps}
                 onStepClick={goToStep}
                 completedSteps={completedSteps}
+                compact={currentStep === 0 || cartCount === 0}
               />
             </div>
           </div>
@@ -1581,75 +1582,72 @@ export default function PublicStorePage() {
                           return (
                             <article
                               key={product.uuid}
-                              className="group flex gap-3 rounded-2xl border border-border/70 bg-card p-3 text-left transition hover:border-primary/40 hover:shadow-md w-full"
+                              className="group flex items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-2.5 text-left transition hover:border-primary/40 hover:shadow-md w-full"
                             >
                               <button
                                 type="button"
                                 onClick={() => openProductDetail(product)}
-                                className="flex min-w-0 flex-1 gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+                                className="flex min-w-0 flex-1 items-center gap-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
                                 aria-label={`Ver detalhes de ${product.name}`}
                               >
                               {/* Image */}
-                              <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-muted md:h-28 md:w-28">
+                              <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-16 sm:w-16">
                                 {product.image ? (
                                   <Image
                                     src={resolveImageUrl(product.image) || ""}
                                     alt={product.name}
                                     fill
                                     className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
-                                    sizes="112px"
+                                    sizes="64px"
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center">
-                                    <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                    <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
                                   </div>
                                 )}
                                 {hasDiscount && (
-                                  <Badge className="absolute left-1 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                  <Badge className="absolute left-0.5 top-0.5 rounded-full bg-red-500 px-1 py-0 text-[9px] font-bold text-white">
                                     -{Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)}%
                                   </Badge>
                                 )}
                               </div>
 
                               {/* Content */}
-                              <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
-                                <div className="space-y-0.5">
-                                  <p className="font-semibold text-sm leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                              <div className="flex flex-1 flex-col justify-center min-w-0 gap-1">
+                                <div className="flex min-w-0 items-center gap-1">
+                                  <p className="min-w-0 flex-1 truncate font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
                                     {product.name}
                                   </p>
                                   {product.description && (
-                                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                      {product.description}
-                                    </p>
-                                  )}
-                                  {hasCustomization && (
-                                    <p className="text-[10px] text-primary/70 font-medium">Personalizável · toque para ver</p>
-                                  )}
-                                  {!hasCustomization && product.description && (
-                                    <p className="text-[10px] text-muted-foreground/80 font-medium">Toque para ver descrição</p>
+                                    <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
                                   )}
                                 </div>
 
-                                <div className="mt-2">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                   {hasDiscount && (
-                                    <p className="text-[10px] text-muted-foreground line-through leading-none">
+                                    <span className="text-[10px] text-muted-foreground line-through">
                                       R$ {formatPrice(product.price)}
-                                    </p>
+                                    </span>
                                   )}
-                                  <p className="text-base font-bold text-primary leading-tight">
+                                  <span className="text-sm font-bold text-primary leading-tight">
                                     R$ {formatPrice(price)}
-                                  </p>
+                                  </span>
+                                  {hasCustomization && (
+                                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
+                                      Personalizável
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               </button>
 
-                              <div className="flex shrink-0 items-end pb-0.5">
+                              <div className="flex shrink-0 items-center">
                                 <button
                                   type="button"
                                   disabled={product.qtd_stock === 0}
                                   onClick={(e) => handleAddProduct(product, e)}
                                   aria-label={product.qtd_stock === 0 ? 'Produto esgotado' : `Adicionar ${product.name} ao carrinho`}
-                                  className={`flex h-12 w-12 items-center justify-center rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${
+                                  className={`flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${
                                     product.qtd_stock === 0
                                       ? 'bg-muted text-muted-foreground'
                                       : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
@@ -1658,7 +1656,7 @@ export default function PublicStorePage() {
                                   {product.qtd_stock === 0 ? (
                                     <X className="h-5 w-5" />
                                   ) : (
-                                    <Plus className="h-6 w-6" strokeWidth={2.5} />
+                                    <Plus className="h-5 w-5" strokeWidth={2.5} />
                                   )}
                                 </button>
                               </div>
@@ -1702,28 +1700,42 @@ export default function PublicStorePage() {
                   )}
                 </div>
 
-                <aside
-                  className="hidden w-full shrink-0 lg:block lg:w-[22rem] xl:w-96"
-                  id="order-summary"
-                >
-                  <Card className="sticky top-32 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
-                    <CardHeader className="min-w-0 space-y-1 pb-0">
-                      <CardTitle className="flex items-center justify-between gap-3 text-xl">
-                        <span className="min-w-0 truncate">Seu pedido</span>
-                        <Badge variant="outline" className="shrink-0 rounded-full text-xs">
-                          {cartCount} {cartCount === 1 ? 'item' : 'itens'}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription className="text-sm break-words">
-                        Revise os itens selecionados antes de prosseguir.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
-                      {renderSummaryContent('cart')}
-                    </CardContent>
-                  </Card>
-                </aside>
+                {cartCount > 0 && (
+                  <aside
+                    className="hidden w-full shrink-0 lg:block lg:w-[22rem] xl:w-96"
+                    id="order-summary"
+                  >
+                    <Card className="sticky top-32 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
+                      <CardHeader className="min-w-0 space-y-1 pb-0">
+                        <CardTitle className="flex items-center justify-between gap-3 text-xl">
+                          <span className="min-w-0 truncate">Seu pedido</span>
+                          <Badge variant="outline" className="shrink-0 rounded-full text-xs">
+                            {cartCount} {cartCount === 1 ? 'item' : 'itens'}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription className="text-sm break-words">
+                          Revise os itens selecionados antes de prosseguir.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
+                        {renderSummaryContent('cart')}
+                      </CardContent>
+                    </Card>
+                  </aside>
+                )}
               </div>
+
+              {cartCount === 0 && (
+                <div className="fixed bottom-6 right-6 z-40 hidden lg:block">
+                  <div
+                    id="order-summary"
+                    className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-lg"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Carrinho (0 itens)
+                  </div>
+                </div>
+              )}
             </section>
           )}
         </div>
@@ -2792,7 +2804,7 @@ export default function PublicStorePage() {
       <ReviewsSection tenantSlug={slug} />
 
       {/* Footer */}
-      <SiteFooter />
+      <SiteFooter variant="compact" />
     </div>
   )
 }

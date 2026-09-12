@@ -1,7 +1,25 @@
 import { Clock, Users, BarChart3 } from "lucide-react"
 import { AlbaTecLogo, PANEL_BRAND_ICON_SIZE } from "@/components/albatec-logo"
 
-export function SiteFooter() {
+interface SiteFooterProps {
+  /** "compact" reduz a marca a uma linha discreta — usar em telas públicas do cliente (cardápio, rastreio). */
+  variant?: "full" | "compact"
+}
+
+export function SiteFooter({ variant = "full" }: SiteFooterProps) {
+  if (variant === "compact") {
+    return (
+      <footer className="border-t bg-muted/20">
+        <div className="px-4 py-3 text-center">
+          <div className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/70">
+            <AlbaTecLogo variant="icon" width={14} height={14} className="shrink-0 opacity-70" />
+            <span>Sistema de Gestão de Restaurante</span>
+          </div>
+        </div>
+      </footer>
+    )
+  }
+
   return (
     <footer className="border-t bg-background">
       <div className="px-4 py-6 lg:px-6">

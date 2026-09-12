@@ -13,6 +13,8 @@ interface OrderStepperProps {
   steps: Step[]
   onStepClick?: (step: number) => void
   completedSteps?: Set<number>
+  /** Oculta o label dos passos não ativos em telas pequenas, mostrando só o ícone. */
+  compact?: boolean
 }
 
 export function OrderStepper({
@@ -20,6 +22,7 @@ export function OrderStepper({
   steps,
   onStepClick,
   completedSteps = new Set(),
+  compact = false,
 }: OrderStepperProps) {
   return (
     <div className="flex w-full min-w-0 items-center justify-center gap-1 overflow-x-hidden sm:gap-2">
@@ -46,6 +49,7 @@ export function OrderStepper({
               <div
                 className={cn(
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-medium transition-colors sm:h-9 sm:w-9",
+                  compact && "h-7 w-7 sm:h-8 sm:w-8",
                   isCurrent && "bg-primary text-primary-foreground",
                   isCompleted && !isCurrent && "bg-green-600 text-white",
                   !isCurrent && !isCompleted && "bg-muted text-muted-foreground"
@@ -60,6 +64,7 @@ export function OrderStepper({
               <span
                 className={cn(
                   "max-w-[4.5rem] text-center text-[10px] leading-tight font-medium break-words sm:max-w-[7rem] sm:text-left sm:text-xs md:max-w-none md:text-sm",
+                  compact && !isCurrent && "sr-only sm:not-sr-only",
                   isCurrent && "text-foreground",
                   !isCurrent && "text-muted-foreground"
                 )}

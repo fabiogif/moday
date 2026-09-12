@@ -52,45 +52,46 @@ describe('StoreHoursBanner', () => {
     jest.restoreAllMocks()
   })
 
-  it('inicia oculto ao carregar e expande ao clicar no status', async () => {
+  it('mostra o badge Fechado e expande os horários ao clicar', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       json: async () => closedPayload,
     })
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🔴 Restaurante fechado no momento')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /restaurante fechado no momento/i })).toHaveAttribute('aria-expanded', 'false')
+    const badge = await screen.findByRole('button', { name: /Fechado/i })
+    expect(badge).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText(/Horários de funcionamento/i)).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /restaurante fechado no momento/i }))
+    fireEvent.click(badge)
 
-    expect(screen.getByRole('button', { name: /restaurante fechado no momento/i })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText(/Nossos horários de funcionamento/i)).toBeInTheDocument()
+    expect(badge).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/Horários de funcionamento/i)).toBeInTheDocument()
   })
 
-  it('mostra Restaurante aberto e permite expandir os horários do dia', async () => {
+  it('mostra o badge Aberto e permite expandir os horários do dia', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       json: async () => openPayload,
     })
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🟢 Restaurante aberto')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /restaurante aberto/i })).toHaveAttribute('aria-expanded', 'false')
+    const badge = await screen.findByRole('button', { name: /Aberto/i })
+    expect(badge).toHaveAttribute('aria-expanded', 'false')
 
-    fireEvent.click(screen.getByRole('button', { name: /restaurante aberto/i }))
-    expect(screen.getByRole('button', { name: /restaurante aberto/i })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(badge)
+    expect(badge).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText(/Horários de hoje/i)).toBeInTheDocument()
   })
 
-  it('não mostra controle de expansão quando não há horários informados', async () => {
+  it('desabilita a expansão quando não há horários informados', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValue({
       json: async () => closedWithoutHoursPayload,
     })
 
     render(<StoreHoursBanner slug="loja-teste" />)
 
-    expect(await screen.findByText('🔴 Restaurante fechado no momento')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /ver horários/i })).not.toBeInTheDocument()
+    const badge = await screen.findByRole('button', { name: /Fechado/i })
+    expect(badge).toBeDisabled()
   })
 })

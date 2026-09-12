@@ -53,7 +53,7 @@ export default function OrderTrackPage() {
       </main>
 
       {/* Footer */}
-      <SiteFooter />
+      <SiteFooter variant="compact" />
     </div>
   )
 }

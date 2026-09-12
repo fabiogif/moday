@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { buildApiUrl } from '@/lib/api-config'
@@ -22,6 +22,7 @@ interface StoreHoursData {
 interface StoreHoursBannerProps {
   slug: string
   onStatusChange?: (isOpen: boolean) => void
+  className?: string
 }
 
 function formatSlots(hours: StoreHourSlot[], separator = ' e ') {
@@ -33,10 +34,11 @@ function formatSlots(hours: StoreHourSlot[], separator = ' e ') {
   ))
 }
 
-export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps) {
+export function StoreHoursBanner({ slug, onStatusChange, className }: StoreHoursBannerProps) {
   const [hoursData, setHoursData] = useState<StoreHoursData | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchStoreHours = async () => {
@@ -69,6 +71,17 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
     return () => clearInterval(interval)
   }, [slug])
 
+  useEffect(() => {
+    if (!expanded) return
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setExpanded(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [expanded])
+
   if (loading || !hoursData) {
     return null
   }
@@ -78,7 +91,6 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
   const todayHours = allHours[hoursData.current_day] || []
   const hasHours = Object.keys(allHours).length > 0
   const canExpand = hasHours
-  const statusLabel = isOpen ? '🟢 Restaurante aberto' : '🔴 Restaurante fechado no momento'
 
   const toggleExpanded = () => {
     if (!canExpand) return
@@ -86,90 +98,70 @@ export function StoreHoursBanner({ slug, onStatusChange }: StoreHoursBannerProps
   }
 
   return (
-    <div
-      className={cn(
-        'px-4 text-white transition-[padding] duration-500 ease-in-out',
-        isOpen ? 'bg-green-500' : 'bg-red-500',
-        expanded ? 'py-3' : 'py-2'
-      )}
-    >
-      <div className="container mx-auto">
-        <div className="flex flex-col items-center justify-center text-center">
-          {canExpand ? (
-            <button
-              type="button"
-              onClick={toggleExpanded}
-              aria-expanded={expanded}
-              className="flex items-center gap-2 rounded-md font-medium outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white/70"
-            >
-              <span className={cn(isOpen ? 'text-base' : 'text-lg font-bold')}>
-                {statusLabel}
-              </span>
-              <ChevronDown
-                className={cn(
-                  'h-4 w-4 shrink-0 transition-transform duration-300',
-                  expanded && 'rotate-180'
-                )}
-                aria-hidden
-              />
-              <span className="sr-only">
-                {expanded ? 'Ocultar horários' : 'Ver horários'}
-              </span>
-            </button>
-          ) : (
-            <span className={cn('font-medium', !isOpen && 'text-lg font-bold')}>
-              {statusLabel}
-            </span>
+    <div ref={containerRef} className={cn('relative inline-block', className)}>
+      <button
+        type="button"
+        onClick={toggleExpanded}
+        aria-expanded={canExpand ? expanded : undefined}
+        disabled={!canExpand}
+        className={cn(
+          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+          isOpen
+            ? 'border-green-600/30 bg-green-50 text-green-700 dark:border-green-500/30 dark:bg-green-950/30 dark:text-green-400'
+            : 'border-red-600/30 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-950/30 dark:text-red-400',
+          canExpand ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+        )}
+      >
+        <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', isOpen ? 'bg-green-500' : 'bg-red-500')} aria-hidden />
+        <span>{isOpen ? 'Aberto' : 'Fechado'}</span>
+        {canExpand && (
+          <ChevronDown
+            className={cn('h-3 w-3 shrink-0 transition-transform duration-200', expanded && 'rotate-180')}
+            aria-hidden
+          />
+        )}
+        {canExpand && (
+          <span className="sr-only">{expanded ? 'Ocultar horários' : 'Ver horários'}</span>
+        )}
+      </button>
+
+      {expanded && canExpand && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 max-w-[90vw] rounded-xl border bg-popover p-3 text-sm text-popover-foreground shadow-lg">
+          {hoursData.is_always_open && (
+            <p className="text-muted-foreground">Aceitamos pedidos 24 horas</p>
           )}
 
-          <div
-            className={cn(
-              'grid w-full transition-[grid-template-rows] duration-500 ease-in-out',
-              expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
-            )}
-          >
-            <div className="overflow-hidden">
-              <div className="flex flex-col items-center gap-3 pt-3">
-                {hoursData.is_always_open && (
-                  <p className="text-sm opacity-90">Aceitamos pedidos 24 horas</p>
-                )}
+          {isOpen && !hoursData.is_always_open && todayHours.length > 0 && (
+            <p className="text-muted-foreground">
+              Horários de hoje: {formatSlots(todayHours)}
+            </p>
+          )}
 
-                {isOpen && !hoursData.is_always_open && todayHours.length > 0 && (
-                  <p className="text-sm">
-                    Horários de hoje: {formatSlots(todayHours)}
-                  </p>
-                )}
+          {!isOpen && (
+            <p className="text-muted-foreground">
+              Atualmente estamos fora do horário de atendimento.
+            </p>
+          )}
 
-                {!isOpen && (
-                  <p className="text-sm opacity-90">
-                    Atualmente estamos fora do horário de atendimento.
-                  </p>
-                )}
-
-                {hasHours && (
-                  <div className="mt-1 w-full max-w-2xl rounded-lg bg-white/10 p-3">
-                    <p className="mb-2 font-semibold">Nossos horários de funcionamento:</p>
-                    <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                      {Object.entries(allHours).map(([day, hours]) => (
-                        <div key={day} className="flex items-center justify-between gap-3">
-                          <span className="font-medium">{day}:</span>
-                          <span>{formatSlots(hours, ', ')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!isOpen && (
-                  <p className="mt-1 text-xs opacity-75">
-                    Você pode adicionar produtos ao carrinho, mas só poderá finalizar quando estivermos abertos.
-                  </p>
-                )}
-              </div>
+          <div className="mt-2 rounded-lg bg-muted/50 p-2.5">
+            <p className="mb-1.5 font-semibold">Horários de funcionamento:</p>
+            <div className="space-y-1 text-xs">
+              {Object.entries(allHours).map(([day, hours]) => (
+                <div key={day} className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{day}:</span>
+                  <span className="text-muted-foreground">{formatSlots(hours, ', ')}</span>
+                </div>
+              ))}
             </div>
           </div>
+
+          {!isOpen && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Você pode adicionar produtos ao carrinho, mas só poderá finalizar quando estivermos abertos.
+            </p>
+          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }
