@@ -83,7 +83,7 @@ describe('ClientFormDialog - preenchimento de Cidade pelo CEP', () => {
 
     await user.type(screen.getByLabelText(/Nome Completo/i), 'Maria Souza')
     await user.type(screen.getByLabelText(/^CPF \*/i), '52998224725')
-    await user.type(screen.getByLabelText(/^Email \*/i), 'maria@example.com')
+    await user.type(screen.getByLabelText(/^Email$/i), 'maria@example.com')
     await user.type(screen.getByLabelText(/^Telefone \*/i), '11987654321')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 

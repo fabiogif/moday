@@ -50,8 +50,7 @@ const clientFormSchema = z.object({
       message: "CPF inválido. Verifique os dígitos.",
     }),
   email: z.string()
-    .min(1, { message: "Email é obrigatório." })
-    .refine((value) => validateEmail(value), {
+    .refine((value) => !value || validateEmail(value), {
       message: "Email inválido. Use o formato: exemplo@email.com",
     }),
   phone: z.string()
@@ -489,7 +488,7 @@ export function ClientFormDialog({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email *</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
                         type="email"

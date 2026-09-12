@@ -95,7 +95,7 @@ describe('ClientFormDialog - wizard de passos', () => {
 
     await user.type(screen.getByLabelText(/Nome Completo/i), 'Maria Souza')
     await user.type(screen.getByLabelText(/^CPF \*/i), '52998224725')
-    await user.type(screen.getByLabelText(/^Email \*/i), 'maria@example.com')
+    await user.type(screen.getByLabelText(/^Email$/i), 'maria@example.com')
     await user.type(screen.getByLabelText(/^Telefone \*/i), '11987654321')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
@@ -120,15 +120,15 @@ describe('ClientFormDialog - wizard de passos', () => {
 
     await user.type(screen.getByLabelText(/Nome Completo/i), 'Maria Souza')
     await user.type(screen.getByLabelText(/^CPF \*/i), '52998224725')
-    await user.type(screen.getByLabelText(/^Email \*/i), 'maria@example.com')
+    await user.type(screen.getByLabelText(/^Email$/i), 'maria@example.com')
     await user.type(screen.getByLabelText(/^Telefone \*/i), '11987654321')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
     expect(await screen.findByText(/Este email já está cadastrado/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Continuar/i })).toBeDisabled()
 
-    await user.clear(screen.getByLabelText(/^Email \*/i))
-    await user.type(screen.getByLabelText(/^Email \*/i), 'outra@example.com')
+    await user.clear(screen.getByLabelText(/^Email$/i))
+    await user.type(screen.getByLabelText(/^Email$/i), 'outra@example.com')
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Continuar/i })).not.toBeDisabled()
@@ -143,7 +143,7 @@ describe('ClientFormDialog - wizard de passos', () => {
 
     await user.type(screen.getByLabelText(/Nome Completo/i), 'Maria Souza')
     await user.type(screen.getByLabelText(/^CPF \*/i), '52998224725')
-    await user.type(screen.getByLabelText(/^Email \*/i), 'maria@example.com')
+    await user.type(screen.getByLabelText(/^Email$/i), 'maria@example.com')
     await user.type(screen.getByLabelText(/^Telefone \*/i), '11987654321')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 
@@ -174,7 +174,7 @@ describe('ClientFormDialog - wizard de passos', () => {
 
     await user.type(screen.getByLabelText(/Nome Completo/i), 'Carlos Lima')
     await user.type(screen.getByLabelText(/^CPF \*/i), '52998224725')
-    await user.type(screen.getByLabelText(/^Email \*/i), 'carlos@example.com')
+    await user.type(screen.getByLabelText(/^Email$/i), 'carlos@example.com')
     await user.type(screen.getByLabelText(/^Telefone \*/i), '11987654321')
     await user.click(screen.getByRole('button', { name: /Continuar/i }))
 

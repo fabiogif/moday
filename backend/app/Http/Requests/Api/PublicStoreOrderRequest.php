@@ -30,7 +30,7 @@ class PublicStoreOrderRequest extends FormRequest
             // Client data
             'client' => 'required|array',
             'client.name' => 'required|string|max:255',
-            'client.email' => 'required|email|max:255',
+            'client.email' => 'nullable|email|max:255',
             'client.phone' => 'required|string|max:20',
             'client.cpf' => 'nullable|string|max:14',
             
@@ -225,7 +225,6 @@ class PublicStoreOrderRequest extends FormRequest
     {
         return [
             'client.name.required' => 'Nome do cliente é obrigatório',
-            'client.email.required' => 'Email do cliente é obrigatório',
             'client.email.email' => 'Email deve ter um formato válido',
             'client.phone.required' => 'Telefone do cliente é obrigatório',
             'delivery.is_delivery.required' => 'Tipo de entrega é obrigatório',
