@@ -469,7 +469,7 @@ export default function PublicStorePage() {
         selectedOptionals: optionalsWithQty 
       }]
     })
-    toast.success("Produto adicionado ao carrinho")
+    toast.success("Produto adicionado ao carrinho", { position: "top-center" })
   }
 
   function productNeedsCustomization(product: Product) {
