@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState, useCallback, useRef, type MouseEvent } from "react"
-import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info, Flame, Sparkles } from "lucide-react"
 import { OrderStepper } from "@/components/order-stepper"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,6 +55,7 @@ interface Product {
   categories: Array<{ uuid: string; name: string }>
   variations?: ProductVariation[]   // Seleção única (tamanhos)
   optionals?: ProductOptional[]     // Múltipla escolha com quantidade
+  sold_qty?: number
 }
 
 interface StoreInfo {
@@ -128,6 +129,7 @@ export default function PublicStorePage() {
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [productSearchQuery, setProductSearchQuery] = useState("")
   
   // Estados para avaliação
   const [showReviewModal, setShowReviewModal] = useState(false)
@@ -297,11 +299,21 @@ export default function PublicStorePage() {
   ).sort()
 
   // Filtrar produtos por categoria
-  const filteredProducts = selectedCategory === "all" 
-    ? products 
-    : products.filter(product => 
+  const productsInCategory = selectedCategory === "all"
+    ? products
+    : products.filter(product =>
         product.categories?.some(cat => cat.name === selectedCategory)
       )
+
+  // Filtrar por busca (nome ou descrição)
+  const filteredProducts = (() => {
+    const query = productSearchQuery.trim().toLowerCase()
+    if (!query) return productsInCategory
+    return productsInCategory.filter(product =>
+      product.name.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query)
+    )
+  })()
 
   // Produtos com ofertas (têm promotional_price)
   const productsWithOffers = products
@@ -315,6 +327,12 @@ export default function PublicStorePage() {
 
   // 4 Melhores ofertas (maior desconto)
   const bestOffers = productsWithOffers
+
+  // Mais vendidos (quantidade vendida real, vinda do backend)
+  const bestsellers = products
+    .filter(product => (product.sold_qty ?? 0) > 0)
+    .sort((a, b) => (b.sold_qty ?? 0) - (a.sold_qty ?? 0))
+    .slice(0, 6)
 
 
   const loadPaymentMethods = useCallback(async () => {
@@ -1263,29 +1281,33 @@ export default function PublicStorePage() {
 
         {variant === 'cart' && (
           <div className="space-y-2.5 sm:space-y-3">
-            <div className={storeFormFieldClass}>
-              <Label htmlFor="order-notes" className={storeFormLabelClass}>Alguma observação no pedido?</Label>
-              <Textarea
-                id="order-notes"
-                value={deliveryData.notes}
-                onChange={(e) => setDeliveryData((prev) => ({ ...prev, notes: e.target.value }))}
-                placeholder="Ex.: sem cebola, ponto da carne, retirar ingredientes..."
-                className={storeFormTextareaClass}
-              />
-            </div>
-            <div className={storeFormFieldClass}>
-              <Label htmlFor="coupon-code" className={storeFormLabelClass}>Tem cupom de desconto?</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="coupon-code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Digite o código"
-                  className={`uppercase ${storeFormInputClass}`}
+            <div className="min-w-0 rounded-xl border bg-card/90 p-4 shadow-sm">
+              <div className={storeFormFieldClass}>
+                <Label htmlFor="order-notes" className={storeFormLabelClass}>Alguma observação no pedido?</Label>
+                <Textarea
+                  id="order-notes"
+                  value={deliveryData.notes}
+                  onChange={(e) => setDeliveryData((prev) => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Ex.: sem cebola, ponto da carne, retirar ingredientes..."
+                  className={storeFormTextareaClass}
                 />
-                <Button type="button" variant="secondary" onClick={handleApplyCoupon} className="h-10 shrink-0 whitespace-nowrap px-3 text-sm sm:h-11 sm:px-4">
-                  Usar cupom
-                </Button>
+              </div>
+            </div>
+            <div className="min-w-0 rounded-xl border bg-card/90 p-4 shadow-sm">
+              <div className={storeFormFieldClass}>
+                <Label htmlFor="coupon-code" className={storeFormLabelClass}>Tem cupom de desconto?</Label>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Input
+                    id="coupon-code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Digite o código"
+                    className={`flex-1 uppercase ${storeFormInputClass}`}
+                  />
+                  <Button type="button" variant="secondary" onClick={handleApplyCoupon} className="h-10 shrink-0 whitespace-nowrap px-3 text-sm sm:h-11 sm:px-4">
+                    Usar cupom
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -1381,6 +1403,63 @@ export default function PublicStorePage() {
     setSelectedProduct(null)
     setSelectedVariation('')
     setSelectedOptionalsQty({})
+  }
+
+  const renderHighlightRow = (title: string, icon: React.ReactNode, items: Product[]) => {
+    if (items.length === 0) return null
+
+    return (
+      <div className="space-y-2">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          {icon}
+          {title}
+        </h2>
+        <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {items.map((product) => {
+            const price = product.promotional_price || product.price
+            const hasDiscount = product.promotional_price && product.promotional_price < product.price
+
+            return (
+              <button
+                key={product.uuid}
+                type="button"
+                onClick={() => openProductDetail(product)}
+                className="group flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md sm:w-36"
+              >
+                <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden bg-muted">
+                  {product.image ? (
+                    <Image
+                      src={resolveImageUrl(product.image) || ""}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform duration-300 ease-out group-hover:scale-110 group-active:scale-110"
+                      sizes="144px"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                    </div>
+                  )}
+                  {hasDiscount && (
+                    <Badge className="absolute left-1 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      -{Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)}%
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex flex-col gap-0.5 p-2">
+                  <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground group-hover:text-primary transition-colors">
+                    {product.name}
+                  </p>
+                  <span className="text-sm font-bold text-primary leading-tight">
+                    R$ {formatPrice(price)}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -1558,6 +1637,36 @@ export default function PublicStorePage() {
             <section className="container mx-auto space-y-10 overflow-x-hidden px-4 py-6 sm:py-10">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
                 <div className="min-w-0 flex-1 space-y-6">
+                  {/* Destaques: mais vendidos e ofertas */}
+                  {selectedCategory === 'all' && !productSearchQuery.trim() && (
+                    <div className="space-y-5">
+                      {renderHighlightRow('Mais vendidos', <Flame className="h-4 w-4 text-orange-500" />, bestsellers)}
+                      {renderHighlightRow('Destaques', <Sparkles className="h-4 w-4 text-primary" />, bestOffers)}
+                    </div>
+                  )}
+
+                  {/* Busca de produtos */}
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      value={productSearchQuery}
+                      onChange={(e) => setProductSearchQuery(e.target.value)}
+                      placeholder="Buscar no cardápio..."
+                      className="h-10 rounded-full pl-10 pr-9"
+                    />
+                    {productSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setProductSearchQuery("")}
+                        aria-label="Limpar busca"
+                        className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
                   {/* Category filter chips */}
                   {categories.length > 0 && (
                     <CategoryFilterChips
@@ -1570,7 +1679,9 @@ export default function PublicStorePage() {
                   <div className="mt-0">
                     {filteredProducts.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-muted p-12 text-center">
-                        <p className="text-lg text-muted-foreground">Nenhum produto encontrado nesta categoria.</p>
+                        <p className="text-lg text-muted-foreground">
+                          {productSearchQuery.trim() ? 'Nenhum produto encontrado para sua busca.' : 'Nenhum produto encontrado nesta categoria.'}
+                        </p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-2 2xl:grid-cols-3">
@@ -1591,7 +1702,7 @@ export default function PublicStorePage() {
                                 aria-label={`Ver detalhes de ${product.name}`}
                               >
                               {/* Image — mantida em destaque: full-width 4:3 no mobile, quadrada ao lado no desktop */}
-                              <div className="relative aspect-[4/3] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
+                              <div className="relative aspect-[16/10] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
                                 {product.image ? (
                                   <Image
                                     src={resolveImageUrl(product.image) || ""}

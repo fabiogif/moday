@@ -1107,7 +1107,7 @@ export default function DemoMenuPage() {
                             className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md w-full sm:flex-row"
                           >
                             {/* Imagem em destaque — 4:3 no mobile, quadrada ao lado no desktop */}
-                            <div className="relative aspect-[4/3] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
+                            <div className="relative aspect-[16/10] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
                               {product.image ? (
                                 <Image
                                   src={product.image}

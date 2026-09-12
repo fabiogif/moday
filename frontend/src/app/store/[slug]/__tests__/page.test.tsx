@@ -190,7 +190,8 @@ describe('PublicStorePage - Categorias', () => {
     render(<PublicStorePage />)
     
     await waitFor(() => {
-      expect(screen.getByText('Pizza Margherita')).toBeInTheDocument()
+      // Pizza também aparece na fileira de Destaques (tem oferta), então pode haver mais de uma ocorrência
+      expect(screen.getAllByText('Pizza Margherita').length).toBeGreaterThan(0)
     })
 
     // Clicar na aba de Bebidas
@@ -198,21 +199,23 @@ describe('PublicStorePage - Categorias', () => {
     fireEvent.click(bebidasTab)
 
     await waitFor(() => {
-      // Deve mostrar apenas Coca-Cola
+      // Deve mostrar apenas Coca-Cola na grade (sem oferta, não duplica)
       expect(screen.getByText('Coca-Cola')).toBeInTheDocument()
-      // Não deve mostrar Pizza
-      expect(screen.queryByText('Pizza Margherita')).not.toBeInTheDocument()
     })
+
+    // A fileira de Destaques permanece visível independente do filtro de categoria,
+    // então Pizza pode continuar lá — mas some da grade de produtos filtrada.
+    expect(screen.queryAllByRole('button', { name: /Ver detalhes de Pizza Margherita/i })).toHaveLength(0)
   })
 
   it('deve mostrar todos os produtos na aba "Todos"', async () => {
     render(<PublicStorePage />)
-    
+
     await waitFor(() => {
-      expect(screen.getByText('Pizza Margherita')).toBeInTheDocument()
+      expect(screen.getAllByText('Pizza Margherita').length).toBeGreaterThan(0)
       expect(screen.getByText('Coca-Cola')).toBeInTheDocument()
-      expect(screen.getByText('Hambúrguer')).toBeInTheDocument()
-      expect(screen.getByText('Pudim')).toBeInTheDocument()
+      expect(screen.getAllByText('Hambúrguer').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Pudim').length).toBeGreaterThan(0)
     })
   })
 })
@@ -237,9 +240,9 @@ describe('PublicStorePage - Ofertas', () => {
     render(<PublicStorePage />)
     
     await waitFor(() => {
-      // Pudim: de 10 para 5 = 50% OFF
-      expect(screen.getByText(/-50%/)).toBeInTheDocument()
-      expect(screen.getByText(/-17%/)).toBeInTheDocument()
+      // Pudim: de 10 para 5 = 50% OFF (aparece na grade e na fileira de Destaques)
+      expect(screen.getAllByText(/-50%/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/-17%/).length).toBeGreaterThan(0)
     })
   })
 
