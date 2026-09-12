@@ -1096,31 +1096,14 @@ readonly class OrderService
         
         if (!$nextStatus) {
             // Obter todos os status disponíveis para mensagem de erro mais informativa
-            $allStatuses = $this->orderStatusRepositoryInterface->getAllByTenant($tenantId, false);
+            $allStatuses = $this->orderStatusRepositoryInterface->getAllByTenant($tenantId, true);
             $availableStatusNames = $allStatuses->pluck('name')->toArray();
-            
-            $normalizedCurrent = $this->normalizeStatusName($currentStatus->name);
-            $flow = [
-                'Pendente' => 'Aceito',
-                'Pedido Recebido' => 'Aceito',
-                'Aceito' => 'Preparo',
-                'Confirmado' => 'Preparo',
-                'Preparo' => 'Entrega',
-                'Em Preparação' => 'Entrega',
-                'Em Preparo' => 'Entrega',
-                'Entrega' => 'Concluído',
-                'Pronto para Expedição' => 'Concluído',
-                'Pronto' => 'Concluído',
-                'Aguardando Entregador' => 'Concluído',
-                'Em Entrega' => 'Concluído',
-            ];
-            $expectedNextStatus = $flow[$normalizedCurrent] ?? $flow[$currentStatus->name] ?? null;
-            
+
             throw new \Exception(
                 "Não há próximo status disponível para este pedido. " .
                 "Status atual: {$currentStatus->name}. " .
-                "Próximo status esperado: {$expectedNextStatus}. " .
-                "Status disponíveis no sistema: " . implode(', ', $availableStatusNames)
+                "Status ativos configurados: " . implode(', ', $availableStatusNames) . ". " .
+                "Verifique a ordem (order_position) dos status em Configurações > Status de Pedido."
             );
         }
 
@@ -1180,110 +1163,31 @@ readonly class OrderService
      */
     private function getNextStatus(int $tenantId, \App\Models\OrderStatus $currentStatus, bool $isDelivery): ?\App\Models\OrderStatus
     {
-        // Fluxo: Pendente → Aceito → Preparo → Entrega → Concluído
-        $flowPatterns = [
-            'Pendente' => ['Aceito'],
-            'Pedido Recebido' => ['Aceito', 'Confirmado'],
-            'Aceito' => ['Preparo'],
-            'Confirmado' => ['Preparo', 'Em Preparação'],
-            'Preparo' => ['Entrega'],
-            'Em Preparação' => ['Entrega', 'Pronto para Expedição', 'Pronto'],
-            'Em Preparo' => ['Entrega'],
-            'Entrega' => ['Concluído'],
-            'Pronto para Expedição' => ['Concluído', 'Entrega', 'Entregue'],
-            'Pronto' => ['Concluído', 'Entrega', 'Entregue'],
-            'Aguardando Entregador' => ['Concluído', 'Entrega', 'Entregue'],
-            'Em Entrega' => ['Concluído', 'Entregue'],
-        ];
+        // O fluxo é definido pelo próprio tenant via order_position (configurável em
+        // Configurações > Status de Pedido), não por uma lista fixa de nomes em inglês/
+        // português — cada tenant pode nomear e reordenar seus status livremente (ex.:
+        // "Recebido, Preparando, Entrega, Concluído, Cancelado"), então casar por nome
+        // fixo ("Pendente", "Preparo", ...) quebra para qualquer tenant que use outros
+        // nomes. "Cancelado" (ou variações) é excluído por não ser um passo do fluxo
+        // normal de avanço, só alcançável por cancelamento explícito.
+        $orderedStatuses = $this->orderStatusRepositoryInterface
+            ->getAllByTenant($tenantId, true)
+            ->reject(fn ($status) => str_contains(mb_strtolower($status->name), 'cancel'))
+            ->values();
 
-        // Normalizar nome do status atual para busca (remover variações como "/ Cozinha")
-        $currentStatusNormalized = $this->normalizeStatusName($currentStatus->name);
-        
-        // Determinar próximo status esperado
-        $expectedNextStatuses = null;
-        foreach ($flowPatterns as $pattern => $nextStatuses) {
-            if ($this->matchesStatusPattern($currentStatusNormalized, $pattern)) {
-                $expectedNextStatuses = $nextStatuses;
-                break;
-            }
-        }
-        
-        if (!$expectedNextStatuses) {
-            Log::warning("Não há próximo status mapeado para: {$currentStatus->name}", [
+        $currentIndex = $orderedStatuses->search(
+            fn ($status) => $status->id === $currentStatus->id
+        );
+
+        if ($currentIndex === false) {
+            Log::warning("Status atual não está na lista de status ativos do tenant", [
                 'tenant_id' => $tenantId,
                 'current_status' => $currentStatus->name,
-                'normalized_status' => $currentStatusNormalized,
-                'is_delivery' => $isDelivery
+                'is_delivery' => $isDelivery,
             ]);
             return null;
         }
 
-        // Buscar próximo status - primeiro tentar busca exata, depois busca parcial
-        $allStatuses = $this->orderStatusRepositoryInterface->getAllByTenant($tenantId, false);
-        
-        foreach ($expectedNextStatuses as $expectedName) {
-            // Tentar busca exata primeiro
-            $nextStatus = $allStatuses->first(function ($status) use ($expectedName) {
-                return strtolower(trim($status->name)) === strtolower(trim($expectedName));
-            });
-            
-            if ($nextStatus) {
-                return $nextStatus;
-            }
-            
-            // Se não encontrou exato, tentar busca parcial (começa com)
-            $nextStatus = $allStatuses->first(function ($status) use ($expectedName) {
-                $statusName = strtolower(trim($status->name));
-                $expectedNameLower = strtolower(trim($expectedName));
-                return strpos($statusName, $expectedNameLower) === 0 || strpos($expectedNameLower, $statusName) === 0;
-            });
-            
-            if ($nextStatus) {
-                return $nextStatus;
-            }
-        }
-        
-        // Se não encontrou nenhum, logar erro
-        Log::warning("Próximo status não encontrado no banco de dados", [
-            'tenant_id' => $tenantId,
-            'current_status' => $currentStatus->name,
-            'normalized_status' => $currentStatusNormalized,
-            'expected_next_statuses' => $expectedNextStatuses,
-            'is_delivery' => $isDelivery,
-            'available_statuses' => $allStatuses->pluck('name')->toArray()
-        ]);
-        
-        return null;
-    }
-
-    /**
-     * Normalizar nome do status removendo variações comuns
-     * 
-     * @param string $statusName
-     * @return string
-     */
-    private function normalizeStatusName(string $statusName): string
-    {
-        // Remover variações comuns como "/ Cozinha", "/ Finalizado pela Cozinha", etc.
-        $normalized = trim($statusName);
-        
-        // Remover sufixos comuns após "/"
-        if (strpos($normalized, '/') !== false) {
-            $normalized = trim(explode('/', $normalized)[0]);
-        }
-        
-        return $normalized;
-    }
-
-    /**
-     * Verificar se um status normalizado corresponde a um padrão
-     * 
-     * @param string $normalizedStatus
-     * @param string $pattern
-     * @return bool
-     */
-    private function matchesStatusPattern(string $normalizedStatus, string $pattern): bool
-    {
-        return strtolower(trim($normalizedStatus)) === strtolower(trim($pattern));
+        return $orderedStatuses->get($currentIndex + 1);
     }
 }
