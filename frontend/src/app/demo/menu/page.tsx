@@ -31,6 +31,7 @@ import {
   User,
   Truck,
   ClipboardCheck,
+  Info,
 } from 'lucide-react'
 import { OrderStepper } from '@/components/order-stepper'
 import Link from 'next/link'
@@ -430,8 +431,8 @@ export default function DemoMenuPage() {
 
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(price)
   }
 
@@ -462,7 +463,7 @@ export default function DemoMenuPage() {
         selectedOptionals: optionals || []
       }]
     })
-    toast.success(`${product.name} adicionado ao carrinho!`)
+    toast.success(`${product.name} adicionado ao carrinho!`, { position: "top-center" })
   }
 
   const confirmAddToCart = () => {
@@ -704,7 +705,7 @@ export default function DemoMenuPage() {
     setTimeout(() => {
       setOrderResult({
         order_id: `DEMO-${Date.now()}`,
-        total: formatPrice(cartTotal),
+        total: `R$ ${formatPrice(cartTotal)}`,
         whatsapp_link: '#'
       })
       setCheckoutStep('success')
@@ -956,8 +957,14 @@ export default function DemoMenuPage() {
                 <Store className="h-6 w-6 text-muted-foreground" />
               </div>
 
-              <div>
-                <h1 className="text-lg font-semibold sm:text-xl">Cardápio Demo</h1>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-lg font-semibold sm:text-xl">Cardápio Demo</h1>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-green-600/30 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700 dark:border-green-500/30 dark:bg-green-950/30 dark:text-green-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden />
+                    Aberto
+                  </span>
+                </div>
                 <p className="hidden text-xs text-muted-foreground sm:block">Demonstração interativa</p>
               </div>
             </div>
@@ -1060,6 +1067,7 @@ export default function DemoMenuPage() {
               currentStep={demoCurrentStep}
               steps={demoWizardSteps}
               completedSteps={demoCompletedSteps}
+              compact={demoCurrentStep === 0 || cartCount === 0}
             />
           </div>
         </div>
@@ -1096,56 +1104,57 @@ export default function DemoMenuPage() {
                           <button
                             key={product.id}
                             onClick={() => handleProductClick(product)}
-                            className="group flex gap-3 rounded-2xl border border-border/70 bg-card p-3 text-left transition hover:border-primary/40 hover:shadow-md w-full"
+                            className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md w-full sm:flex-row"
                           >
-                            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-muted md:h-28 md:w-28">
+                            {/* Imagem em destaque — 4:3 no mobile, quadrada ao lado no desktop */}
+                            <div className="relative aspect-[4/3] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
                               {product.image ? (
                                 <Image
                                   src={product.image}
                                   alt={product.name}
                                   fill
-                                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
-                                  sizes="112px"
+                                  className="object-cover transition-transform duration-300 ease-out group-hover:scale-110 group-active:scale-110"
+                                  sizes="(max-width: 640px) 100vw, 128px"
                                 />
                               ) : (
                                 <div className="flex h-full w-full items-center justify-center">
-                                  <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                  <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
                                 </div>
                               )}
                               {hasDiscount && (
-                                <Badge className="absolute left-1 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                <Badge className="absolute left-1.5 top-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                                   -{Math.round((1 - (product.promotionalPrice! / product.price)) * 100)}%
                                 </Badge>
                               )}
                             </div>
 
-                            <div className="flex flex-1 flex-col justify-between min-w-0 py-0.5">
-                              <div className="space-y-0.5">
-                                <p className="font-semibold text-sm leading-snug line-clamp-2 text-foreground group-hover:text-primary transition-colors">
+                            <div className="flex flex-1 flex-col justify-between min-w-0 gap-1 p-2.5">
+                              <div className="flex min-w-0 items-start gap-1">
+                                <p className="min-w-0 flex-1 line-clamp-2 font-semibold text-sm leading-snug text-foreground group-hover:text-primary transition-colors">
                                   {product.name}
                                 </p>
                                 {product.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {product.description}
-                                  </p>
-                                )}
-                                {hasCustomization && (
-                                  <p className="text-[10px] text-primary/70 font-medium">Personalizável</p>
+                                  <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 mt-0.5" aria-hidden />
                                 )}
                               </div>
-                              <div className="flex items-center justify-between mt-2 gap-2">
-                                <div>
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                   {hasDiscount && (
-                                    <p className="text-[10px] text-muted-foreground line-through leading-none">
+                                    <span className="text-[10px] text-muted-foreground line-through">
                                       R$ {formatPrice(product.price)}
-                                    </p>
+                                    </span>
                                   )}
-                                  <p className="text-base font-bold text-primary leading-tight">
+                                  <span className="text-sm font-bold text-primary leading-tight">
                                     R$ {formatPrice(price)}
-                                  </p>
+                                  </span>
+                                  {hasCustomization && (
+                                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
+                                      Personalizável
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors group-hover:bg-primary/90">
-                                  <Plus className="h-4 w-4" />
+                                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors group-hover:bg-primary/90">
+                                  <Plus className="h-5 w-5" strokeWidth={2.5} />
                                 </div>
                               </div>
                             </div>
@@ -1157,25 +1166,39 @@ export default function DemoMenuPage() {
                 </div>
               </div>
 
-              <aside className="hidden w-full shrink-0 lg:block lg:w-[22rem] xl:w-96" id="order-summary">
-                <Card className="sticky top-32 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
-                  <CardHeader className="min-w-0 space-y-1 pb-0">
-                    <CardTitle className="flex items-center justify-between gap-3 text-xl">
-                      <span className="min-w-0 truncate">Resumo do Pedido</span>
-                      <Badge variant="outline" className="shrink-0 rounded-full text-xs">
-                        {cartCount} {cartCount === 1 ? 'item' : 'itens'}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription className="text-sm break-words">
-                      Revise os itens selecionados antes de prosseguir.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
-                    {renderSummaryContent('cart')}
-                  </CardContent>
-                </Card>
-              </aside>
+              {cartCount > 0 && (
+                <aside className="hidden w-full shrink-0 lg:block lg:w-[22rem] xl:w-96" id="order-summary">
+                  <Card className="sticky top-32 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
+                    <CardHeader className="min-w-0 space-y-1 pb-0">
+                      <CardTitle className="flex items-center justify-between gap-3 text-xl">
+                        <span className="min-w-0 truncate">Resumo do Pedido</span>
+                        <Badge variant="outline" className="shrink-0 rounded-full text-xs">
+                          {cartCount} {cartCount === 1 ? 'item' : 'itens'}
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription className="text-sm break-words">
+                        Revise os itens selecionados antes de prosseguir.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="min-w-0 space-y-4 overflow-hidden pt-4">
+                      {renderSummaryContent('cart')}
+                    </CardContent>
+                  </Card>
+                </aside>
+              )}
             </div>
+
+            {cartCount === 0 && (
+              <div className="fixed bottom-6 right-6 z-40 hidden lg:block">
+                <div
+                  id="order-summary"
+                  className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-lg"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  Carrinho (0 itens)
+                </div>
+              </div>
+            )}
           </section>
           )}
 
@@ -1560,37 +1583,42 @@ export default function DemoMenuPage() {
         <DialogContent className="flex flex-col max-w-lg max-h-[90dvh] rounded-2xl border border-border/50 bg-background p-0 shadow-2xl gap-0 overflow-hidden">
           {selectedProduct && (
             <>
-              {/* Header fixo */}
-              <div className="shrink-0 px-5 pt-5 pb-4 border-b">
-                <DialogHeader className="space-y-0.5 text-left mb-3">
-                  <DialogTitle className="text-lg font-semibold leading-tight">{selectedProduct.name}</DialogTitle>
-                  <DialogDescription className="text-sm text-muted-foreground">
-                    Personalize o pedido antes de adicionar ao carrinho.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex items-center gap-3">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted">
-                    {selectedProduct.image ? (
-                      <Image src={selectedProduct.image} alt={selectedProduct.name} fill className="object-cover" sizes="64px" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {selectedProduct.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{selectedProduct.description}</p>
-                    )}
-                    <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                      Preço base: <span className="text-primary font-semibold ml-1">R$ {formatPrice(selectedProduct.promotionalPrice || selectedProduct.price)}</span>
+              {/* Corpo scrollável — imagem em destaque no topo, seguida do texto */}
+              <div className="flex-1 overflow-y-auto space-y-5">
+                {/* Imagem do produto em destaque */}
+                <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-muted sm:aspect-video">
+                  {selectedProduct.image ? (
+                    <Image
+                      src={selectedProduct.image}
+                      alt={selectedProduct.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 32rem"
+                      priority
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/40" />
                     </div>
+                  )}
+                </div>
+
+                <div className="px-5 space-y-2">
+                  <DialogHeader className="space-y-1 text-left">
+                    <DialogTitle className="text-lg font-semibold leading-tight">{selectedProduct.name}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                      Personalize o pedido antes de adicionar ao carrinho.
+                    </DialogDescription>
+                    {selectedProduct.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">{selectedProduct.description}</p>
+                    )}
+                  </DialogHeader>
+                  <div className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                    Preço base: <span className="text-primary font-semibold ml-1">R$ {formatPrice(selectedProduct.promotionalPrice || selectedProduct.price)}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Corpo scrollável */}
-              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+                <div className="px-5 pb-4 space-y-5">
                 {selectedProduct.variations && selectedProduct.variations.length > 0 && (
                   <div className="space-y-2">
                     <div>
@@ -1672,6 +1700,7 @@ export default function DemoMenuPage() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
 
               {/* Footer fixo */}
@@ -1707,7 +1736,7 @@ export default function DemoMenuPage() {
       </Dialog>
 
       {/* Footer */}
-      <SiteFooter />
+      <SiteFooter variant="compact" />
     </div>
   )
 }
