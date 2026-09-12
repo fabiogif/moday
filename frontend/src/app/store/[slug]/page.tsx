@@ -1582,48 +1582,50 @@ export default function PublicStorePage() {
                           return (
                             <article
                               key={product.uuid}
-                              className="group flex items-center gap-2.5 rounded-2xl border border-border/70 bg-card p-2.5 text-left transition hover:border-primary/40 hover:shadow-md w-full"
+                              className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md w-full sm:flex-row"
                             >
                               <button
                                 type="button"
                                 onClick={() => openProductDetail(product)}
-                                className="flex min-w-0 flex-1 items-center gap-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl"
+                                className="flex min-w-0 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-1 sm:flex-row"
                                 aria-label={`Ver detalhes de ${product.name}`}
                               >
-                              {/* Image */}
-                              <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-16 sm:w-16">
+                              {/* Image — mantida em destaque: full-width 4:3 no mobile, quadrada ao lado no desktop */}
+                              <div className="relative aspect-[4/3] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
                                 {product.image ? (
                                   <Image
                                     src={resolveImageUrl(product.image) || ""}
                                     alt={product.name}
                                     fill
-                                    className="object-cover transition-transform duration-300 ease-out group-hover:scale-110"
-                                    sizes="64px"
+                                    className="object-cover transition-transform duration-300 ease-out group-hover:scale-110 group-active:scale-110"
+                                    sizes="(max-width: 640px) 100vw, 128px"
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center">
-                                    <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
+                                    <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
                                   </div>
                                 )}
                                 {hasDiscount && (
-                                  <Badge className="absolute left-0.5 top-0.5 rounded-full bg-red-500 px-1 py-0 text-[9px] font-bold text-white">
+                                  <Badge className="absolute left-1.5 top-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                                     -{Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)}%
                                   </Badge>
                                 )}
                               </div>
 
-                              {/* Content */}
-                              <div className="flex flex-1 flex-col justify-center min-w-0 gap-1">
-                                <div className="flex min-w-0 items-center gap-1">
-                                  <p className="min-w-0 flex-1 truncate font-semibold text-sm text-foreground group-hover:text-primary transition-colors">
-                                    {product.name}
-                                  </p>
-                                  {product.description && (
-                                    <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" aria-hidden />
-                                  )}
-                                </div>
+                              {/* Nome */}
+                              <div className="flex min-w-0 items-start gap-1 p-2.5 pb-1 sm:flex-1 sm:items-center sm:pb-2.5">
+                                <p className="min-w-0 flex-1 line-clamp-2 font-semibold text-sm leading-snug text-foreground group-hover:text-primary transition-colors">
+                                  {product.name}
+                                </p>
+                                {product.description && (
+                                  <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 mt-0.5 sm:mt-0" aria-hidden />
+                                )}
+                              </div>
+                              </button>
 
-                                <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Preço + variação + botão adicionar — compactos na mesma área */}
+                              <div className="flex items-center justify-between gap-2 p-2.5 pt-0 sm:w-auto sm:flex-col sm:items-end sm:justify-center sm:pt-2.5 sm:pl-0">
+                                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                                   {hasDiscount && (
                                     <span className="text-[10px] text-muted-foreground line-through">
                                       R$ {formatPrice(product.price)}
@@ -1638,16 +1640,13 @@ export default function PublicStorePage() {
                                     </span>
                                   )}
                                 </div>
-                              </div>
-                              </button>
 
-                              <div className="flex shrink-0 items-center">
                                 <button
                                   type="button"
                                   disabled={product.qtd_stock === 0}
                                   onClick={(e) => handleAddProduct(product, e)}
                                   aria-label={product.qtd_stock === 0 ? 'Produto esgotado' : `Adicionar ${product.name} ao carrinho`}
-                                  className={`flex h-11 w-11 items-center justify-center rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${
+                                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${
                                     product.qtd_stock === 0
                                       ? 'bg-muted text-muted-foreground'
                                       : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
