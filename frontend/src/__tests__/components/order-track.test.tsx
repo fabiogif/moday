@@ -10,6 +10,18 @@ jest.mock('sonner')
 
 const mockApiClient = apiClient as jest.Mocked<typeof apiClient>
 
+// O backend retorna { client_name, orders: [...] } — o cliente pode ter mais de
+// um pedido. Este helper simula esse formato real a partir de um pedido "achatado"
+// usado nos testes, em vez de repetir a mesma casca em cada mock.
+const orderResponse = (order: Record<string, any>) => {
+  const { client_name, ...rest } = order
+  return {
+    success: true,
+    message: 'Pedido encontrado',
+    data: { client_name, orders: [rest] },
+  }
+}
+
 const queueStoreInfoCall = () => {
   mockApiClient.get.mockResolvedValueOnce({
     success: true,
@@ -91,11 +103,7 @@ describe('OrderTrack Component', () => {
       ]
     }
 
-    mockApiClient.get.mockResolvedValueOnce({
-      success: true,
-      message: 'Pedido encontrado',
-      data: mockOrderData,
-    } as any)
+    mockApiClient.get.mockResolvedValueOnce(orderResponse(mockOrderData) as any)
 
     await renderOrderTrackComponent()
 
@@ -174,10 +182,7 @@ describe('OrderTrack Component', () => {
       products: []
     }
 
-    mockApiClient.get.mockResolvedValueOnce({
-      success: true,
-      data: mockOrderData,
-    } as any)
+    mockApiClient.get.mockResolvedValueOnce(orderResponse(mockOrderData) as any)
 
     await renderOrderTrackComponent()
     
@@ -206,10 +211,7 @@ describe('OrderTrack Component', () => {
       products: []
     }
 
-    mockApiClient.get.mockResolvedValueOnce({
-      success: true,
-      data: mockOrderData,
-    } as any)
+    mockApiClient.get.mockResolvedValueOnce(orderResponse(mockOrderData) as any)
 
     await renderOrderTrackComponent()
 
@@ -240,10 +242,7 @@ describe('OrderTrack Component', () => {
       products: []
     }
 
-    mockApiClient.get.mockResolvedValueOnce({
-      success: true,
-      data: mockOrderData,
-    } as any)
+    mockApiClient.get.mockResolvedValueOnce(orderResponse(mockOrderData) as any)
 
     await renderOrderTrackComponent()
 
@@ -277,10 +276,7 @@ describe('OrderTrack Component', () => {
       products: []
     }
 
-    mockApiClient.get.mockResolvedValueOnce({
-      success: true,
-      data: mockOrderData,
-    } as any)
+    mockApiClient.get.mockResolvedValueOnce(orderResponse(mockOrderData) as any)
 
     await renderOrderTrackComponent()
 

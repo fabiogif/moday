@@ -25,6 +25,8 @@ interface OrderTrackingResult {
   order_date: string
   order_time: string
   status: string
+  status_color?: string | null
+  is_final?: boolean
   is_delivery: boolean
   total: number
   products: OrderProduct[]
@@ -58,6 +60,36 @@ const getStatusIcon = (status: string) => {
     default:
       return <Package className="h-5 w-5 text-gray-600" />
   }
+}
+
+// Cada tenant pode nomear seus status livremente (ex.: "Recebido", "Preparando"
+// em vez de "Pendente", "Preparo"), então além das mensagens específicas para os
+// nomes padrão do sistema, sempre há uma mensagem genérica de fallback — nunca
+// deixa o card "Status atual" em branco para um nome customizado.
+const getStatusMessage = (status: string, isDelivery: boolean, isFinal?: boolean): string => {
+  const normalized = status.toLowerCase()
+
+  if (normalized.includes('cancel')) {
+    return 'Este pedido foi cancelado.'
+  }
+
+  switch (status) {
+    case 'Pendente':
+      return 'Seu pedido foi recebido e aguarda aceite da loja!'
+    case 'Aceito':
+      return 'Seu pedido foi aceito e logo entrará em preparo!'
+    case 'Preparo':
+      return 'Seu pedido está sendo preparado com todo carinho e ' +
+        (isDelivery ? 'será entregue em breve!' : 'logo estará pronto para retirada!')
+    case 'Concluído':
+      return 'Seu pedido foi concluído! Esperamos que tenha gostado!'
+  }
+
+  if (isFinal) {
+    return 'Seu pedido foi concluído! Esperamos que tenha gostado!'
+  }
+
+  return `Seu pedido está em andamento: ${status}.`
 }
 
 const getStatusColor = (status: string) => {
@@ -164,8 +196,13 @@ export function OrderTrack({ slug }: OrderTrackProps) {
         { phone }
       )
 
-      if (response.success && response.data) {
-        setOrderData(response.data as OrderTrackingResult)
+      // O backend retorna { client_name, orders: [...] } (o cliente pode ter mais de
+      // um pedido) — aqui exibimos o mais recente, que vem primeiro na lista.
+      const data = response.data as { client_name: string; orders: OrderTrackingResult[] } | null
+      const mostRecentOrder = data?.orders?.[0]
+
+      if (response.success && mostRecentOrder) {
+        setOrderData({ ...mostRecentOrder, client_name: data!.client_name })
         toast.success('Pedido encontrado!')
       } else {
         toast.error(response.message || 'Nenhum pedido em andamento foi encontrado')
@@ -233,7 +270,10 @@ export function OrderTrack({ slug }: OrderTrackProps) {
                     <p className="text-sm text-muted-foreground">Pedido</p>
                     <p className="text-xl font-semibold">#{orderData.order_identify}</p>
                   </div>
-                  <Badge className={getStatusColor(orderData.status)}>
+                  <Badge
+                    className={orderData.status_color ? undefined : getStatusColor(orderData.status)}
+                    style={orderData.status_color ? { backgroundColor: orderData.status_color, color: '#fff' } : undefined}
+                  >
                     <span className="flex items-center gap-1">
                       {getStatusIcon(orderData.status)}
                       {orderData.status}
@@ -305,17 +345,7 @@ export function OrderTrack({ slug }: OrderTrackProps) {
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground mb-2">Status atual</p>
                   <p className="text-base">
-                    {orderData.status === 'Pendente' &&
-                      'Seu pedido foi recebido e aguarda aceite da loja!'}
-                    {orderData.status === 'Aceito' &&
-                      'Seu pedido foi aceito e logo entrará em preparo!'}
-                    {orderData.status === 'Preparo' &&
-                      'Seu pedido está sendo preparado com todo carinho e ' +
-                      (orderData.is_delivery ? 'será entregue em breve!' : 'logo estará pronto para retirada!')}
-                    {orderData.status === 'Concluído' &&
-                      'Seu pedido foi concluído! Esperamos que tenha gostado!'}
-                    {orderData.status === 'Cancelado' &&
-                      'Este pedido foi cancelado.'}
+                    {getStatusMessage(orderData.status, orderData.is_delivery, orderData.is_final)}
                   </p>
                 </div>
 
