@@ -1152,6 +1152,9 @@ export default function PublicStorePage() {
     storeInfo?.zipcode && `CEP: ${storeInfo.zipcode}`,
   ].filter(Boolean).join(' • ')
 
+  const mapsQuery = [storeInfo?.address, storeInfo?.city, storeInfo?.state, storeInfo?.zipcode].filter(Boolean).join(', ')
+  const mapsLink = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : undefined
+
   const attendanceText = storeInfo?.settings?.delivery_pickup?.pickup_time_minutes
     ? `Retirada pronta em aproximadamente ${storeInfo.settings.delivery_pickup.pickup_time_minutes} minutos`
     : 'Atendimento disponível durante o horário de funcionamento.'
@@ -1533,10 +1536,15 @@ export default function PublicStorePage() {
                         </a>
                       )}
                       {locationText && (
-                        <div className="flex items-start gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                        <a
+                          href={mapsLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-start gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground transition hover:bg-muted"
+                        >
                           <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
                           <span>{locationText}</span>
-                        </div>
+                        </a>
                       )}
                       <div className="flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4 flex-shrink-0 text-primary" />
@@ -2574,7 +2582,7 @@ export default function PublicStorePage() {
       </main>
 
       {!orderSuccess && currentStep >= 1 && (
-        <div className={`fixed bottom-0 left-0 right-0 z-[55] border-t bg-background lg:hidden ${currentStep === 4 ? 'px-3 pt-2 pb-3' : 'px-4 pt-3 pb-4'}`}>
+        <div className={`fixed bottom-0 left-0 right-0 z-40 border-t bg-background lg:hidden ${currentStep === 4 ? 'px-3 pt-2 pb-3' : 'px-4 pt-3 pb-4'}`}>
           <div className={`flex items-center justify-between text-sm font-bold ${currentStep === 4 ? 'mb-1.5' : 'mb-2'}`}>
             <span>Total: R$ {formatPrice(cartTotal)}</span>
             <span className="text-muted-foreground">{cartCount} item(ns)</span>
@@ -2646,7 +2654,7 @@ export default function PublicStorePage() {
       )}
 
       {!orderSuccess && currentStep === 0 && cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-[55] bg-background border-t pt-3 pb-4 px-4 hidden lg:block">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t pt-3 pb-4 px-4 hidden lg:block">
           <div className="container mx-auto flex items-center justify-between gap-4">
             <div className="text-sm font-bold">
               <span>Total: R$ {formatPrice(cartTotal)}</span>
@@ -2660,7 +2668,7 @@ export default function PublicStorePage() {
       )}
 
       {!orderSuccess && currentStep === 0 && cart.length > 0 && isStoreOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-[55] border-t bg-background px-3 pt-2.5 pb-3 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background px-3 pt-2.5 pb-3 lg:hidden">
           <div className="mb-1.5 flex items-center justify-between text-sm font-bold">
             <span>Total: R$ {formatPrice(cartTotal)}</span>
             <span className="text-muted-foreground">{cartCount} item(ns)</span>

@@ -46,10 +46,18 @@ export function maskCNPJ(value: string): string {
  */
 export function maskPhone(value: string): string {
   if (!value) return '';
-  
+
   // Remove tudo que não é dígito
-  const numbers = value.replace(/\D/g, '');
-  
+  let numbers = value.replace(/\D/g, '');
+
+  // Números de WhatsApp costumam vir com o código do país (+55). Nenhum número
+  // local brasileiro tem mais de 11 dígitos, então só removemos o "55" quando
+  // sobrarem dígitos além dos 11 — do contrário um DDD que começa com 55
+  // (ex.: Santa Maria/RS) seria cortado por engano.
+  if (numbers.length > 11 && numbers.startsWith('55')) {
+    numbers = numbers.substring(2);
+  }
+
   // Limita a 11 dígitos
   const limited = numbers.substring(0, 11);
   
