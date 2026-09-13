@@ -240,3 +240,62 @@ export function resolveBulkAdvanceSelection(
 
   return { kind: 'ready', currentStatus, nextStatus }
 }
+
+// ---------------------------------------------------------------------------
+// Funções baseadas em order_position (dado real do tenant), não em nomes fixos.
+//
+// As funções acima (toCanonicalStatus/getNextStatus/STATUS_FLOW) assumem que
+// todo tenant usa os nomes canônicos "Pendente/Aceito/Preparo/Concluído". Um
+// tenant pode renomear e reordenar seus status livremente (ex.: produção usa
+// "Recebido, Preparando, Entrega, Concluído, Cancelado"), então qualquer coisa
+// que precise do PRÓXIMO status real (rótulo de botão, liberar "Finalizar",
+// achar o status terminal) deve usar order_position — a mesma correção já
+// aplicada em OrderService::getNextStatus no backend.
+// ---------------------------------------------------------------------------
+
+export interface OrderStatusRecord {
+  name: string
+  order_position?: number | null
+  is_active?: boolean
+  [key: string]: unknown
+}
+
+function orderedActiveStatuses(statuses: OrderStatusRecord[]): OrderStatusRecord[] {
+  return statuses
+    .filter((s) => s.is_active !== false && !isCancelledOrderStatus(s.name))
+    .sort((a, b) => (a.order_position ?? 0) - (b.order_position ?? 0))
+}
+
+/** Próximo status real do tenant (por order_position), a partir da lista carregada. */
+export function getNextStatusFromList(
+  statuses: OrderStatusRecord[],
+  currentStatusName: string | null | undefined
+): OrderStatusRecord | null {
+  if (!currentStatusName || !statuses?.length) return null
+  const ordered = orderedActiveStatuses(statuses)
+  const currentIndex = ordered.findIndex((s) => s.name === currentStatusName)
+  if (currentIndex === -1) return null
+  return ordered[currentIndex + 1] ?? null
+}
+
+/** Último status do fluxo normal do tenant (o que representa "concluído"), por posição. */
+export function getTerminalStatusFromList(statuses: OrderStatusRecord[]): OrderStatusRecord | null {
+  const ordered = orderedActiveStatuses(statuses)
+  return ordered[ordered.length - 1] ?? null
+}
+
+/** true quando o status atual é o penúltimo do fluxo — passo imediatamente antes do terminal. */
+export function isStepBeforeTerminal(
+  statuses: OrderStatusRecord[],
+  currentStatusName: string | null | undefined
+): boolean {
+  if (!currentStatusName || !statuses?.length) return false
+  const ordered = orderedActiveStatuses(statuses)
+  const currentIndex = ordered.findIndex((s) => s.name === currentStatusName)
+  return currentIndex !== -1 && currentIndex === ordered.length - 2
+}
+
+/** Status de cancelamento do tenant, identificado pelo nome (ex.: "Cancelado"). */
+export function findCancelledStatus(statuses: OrderStatusRecord[]): OrderStatusRecord | null {
+  return statuses.find((s) => isCancelledOrderStatus(s.name)) ?? null
+}

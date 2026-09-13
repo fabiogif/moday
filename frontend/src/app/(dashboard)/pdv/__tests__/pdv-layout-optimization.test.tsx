@@ -12,6 +12,7 @@ jest.mock('@/hooks/use-authenticated-api', () => ({
   useAuthenticatedOrdersByTable: jest.fn(),
   useAuthenticatedTodayOrders: jest.fn(),
   useAuthenticatedActiveServiceTypes: jest.fn(),
+  useAuthenticatedActiveOrderStatuses: jest.fn(),
   useMutation: jest.fn(),
 }))
 

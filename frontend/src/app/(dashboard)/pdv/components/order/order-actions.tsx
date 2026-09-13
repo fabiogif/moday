@@ -118,14 +118,14 @@ export function OrderActions({
           <Button
             key={key}
             variant="outline"
-            size="icon"
             onClick={onClick}
             disabled={disabled}
-            className="h-9 w-9 shrink-0"
+            className="h-12 w-16 shrink-0 flex-col gap-0.5 px-1 py-1.5"
             title={label}
             aria-label={label}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="w-full truncate text-center text-[9px] font-medium leading-none">{label}</span>
           </Button>
         ))}
       </div>

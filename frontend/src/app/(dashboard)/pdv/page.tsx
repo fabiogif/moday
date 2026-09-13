@@ -11,6 +11,7 @@ import {
   useAuthenticatedOrdersByTable,
   useAuthenticatedTodayOrders,
   useAuthenticatedActiveServiceTypes,
+  useAuthenticatedActiveOrderStatuses,
   useMutation,
 } from "@/hooks/use-authenticated-api"
 import { useAuth } from "@/contexts/auth-context"
@@ -92,6 +93,7 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown,
+  FileText,
   ArrowRight,
   Handshake,
   CreditCard as CreditCardIcon,
@@ -131,8 +133,12 @@ import {
   isFinalStatus,
   canEditOrder,
   canAdvanceStatus,
-  getNextStatusName,
-  FINAL_STATUSES
+  FINAL_STATUSES,
+  getNextStatusFromList,
+  getTerminalStatusFromList,
+  isStepBeforeTerminal,
+  findCancelledStatus,
+  type OrderStatusRecord,
 } from "@/lib/order-status"
 import {
   parsePrice as parsePriceUtil,
@@ -541,7 +547,7 @@ function renderOrderActionButtons({
   handleAdvanceStatus,
   handleFinalizeOrder,
   handleCancelOrder,
-  getNextStatusName,
+  orderStatuses,
   isFinalStatus,
 }: {
   orderStarted: boolean
@@ -554,16 +560,18 @@ function renderOrderActionButtons({
   handleAdvanceStatus: () => void
   handleFinalizeOrder: () => void
   handleCancelOrder: () => void
-  getNextStatusName: (status: string | null | undefined) => string | null
+  orderStatuses: OrderStatusRecord[]
   isFinalStatus: (status: string | null | undefined) => boolean
 }) {
   // Verificar se o pedido tem status final
   const orderStatus = editingOrder?.status || editingOrder?.order_status?.name || currentOrder?.status || currentOrder?.order_status?.name
   const orderIsFinal = isFinalStatus(orderStatus)
   const canAdvanceStatus = !orderIsFinal && orderStatus !== 'Concluído'
-  // "Concluir Pedido" aparece no último passo antes de Concluído.
-  const canFinalize = !orderIsFinal && orderStatus === 'Preparo'
-  const nextStatusNameForAdvance = getNextStatusName(orderStatus)
+  // "Concluir Pedido" aparece no penúltimo passo do fluxo do tenant (por
+  // order_position) — não em um nome fixo como "Preparo", que quebra para
+  // tenants com status customizados (ex.: "Preparando").
+  const canFinalize = !orderIsFinal && isStepBeforeTerminal(orderStatuses, orderStatus)
+  const nextStatusNameForAdvance = getNextStatusFromList(orderStatuses, orderStatus)?.name ?? null
   const advanceTitle =
     !canAdvanceStatus
       ? "Status atual não permite avançar"
@@ -757,6 +765,7 @@ export default function POSPage() {
     loading: serviceTypesLoading,
     error: serviceTypesError,
   } = useAuthenticatedActiveServiceTypes()
+  const { data: orderStatusesData } = useAuthenticatedActiveOrderStatuses()
   const { mutate: mutateOrder, loading: submittingOrder } = useMutation()
 
   // ============================================
@@ -807,6 +816,7 @@ export default function POSPage() {
   const [showDashboard, setShowDashboard] = useState(false)
   const [showTodayOrdersSheet, setShowTodayOrdersSheet] = useState(false)
   const [showClientSection, setShowClientSection] = useState(false)
+  const [showFiscalSection, setShowFiscalSection] = useState(false)
   const [productSearchQuery, setProductSearchQuery] = useState("")
   const [showPaymentMethods, setShowPaymentMethods] = useState(true)
   const [showChangeDialog, setShowChangeDialog] = useState(false)
@@ -1428,7 +1438,8 @@ const handleClientChange = (value: string) => {
         },
       ]
     })
-    toast.success(`${product.name} adicionado ao pedido`)
+    // Ação de altíssima frequência (a cada item lançado) — dwell curto pra não empilhar toasts.
+    toast.success(`${product.name} adicionado ao pedido`, { duration: 1800 })
   }
 
   const resetSelectionState = () => {
@@ -2297,26 +2308,29 @@ const handleClientChange = (value: string) => {
       return
     }
 
-    // Verificar se está em status que permite finalizar
-    if (orderStatus !== 'Preparo') {
-      toast.error(`Pedido deve estar em "Preparo" para ser finalizado. Status atual: ${orderStatus}`)
-      return
-    }
-
     try {
-      // Buscar status "Concluído"
-      let completedStatus = null
+      // Buscar o fluxo de status do tenant para validar a etapa e achar o status terminal
+      // por order_position — não por nome fixo, que quebra para tenants com status
+      // customizados (ex.: o fluxo desta loja usa "Preparando", não "Preparo").
+      let statusesList: OrderStatusRecord[] = []
       try {
         const response = await apiClient.get(endpoints.orderStatuses.list(true))
         if (response.success && response.data && Array.isArray(response.data)) {
-          completedStatus = response.data.find((s: any) => s.name === 'Concluído')
+          statusesList = response.data as OrderStatusRecord[]
         }
       } catch (error) {
 
       }
 
+      if (!isStepBeforeTerminal(statusesList, orderStatus)) {
+        toast.error(`Pedido precisa estar na penúltima etapa do fluxo para ser finalizado. Status atual: ${orderStatus}`)
+        return
+      }
+
+      const completedStatus = getTerminalStatusFromList(statusesList)
+
       if (!completedStatus) {
-        toast.error("Não foi possível encontrar o status 'Concluído'.")
+        toast.error("Não foi possível encontrar o status final do fluxo de pedidos.")
         return
       }
 
@@ -2429,17 +2443,13 @@ const handleClientChange = (value: string) => {
     }
 
     try {
-      // Buscar status "Cancelado" primeiro por nome, depois por position
-      let cancelledStatus = null
+      // Status de cancelamento identificado pelo nome (ex.: "Cancelado"), não por
+      // uma posição fixa — nem todo tenant tem exatamente 5 status no fluxo.
+      let cancelledStatus: OrderStatusRecord | null = null
       try {
         const response = await apiClient.get(endpoints.orderStatuses.list(true))
         if (response.success && response.data && Array.isArray(response.data)) {
-          // Primeiro tentar buscar por nome
-          cancelledStatus = response.data.find((s: any) => s.name === 'Cancelado')
-          // Se não encontrar, buscar por order_position = 5
-          if (!cancelledStatus) {
-            cancelledStatus = response.data.find((s: any) => s.order_position === 5)
-          }
+          cancelledStatus = findCancelledStatus(response.data as OrderStatusRecord[])
         }
       } catch (error) {
 
@@ -2450,9 +2460,8 @@ const handleClientChange = (value: string) => {
         return
       }
 
-      // Usar o nome do status diretamente, que é mais confiável
       const payload: Record<string, any> = {
-        status: 'Cancelado', // Usar nome diretamente
+        status: cancelledStatus.name,
       }
 
       const result = await mutateOrder(endpoints.orders.update(String(orderIdentify)), "PUT", payload)
@@ -2721,7 +2730,7 @@ const handleClientChange = (value: string) => {
                         showAlert={false}
                         allowViewOnly={true}
                       >
-                        <div className="flex-1 flex items-center justify-center">
+                        <div className="flex-1">
                           <OrderTypeSelector
                             selectedType={
                               (currentServiceType?.identify ||
@@ -3156,21 +3165,39 @@ const handleClientChange = (value: string) => {
                                 return null
                               })()}
                               
-                              {/* Documento Fiscal */}
+                              {/* Documento Fiscal — recolhido por padrão, nem todo pedido precisa de nota */}
                               <Separator />
-                              <FiscalDocument
-                                documentType={fiscalDocumentType}
-                                cpfCnpj={fiscalCpfCnpj}
-                                onDocumentTypeChange={setFiscalDocumentType}
-                                onCpfCnpjChange={setFiscalCpfCnpj}
-                                onEmitNow={() => {
-                                  // TODO: Implementar emissão de NFC-e
-                                  toast.info("NFC-e emitida com sucesso")
-                                }}
-                                onEmitLater={() => {
-                                  toast.info("NFC-e será emitida posteriormente")
-                                }}
-                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setShowFiscalSection(!showFiscalSection)}
+                                className="w-full h-11 justify-between"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  Documento fiscal (opcional)
+                                </span>
+                                {showFiscalSection ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </Button>
+                              {showFiscalSection && (
+                                <FiscalDocument
+                                  documentType={fiscalDocumentType}
+                                  cpfCnpj={fiscalCpfCnpj}
+                                  onDocumentTypeChange={setFiscalDocumentType}
+                                  onCpfCnpjChange={setFiscalCpfCnpj}
+                                  onEmitNow={() => {
+                                    // TODO: Implementar emissão de NFC-e
+                                    toast.info("NFC-e emitida com sucesso")
+                                  }}
+                                  onEmitLater={() => {
+                                    toast.info("NFC-e será emitida posteriormente")
+                                  }}
+                                />
+                              )}
                             </div>
                           </OrderStatusGuard>
                         )
@@ -3548,7 +3575,7 @@ const handleClientChange = (value: string) => {
                           handleAdvanceStatus,
                           handleFinalizeOrder,
                           handleCancelOrder,
-                          getNextStatusName,
+                          orderStatuses: (orderStatusesData as OrderStatusRecord[]) || [],
                           isFinalStatus,
                         })}
                       </div>

@@ -7,6 +7,7 @@ import {
   useAuthenticatedOrdersByTable,
   useAuthenticatedTodayOrders,
   useAuthenticatedActiveServiceTypes,
+  useAuthenticatedActiveOrderStatuses,
   useMutation,
 } from '@/hooks/use-authenticated-api'
 import { useAuth } from '@/contexts/auth-context'
@@ -36,6 +37,13 @@ export const defaultPayments = [
 ]
 export const defaultClients = [{ uuid: 'client-1', name: 'João Silva', phone: '11999999999' }]
 export const defaultServiceTypes = [{ uuid: 'st-1', name: 'Balcão', is_active: true }]
+export const defaultOrderStatuses = [
+  { uuid: 'os-1', name: 'Pendente', order_position: 1, is_active: true },
+  { uuid: 'os-2', name: 'Aceito', order_position: 2, is_active: true },
+  { uuid: 'os-3', name: 'Preparo', order_position: 3, is_active: true },
+  { uuid: 'os-4', name: 'Concluído', order_position: 4, is_active: true },
+  { uuid: 'os-5', name: 'Cancelado', order_position: 5, is_active: true },
+]
 
 export const pdvTestMocks = {
   jestAuthenticatedApi: () => ({
@@ -47,6 +55,7 @@ export const pdvTestMocks = {
     useAuthenticatedOrdersByTable: jest.fn(),
     useAuthenticatedTodayOrders: jest.fn(),
     useAuthenticatedActiveServiceTypes: jest.fn(),
+    useAuthenticatedActiveOrderStatuses: jest.fn(),
     useMutation: jest.fn(),
   }),
   jestAuth: () => ({
@@ -73,6 +82,7 @@ export function setupPdvMocks(overrides: {
   payments?: unknown[]
   clients?: unknown[]
   serviceTypes?: unknown[]
+  orderStatuses?: unknown[]
   ordersByTable?: unknown[]
   todayOrders?: unknown[]
   mutate?: jest.Mock
@@ -84,6 +94,7 @@ export function setupPdvMocks(overrides: {
     payments: overrides.payments ?? defaultPayments,
     clients: overrides.clients ?? defaultClients,
     serviceTypes: overrides.serviceTypes ?? defaultServiceTypes,
+    orderStatuses: overrides.orderStatuses ?? defaultOrderStatuses,
     ordersByTable: overrides.ordersByTable ?? [],
     todayOrders: overrides.todayOrders ?? [],
     mutate: overrides.mutate ?? jest.fn().mockResolvedValue({ identify: 'order-123' }),
@@ -119,6 +130,10 @@ export function setupPdvMocks(overrides: {
   })
   ;(useAuthenticatedActiveServiceTypes as jest.Mock).mockReturnValue({
     data: mocks.serviceTypes,
+    ...defaultPdvHookReturn,
+  })
+  ;(useAuthenticatedActiveOrderStatuses as jest.Mock).mockReturnValue({
+    data: mocks.orderStatuses,
     ...defaultPdvHookReturn,
   })
   ;(useMutation as jest.Mock).mockReturnValue({
