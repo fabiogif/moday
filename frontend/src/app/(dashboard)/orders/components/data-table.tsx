@@ -67,12 +67,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import {
   canEditOrder,
-  getNextStatus,
-  resolveBulkAdvanceSelection,
+  getNextStatusFromList,
+  resolveBulkAdvanceSelectionFromList,
+  type OrderStatusRecord,
 } from "@/lib/order-status"
 
 interface DataTableProps {
   orders: Order[]
+  orderStatuses: OrderStatusRecord[]
   onDeleteOrder: (order: Order) => void
   onEditOrder: (order: Order) => void
   onViewOrder: (order: Order) => void
@@ -84,6 +86,7 @@ interface DataTableProps {
 
 export function DataTable({
   orders,
+  orderStatuses,
   onDeleteOrder,
   onEditOrder,
   onViewOrder,
@@ -178,7 +181,7 @@ export function DataTable({
   const handleConfirmSingleAdvance = async () => {
     if (!onBulkUpdateStatus || !singleAdvanceOrder) return
 
-    const nextStatus = getNextStatus(singleAdvanceOrder.status)
+    const nextStatus = getNextStatusFromList(orderStatuses, singleAdvanceOrder.status)?.name ?? null
     const orderId = getOrderId(singleAdvanceOrder)
     if (!nextStatus || !orderId) return
 
@@ -308,7 +311,7 @@ export function DataTable({
       enableHiding: false,
       cell: ({ row }) => {
         const order = row.original
-        const nextStatus = getNextStatus(order.status)
+        const nextStatus = getNextStatusFromList(orderStatuses, order.status)?.name ?? null
 
         return (
           <DropdownMenu>
@@ -391,12 +394,12 @@ export function DataTable({
     const selectedStatuses = table
       .getFilteredSelectedRowModel()
       .rows.map((row) => row.original.status)
-    return resolveBulkAdvanceSelection(selectedStatuses)
+    return resolveBulkAdvanceSelectionFromList(selectedStatuses, orderStatuses)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowSelection, orders, selectedCount])
+  }, [rowSelection, orders, selectedCount, orderStatuses])
 
   const singleAdvanceNextStatus = singleAdvanceOrder
-    ? getNextStatus(singleAdvanceOrder.status)
+    ? getNextStatusFromList(orderStatuses, singleAdvanceOrder.status)?.name ?? null
     : null
 
   const actionButtonClass = "h-9 w-full sm:w-auto shrink-0"

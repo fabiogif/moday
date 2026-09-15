@@ -32,6 +32,7 @@ jest.mock('sonner', () => ({
 // Mock dos hooks
 jest.mock('@/hooks/use-authenticated-api', () => ({
   useAuthenticatedOrders: jest.fn(),
+  useAuthenticatedActiveOrderStatuses: jest.fn(() => ({ data: [], loading: false, error: null })),
   useMutation: jest.fn(),
 }))
 
@@ -46,7 +47,7 @@ jest.mock('@/lib/api-client', () => ({
       invoice: (id: string) => `/api/order/${id}/invoice`,
       bulkDelete: '/api/orders/bulk-delete',
       bulkUpdateStatus: '/api/orders/bulk-update-status',
-      staleOpen: (days = 15) => `/api/orders/stale-open?days=${days}`,
+      staleOpen: (days = 15) => `/api/orders/stale-for-completion?days=${days}`,
       completeStale: '/api/orders/complete-stale',
     },
   },
@@ -88,6 +89,14 @@ jest.mock('../components/receipt-dialog', () => ({
 
 const mockUseAuthenticatedOrders = useAuthenticatedOrders as jest.MockedFunction<typeof useAuthenticatedOrders>
 const mockUseMutation = useMutation as jest.MockedFunction<typeof useMutation>
+
+const mockOrderStatuses = [
+  { name: 'Pendente', order_position: 0, is_active: true },
+  { name: 'Aceito', order_position: 1, is_active: true },
+  { name: 'Preparo', order_position: 2, is_active: true },
+  { name: 'Concluído', order_position: 3, is_active: true },
+  { name: 'Cancelado', order_position: 4, is_active: true },
+]
 
 const generateOrder = (overrides: Partial<Order> = {}): Order => ({
   id: 1,
@@ -131,6 +140,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -153,6 +163,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -176,6 +187,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -207,6 +219,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -240,6 +253,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -274,6 +288,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -303,6 +318,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mixedOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -326,6 +342,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -356,6 +373,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -391,6 +409,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -414,6 +433,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -430,6 +450,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}
@@ -461,6 +482,7 @@ describe('Ações em Massa - DataTable', () => {
       render(
         <DataTable
           orders={mockOrders}
+          orderStatuses={mockOrderStatuses}
           onDeleteOrder={mockOnDeleteOrder}
           onEditOrder={mockOnEditOrder}
           onViewOrder={mockOnViewOrder}

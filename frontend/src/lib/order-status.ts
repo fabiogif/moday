@@ -299,3 +299,28 @@ export function isStepBeforeTerminal(
 export function findCancelledStatus(statuses: OrderStatusRecord[]): OrderStatusRecord | null {
   return statuses.find((s) => isCancelledOrderStatus(s.name)) ?? null
 }
+
+/**
+ * Resolve o avanço em massa por order_position (nomes reais do tenant), não
+ * pelo fluxo canônico fixo — mesma correção de getNextStatusFromList aplicada
+ * ao caso de seleção múltipla.
+ */
+export function resolveBulkAdvanceSelectionFromList(
+  statuses: Array<string | null | undefined>,
+  orderStatuses: OrderStatusRecord[]
+): BulkAdvanceSelection {
+  const names = statuses.filter((s): s is string => !!s)
+  if (names.length === 0) return { kind: 'empty' }
+
+  const unique = new Set(names)
+  if (unique.size > 1) return { kind: 'mixed' }
+
+  const currentStatus = [...unique][0]
+  const next = getNextStatusFromList(orderStatuses, currentStatus)
+
+  if (!next) {
+    return { kind: 'final', currentStatus }
+  }
+
+  return { kind: 'ready', currentStatus, nextStatus: next.name }
+}

@@ -358,7 +358,7 @@ export const endpoints = {
     },
     bulkDelete: '/api/orders/bulk-delete',
     bulkUpdateStatus: '/api/orders/bulk-update-status',
-    staleOpen: (days = 15) => `/api/orders/stale-open?days=${days}`,
+    staleOpen: (days = 15) => `/api/orders/stale-for-completion?days=${days}`,
     completeStale: '/api/orders/complete-stale',
     getDetails: (orderId: number) => `/api/order/${orderId}/details`,
     create: '/api/order',

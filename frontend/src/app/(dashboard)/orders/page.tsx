@@ -5,7 +5,11 @@ import { StatCards } from "./components/stat-cards"
 import { DataTable } from "./components/data-table"
 import { OrderDetailsDialog } from "./components/order-details-dialog"
 import { ReceiptDialog } from "./components/receipt-dialog"
-import { useAuthenticatedOrders, useMutation } from "@/hooks/use-authenticated-api"
+import {
+  useAuthenticatedOrders,
+  useAuthenticatedActiveOrderStatuses,
+  useMutation,
+} from "@/hooks/use-authenticated-api"
 import { useOrderRefresh } from "@/hooks/use-order-refresh"
 import { apiClient, endpoints } from "@/lib/api-client"
 import { PageLoading } from "@/components/ui/loading-progress"
@@ -34,6 +38,7 @@ export default function OrdersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: orders, loading, error, refetch, isAuthenticated } = useAuthenticatedOrders()
+  const { data: orderStatusesData } = useAuthenticatedActiveOrderStatuses()
   const { isLoading: authLoading } = useAuth()
 
   const { mutate: deleteOrder } = useMutation()
@@ -287,6 +292,7 @@ export default function OrdersPage() {
 
         <DataTable
           orders={Array.isArray(orders) ? orders : []}
+          orderStatuses={Array.isArray(orderStatusesData) ? orderStatusesData : []}
           onDeleteOrder={handleDeleteOrder}
           onEditOrder={handleEditOrder}
           onViewOrder={handleViewOrder}
