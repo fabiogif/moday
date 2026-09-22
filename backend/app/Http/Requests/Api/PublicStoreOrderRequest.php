@@ -49,6 +49,9 @@ class PublicStoreOrderRequest extends FormRequest
 
             // Coupon
             'coupon_code' => 'nullable|string|max:40',
+
+            // Cliente aceita receber as notificações do pedido no WhatsApp (default: sim)
+            'whatsapp_notifications' => 'sometimes|boolean',
         ];
     }
 

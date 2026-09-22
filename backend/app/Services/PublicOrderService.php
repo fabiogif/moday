@@ -219,6 +219,7 @@ class PublicOrderService
             'coupon_code'      => $coupon?->code,
             'coupon_name'      => $coupon?->name,
             'comment'          => $delivery['notes'] ?? null,
+            'whatsapp_notifications' => (bool) ($validatedData['whatsapp_notifications'] ?? true),
         ], $deliveryData));
 
         // Attach products via pivot (aggregate quantities for duplicate products)

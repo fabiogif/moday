@@ -37,6 +37,13 @@ class SendWhatsAppNotification implements ShouldQueue
     {
         $this->order->loadMissing(['client', 'products', 'tenant', 'paymentMethod', 'orderStatus']);
 
+        if ($this->order->whatsapp_notifications === false) {
+            Log::info('SendWhatsAppNotification: skip — cliente optou por não receber no WhatsApp', [
+                'order_id' => $this->order->id,
+            ]);
+            return;
+        }
+
         $instance = $this->order->tenant?->evolution_instance;
         $phone    = $this->order->client?->whatsapp
                  ?? $this->order->client?->phone;
@@ -89,6 +96,9 @@ class SendWhatsAppNotification implements ShouldQueue
 
         $total = 'R$ ' . number_format((float) $order->total, 2, ',', '.');
 
+        $restaurante = $order->tenant?->name ?? 'Restaurante';
+        $contato     = $order->tenant?->phone ? "📞 *{$restaurante}:* {$order->tenant->phone}" : null;
+
         if ($this->eventType === 'new_order') {
             return implode("\n", [
                 "✅ *Pedido Recebido — #{$order->identify}*",
@@ -102,8 +112,9 @@ class SendWhatsAppNotification implements ShouldQueue
                 "💳 *Pagamento:* {$pagamento}",
                 "📍 *Entrega:* {$endereco}",
                 "🔄 *Status:* {$order->status}",
+                ...($contato ? ["", $contato] : []),
                 "",
-                "Acompanhe seu pedido pelo nosso sistema. Obrigado!",
+                "Muito obrigado pelo seu pedido! 🙏 Esperamos que você goste.",
             ]);
         }
 
@@ -120,6 +131,7 @@ class SendWhatsAppNotification implements ShouldQueue
             "📍 *Entrega:* {$endereco}",
             "↩️ *Status anterior:* {$this->oldStatus}",
             "✅ *Status atual:* {$this->newStatus}",
+            ...($contato ? ["", $contato] : []),
         ]);
     }
 }

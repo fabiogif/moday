@@ -255,6 +255,14 @@ class PublicStoreControllerTest extends TestCase
             \App\Jobs\SendWhatsAppNotification::class,
             fn ($job) => (fn () => $this->eventType)->call($job) === 'new_order'
         );
+
+        // Cliente que desmarca a opção no checkout fica registrado sem notificações
+        $response = $this->postJson("/api/store/{$slug}/orders", $payload + ['whatsapp_notifications' => false])
+            ->assertStatus(201);
+        $this->assertDatabaseHas('orders', [
+            'identify'               => $response->json('data.order_id'),
+            'whatsapp_notifications' => false,
+        ]);
     }
 
     public function test_create_order_sends_completion_email_when_plan_has_feature(): void

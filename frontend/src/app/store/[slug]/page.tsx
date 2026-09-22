@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -170,6 +171,7 @@ export default function PublicStorePage() {
   })
 
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [whatsappNotifications, setWhatsappNotifications] = useState(true)
   const [paymentMethodName, setPaymentMethodName] = useState("")
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [shippingMethod, setShippingMethod] = useState("delivery")
@@ -838,6 +840,7 @@ export default function PublicStorePage() {
         })),
         payment_method: paymentMethod,
         shipping_method: shippingMethod,
+        whatsapp_notifications: whatsappNotifications,
       }
 
       // Debug log to see what's being sent
@@ -2260,6 +2263,17 @@ export default function PublicStorePage() {
                           R$ {formatPrice(cartTotal + (shippingMethod === 'delivery' && deliveryFeeInfo?.fee_type === 'fixed' ? deliveryFeeInfo.fee_value : 0))}
                         </span>
                       </div>
+                      <div className="flex items-start gap-3 border-t pt-3 mt-2">
+                        <Checkbox
+                          id="whatsapp-notifications"
+                          checked={whatsappNotifications}
+                          onCheckedChange={(checked) => setWhatsappNotifications(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <Label htmlFor="whatsapp-notifications" className="cursor-pointer text-sm font-normal leading-snug">
+                          Quero receber a confirmação e as atualizações do pedido no meu WhatsApp
+                        </Label>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -2527,7 +2541,7 @@ export default function PublicStorePage() {
                     </div>
                     <p className="font-semibold text-green-900 dark:text-green-100">Pedido enviado ao restaurante!</p>
                     <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                      O restaurante já recebeu seu pedido e você também receberá a confirmação no seu WhatsApp.
+                      O restaurante já recebeu seu pedido{whatsappNotifications ? " e você também receberá a confirmação no seu WhatsApp" : " e vai começar a preparar"}.
                     </p>
                   </div>
                 ) : null}

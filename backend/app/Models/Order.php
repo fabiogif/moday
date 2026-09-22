@@ -35,6 +35,7 @@ class Order extends Model
         'origin',
         'comment',
         'is_delivery',
+        'whatsapp_notifications',
         'use_client_address',
         'delivery_address',
         'delivery_city',
@@ -57,6 +58,7 @@ class Order extends Model
 
     protected $casts = [
         'is_delivery' => 'boolean',
+        'whatsapp_notifications' => 'boolean',
         'use_client_address' => 'boolean',
         'precisa_troco' => 'boolean',
         'total' => 'decimal:2',
