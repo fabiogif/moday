@@ -31,6 +31,7 @@ services:
       - ./public:/var/www/html/public
     networks:
       - moday-backend
+      - evolution-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -127,6 +128,7 @@ services:
       - ./bootstrap/cache:/var/www/html/bootstrap/cache
     networks:
       - moday-backend
+      - evolution-net
     depends_on:
       mysql:
         condition: service_healthy
@@ -136,7 +138,7 @@ services:
         condition: service_started
     command: >
       php artisan queue:work redis
-      --queue=emails,default
+      --queue=emails,default,whatsapp
       --sleep=3
       --tries=3
       --max-time=3600
@@ -146,6 +148,9 @@ networks:
   moday-backend:
     driver: bridge
     name: moday-backend
+  # Evolution API compartilhada (~/apps/evolution) — criada fora deste compose
+  evolution-net:
+    external: true
 
 volumes:
   moday_mysql_data:

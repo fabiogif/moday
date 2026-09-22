@@ -107,6 +107,7 @@ class PublicOrderService
         $saleOrder->loadMissing(['items.product', 'client']);
         $this->sendCompletionEmail($tenant, $saleOrder);
         $this->broadcastSaleOrderCreated($saleOrder);
+        $this->notifyRestaurantWhatsApp($saleOrder);
         $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
 
         return [
@@ -304,6 +305,18 @@ class PublicOrderService
         $link    = $this->whatsAppService->generateLink($phone, $message);
 
         return ['message' => $message, 'link' => $link];
+    }
+
+    private function notifyRestaurantWhatsApp(SaleOrder $order): void
+    {
+        try {
+            \App\Jobs\SendRestaurantOrderWhatsApp::dispatch($order);
+        } catch (\Throwable $e) {
+            \Log::warning('PublicOrderService: falha ao enfileirar WhatsApp do restaurante', [
+                'sale_order_id' => $order->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
     }
 
     private function broadcastSaleOrderCreated(SaleOrder $order): void
