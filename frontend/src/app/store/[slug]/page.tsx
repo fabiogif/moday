@@ -2527,10 +2527,12 @@ export default function PublicStorePage() {
                     </div>
                     <p className="font-semibold text-green-900 dark:text-green-100">Pedido enviado ao restaurante!</p>
                     <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                      O restaurante já recebeu seu pedido e vai começar a preparar. Não é preciso enviar nada pelo WhatsApp.
+                      O restaurante já recebeu seu pedido e vai começar a preparar. Se quiser, você também pode enviar uma cópia pelo WhatsApp.
                     </p>
                   </div>
-                ) : orderResult?.whatsapp_link ? (
+                ) : null}
+
+                {orderResult?.whatsapp_link ? (
                   <Button 
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0" 
                     size="lg" 
@@ -2541,7 +2543,7 @@ export default function PublicStorePage() {
                     </svg>
                     Enviar Pedido via WhatsApp
                   </Button>
-                ) : (
+                ) : !orderResult?.whatsapp_sent && (
                   <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-gray-900/30 sm:p-6">
                     <Phone className="h-10 w-10 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp não disponível</p>
@@ -2903,7 +2905,7 @@ export default function PublicStorePage() {
           </div>
 
           <div className="flex flex-col gap-3 w-full pt-2">
-            {!orderResult?.whatsapp_sent && orderResult?.whatsapp_link && (
+            {orderResult?.whatsapp_link && (
               <Button asChild className="w-full">
                 <a href={orderResult.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   Enviar para o WhatsApp do restaurante
@@ -2911,7 +2913,7 @@ export default function PublicStorePage() {
               </Button>
             )}
             <Button
-              variant={!orderResult?.whatsapp_sent && orderResult?.whatsapp_link ? "outline" : "default"}
+              variant={orderResult?.whatsapp_link ? "outline" : "default"}
               className="w-full"
               onClick={() => setShowSuccessModal(false)}
             >
