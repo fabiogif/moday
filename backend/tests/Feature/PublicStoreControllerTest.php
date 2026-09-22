@@ -240,7 +240,8 @@ class PublicStoreControllerTest extends TestCase
             'shipping_method' => 'pickup',
         ]);
 
-        // Com WhatsApp configurado, o pedido vai automaticamente para o restaurante
+        // Envio automático desativado (ver PublicOrderService::createOrder): mesmo com WhatsApp
+        // configurado, o cardápio usa só o envio manual (wa.me)
         \Illuminate\Support\Facades\Queue::fake();
         $plan->update(['has_whatsapp_notifications' => true]);
         $tenant->update(['evolution_instance' => 'empresa-dev']);
@@ -248,13 +249,11 @@ class PublicStoreControllerTest extends TestCase
 
         $this->postJson("/api/store/{$slug}/orders", $payload)
             ->assertStatus(201)
-            ->assertJsonPath('data.whatsapp_sent', true);
+            ->assertJsonPath('data.whatsapp_sent', false)
+            ->assertJsonPath('data.whatsapp_link', fn ($link) => !empty($link));
 
-        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendRestaurantOrderWhatsApp::class);
-        \Illuminate\Support\Facades\Queue::assertPushed(
-            \App\Jobs\SendWhatsAppNotification::class,
-            fn ($job) => (fn () => $this->eventType)->call($job) === 'new_order'
-        );
+        \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Jobs\SendRestaurantOrderWhatsApp::class);
+        \Illuminate\Support\Facades\Queue::assertNotPushed(\App\Jobs\SendWhatsAppNotification::class);
 
         // Cliente que desmarca a opção no checkout fica registrado sem notificações
         $response = $this->postJson("/api/store/{$slug}/orders", $payload + ['whatsapp_notifications' => false])

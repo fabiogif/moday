@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -171,7 +170,6 @@ export default function PublicStorePage() {
   })
 
   const [paymentMethod, setPaymentMethod] = useState("")
-  const [whatsappNotifications, setWhatsappNotifications] = useState(true)
   const [paymentMethodName, setPaymentMethodName] = useState("")
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [shippingMethod, setShippingMethod] = useState("delivery")
@@ -182,7 +180,6 @@ export default function PublicStorePage() {
     total: string
     whatsapp_message: string
     whatsapp_link?: string | null
-    whatsapp_sent?: boolean
     delivery_fee?: string
     delivery_fee_type?: string | null
     estimated_delivery_minutes?: number | null
@@ -840,7 +837,6 @@ export default function PublicStorePage() {
         })),
         payment_method: paymentMethod,
         shipping_method: shippingMethod,
-        whatsapp_notifications: whatsappNotifications,
       }
 
       // Debug log to see what's being sent
@@ -2263,17 +2259,6 @@ export default function PublicStorePage() {
                           R$ {formatPrice(cartTotal + (shippingMethod === 'delivery' && deliveryFeeInfo?.fee_type === 'fixed' ? deliveryFeeInfo.fee_value : 0))}
                         </span>
                       </div>
-                      <div className="flex items-start gap-3 border-t pt-3 mt-2">
-                        <Checkbox
-                          id="whatsapp-notifications"
-                          checked={whatsappNotifications}
-                          onCheckedChange={(checked) => setWhatsappNotifications(checked === true)}
-                          className="mt-0.5"
-                        />
-                        <Label htmlFor="whatsapp-notifications" className="cursor-pointer text-sm font-normal leading-snug">
-                          Quero receber a confirmação e as atualizações do pedido no meu WhatsApp
-                        </Label>
-                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -2495,7 +2480,7 @@ export default function PublicStorePage() {
                   <ol className="space-y-2 sm:space-y-3">
                     <li className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">1</span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 pt-0.5">{orderResult?.whatsapp_sent ? "Seu pedido já foi enviado ao restaurante" : "Confirme seu pedido via WhatsApp"}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 pt-0.5">Confirme seu pedido via WhatsApp</p>
                     </li>
                     <li className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">2</span>
@@ -2534,18 +2519,6 @@ export default function PublicStorePage() {
                   </div>
                 )}
 
-                {orderResult?.whatsapp_sent ? (
-                  <div className="w-full rounded-xl border border-green-200 bg-green-50 p-4 text-center dark:border-green-900 dark:bg-green-950/30 sm:p-6" role="status">
-                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
-                      <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
-                    </div>
-                    <p className="font-semibold text-green-900 dark:text-green-100">Pedido enviado ao restaurante!</p>
-                    <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                      O restaurante já recebeu seu pedido{whatsappNotifications ? " e você também receberá a confirmação no seu WhatsApp" : " e vai começar a preparar"}.
-                    </p>
-                  </div>
-                ) : null}
-
                 {orderResult?.whatsapp_link ? (
                   <Button 
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0" 
@@ -2557,7 +2530,7 @@ export default function PublicStorePage() {
                     </svg>
                     Enviar Pedido via WhatsApp
                   </Button>
-                ) : !orderResult?.whatsapp_sent && (
+                ) : (
                   <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-4 text-center dark:border-gray-700 dark:bg-gray-900/30 sm:p-6">
                     <Phone className="h-10 w-10 mx-auto mb-3 text-gray-400 dark:text-gray-600" />
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp não disponível</p>
@@ -2909,13 +2882,7 @@ export default function PublicStorePage() {
               <p>A taxa de entrega será confirmada pelo restaurante.</p>
             )}
             <p>Você receberá atualizações assim que o restaurante começar a preparar seu pedido.</p>
-            {orderResult?.whatsapp_sent ? (
-              <p className="font-medium text-green-700 dark:text-green-400">
-                Seu pedido já foi enviado automaticamente ao restaurante.
-              </p>
-            ) : (
-              <p>Guarde o número acima. Você pode enviar o pedido ao restaurante pelo WhatsApp.</p>
-            )}
+            <p>Guarde o número acima. Você pode enviar o pedido ao restaurante pelo WhatsApp.</p>
           </div>
 
           <div className="flex flex-col gap-3 w-full pt-2">

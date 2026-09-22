@@ -107,7 +107,12 @@ class PublicOrderService
         $saleOrder->loadMissing(['items.product', 'client']);
         $this->sendCompletionEmail($tenant, $saleOrder);
         $this->broadcastSaleOrderCreated($saleOrder);
-        $whatsAppSent = $this->notifyWhatsApp($saleOrder, $tenant);
+        // Envio automático do pedido ao WhatsApp (restaurante + confirmação ao cliente) DESATIVADO por ora:
+        // o cardápio usa só o envio manual (link wa.me no final do pedido). Para reativar, troque a linha
+        // abaixo por `$whatsAppSent = $this->notifyWhatsApp($saleOrder, $tenant);` e restaure no frontend a
+        // tela de "Pedido enviado ao restaurante" + checkbox de opt-in (commit cde1e66, store/[slug]/page.tsx).
+        // $whatsAppSent = $this->notifyWhatsApp($saleOrder, $tenant);
+        $whatsAppSent = false;
         $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
 
         return [
