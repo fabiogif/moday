@@ -251,6 +251,10 @@ class PublicStoreControllerTest extends TestCase
             ->assertJsonPath('data.whatsapp_sent', true);
 
         \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendRestaurantOrderWhatsApp::class);
+        \Illuminate\Support\Facades\Queue::assertPushed(
+            \App\Jobs\SendWhatsAppNotification::class,
+            fn ($job) => (fn () => $this->eventType)->call($job) === 'new_order'
+        );
     }
 
     public function test_create_order_sends_completion_email_when_plan_has_feature(): void

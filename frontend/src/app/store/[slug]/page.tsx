@@ -2527,7 +2527,7 @@ export default function PublicStorePage() {
                     </div>
                     <p className="font-semibold text-green-900 dark:text-green-100">Pedido enviado ao restaurante!</p>
                     <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-                      O restaurante já recebeu seu pedido e vai começar a preparar. Se quiser, você também pode enviar uma cópia pelo WhatsApp.
+                      O restaurante já recebeu seu pedido e você também receberá a confirmação no seu WhatsApp.
                     </p>
                   </div>
                 ) : null}

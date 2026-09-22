@@ -107,7 +107,7 @@ class PublicOrderService
         $saleOrder->loadMissing(['items.product', 'client']);
         $this->sendCompletionEmail($tenant, $saleOrder);
         $this->broadcastSaleOrderCreated($saleOrder);
-        $whatsAppSent = $this->notifyRestaurantWhatsApp($saleOrder, $tenant);
+        $whatsAppSent = $this->notifyWhatsApp($saleOrder, $tenant);
         $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
 
         return [
@@ -251,11 +251,7 @@ class PublicOrderService
     {
         try {
             if ($tenant->plan && $tenant->plan->has_order_completion_email) {
-                $order = Order::where('identify', $saleOrder->identify)
-                    ->where('tenant_id', $tenant->id)
-                    ->first();
-
-                if ($order) {
+                if ($order = $this->findDashboardOrder($saleOrder)) {
                     $this->orderEmailService->sendOrderCompletedEmail($order);
                 }
             }
@@ -309,10 +305,10 @@ class PublicOrderService
     }
 
     /**
-     * Enfileira o envio do pedido ao WhatsApp do restaurante.
+     * Enfileira o envio do pedido ao WhatsApp do restaurante e a confirmação ao cliente.
      * Retorna false quando o restaurante não tem envio automático — o cardápio mostra o link wa.me.
      */
-    private function notifyRestaurantWhatsApp(SaleOrder $order, Tenant $tenant): bool
+    private function notifyWhatsApp(SaleOrder $order, Tenant $tenant): bool
     {
         if (!$tenant->sendsOrdersToWhatsApp()) {
             return false;
@@ -320,7 +316,6 @@ class PublicOrderService
 
         try {
             \App\Jobs\SendRestaurantOrderWhatsApp::dispatch($order);
-            return true;
         } catch (\Throwable $e) {
             \Log::warning('PublicOrderService: falha ao enfileirar WhatsApp do restaurante', [
                 'sale_order_id' => $order->id,
@@ -328,6 +323,28 @@ class PublicOrderService
             ]);
             return false;
         }
+
+        // Confirmação "Pedido Recebido" para o cliente — mesmo job/mensagem usados nos pedidos do PDV
+        try {
+            if ($dashboardOrder = $this->findDashboardOrder($order)) {
+                \App\Jobs\SendWhatsAppNotification::dispatch($dashboardOrder, 'new_order');
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('PublicOrderService: falha ao enfileirar WhatsApp do cliente', [
+                'sale_order_id' => $order->id,
+                'error'         => $e->getMessage(),
+            ]);
+        }
+
+        return true;
+    }
+
+    /** Espelho `Order` (quadro Kanban) do pedido de venda — ver docblock da classe. */
+    private function findDashboardOrder(SaleOrder $saleOrder): ?Order
+    {
+        return Order::where('identify', $saleOrder->identify)
+            ->where('tenant_id', $saleOrder->tenant_id)
+            ->first();
     }
 
     private function broadcastSaleOrderCreated(SaleOrder $order): void
