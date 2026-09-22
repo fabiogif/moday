@@ -17,6 +17,26 @@ class EvolutionApiService
     }
 
     /**
+     * Estado da conexão da instância ("open", "connecting", "close") ou null se a Evolution não respondeu.
+     */
+    public function connectionState(string $instance): ?string
+    {
+        try {
+            $response = Http::withHeaders(['apikey' => $this->apiKey])
+                ->timeout(10)
+                ->get("{$this->baseUrl}/instance/connectionState/{$instance}");
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($response->status() === 404) {
+            return 'not_found';
+        }
+
+        return $response->successful() ? $response->json('instance.state') : null;
+    }
+
+    /**
      * Envia mensagem de texto via Evolution API.
      *
      * @param  string  $instance     Nome da instância configurada na Evolution API

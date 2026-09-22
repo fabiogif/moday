@@ -332,6 +332,16 @@ class Tenant extends Model
         ];
     }
 
+    /**
+     * Pedidos do cardápio vão automaticamente para o WhatsApp do restaurante (Evolution API)?
+     */
+    public function sendsOrdersToWhatsApp(): bool
+    {
+        return (bool) $this->plan?->has_whatsapp_notifications
+            && !empty($this->evolution_instance)
+            && !empty($this->phone);
+    }
+
     // ── Relationships ─────────────────────────────────────────────────────────
 
     public function users(): HasMany

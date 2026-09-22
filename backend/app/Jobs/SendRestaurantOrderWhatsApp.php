@@ -35,15 +35,9 @@ class SendRestaurantOrderWhatsApp implements ShouldQueue
         $order  = $this->saleOrder->loadMissing(['tenant.plan', 'client', 'items.product']);
         $tenant = $order->tenant;
 
-        $instance = $tenant?->evolution_instance;
-        $phone    = $tenant?->phone;
-
-        if (!$tenant?->plan?->has_whatsapp_notifications || !$instance || !$phone || !$order->client) {
+        if (!$tenant?->sendsOrdersToWhatsApp() || !$order->client) {
             Log::info('SendRestaurantOrderWhatsApp: skip — WhatsApp do restaurante não configurado', [
                 'sale_order_id' => $order->id,
-                'has_plan'      => (bool) $tenant?->plan?->has_whatsapp_notifications,
-                'has_instance'  => (bool) $instance,
-                'has_phone'     => (bool) $phone,
             ]);
             return;
         }
@@ -51,7 +45,7 @@ class SendRestaurantOrderWhatsApp implements ShouldQueue
         $message = $whatsAppService->generateSaleOrderMessage($order, $order->client, $tenant);
 
         // ponytail: retry após timeout com a mensagem já aceita pela Evolution pode duplicar; guardar message id se isso aparecer
-        if (!$evolutionApi->sendText($instance, $phone, $message, linkPreview: false)) {
+        if (!$evolutionApi->sendText($tenant->evolution_instance, $tenant->phone, $message, linkPreview: false)) {
             throw new \RuntimeException("Evolution API retornou erro para o pedido #{$order->identify}");
         }
 

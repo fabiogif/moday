@@ -32,7 +32,7 @@ class SendRestaurantOrderWhatsAppTest extends TestCase
             'evolution_instance' => 'restaurante-1',
             'phone'              => '(71) 3333-4444',
         ]);
-        $client  = Client::factory()->create(['tenant_id' => $tenant->id, 'name' => 'João']);
+        $client  = Client::factory()->create(['tenant_id' => $tenant->id, 'name' => 'João', 'email' => null]);
         $product = Product::factory()->create(['tenant_id' => $tenant->id, 'name' => 'Hambúrguer']);
 
         $order = SaleOrder::factory()->create([
@@ -75,7 +75,8 @@ class SendRestaurantOrderWhatsAppTest extends TestCase
                 && str_contains($body['text'], "#{$order->identify}")
                 && str_contains($body['text'], '2x Hambúrguer')
                 && str_contains($body['text'], 'Sem cebola')
-                && str_contains($body['text'], 'João');
+                && str_contains($body['text'], 'João')
+                && !str_contains($body['text'], '*Email:*');
         });
     }
 

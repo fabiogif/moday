@@ -226,7 +226,8 @@ class PublicStoreControllerTest extends TestCase
         $this->postJson("/api/store/{$slug}/orders", $payload)
             ->assertStatus(201)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.order_id', fn ($id) => !empty($id));
+            ->assertJsonPath('data.order_id', fn ($id) => !empty($id))
+            ->assertJsonPath('data.whatsapp_sent', false);
 
         $this->assertDatabaseHas('order_product', [
             'product_id' => $product->id,
@@ -238,6 +239,18 @@ class PublicStoreControllerTest extends TestCase
             'is_delivery' => false,
             'shipping_method' => 'pickup',
         ]);
+
+        // Com WhatsApp configurado, o pedido vai automaticamente para o restaurante
+        \Illuminate\Support\Facades\Queue::fake();
+        $plan->update(['has_whatsapp_notifications' => true]);
+        $tenant->update(['evolution_instance' => 'empresa-dev']);
+        $tenant->unsetRelation('plan');
+
+        $this->postJson("/api/store/{$slug}/orders", $payload)
+            ->assertStatus(201)
+            ->assertJsonPath('data.whatsapp_sent', true);
+
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\SendRestaurantOrderWhatsApp::class);
     }
 
     public function test_create_order_sends_completion_email_when_plan_has_feature(): void

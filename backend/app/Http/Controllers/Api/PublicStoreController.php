@@ -130,6 +130,7 @@ class PublicStoreController extends Controller
                 'coupon_code' => $result['coupon_code'],
                 'whatsapp_message' => $result['whatsapp_message'],
                 'whatsapp_link' => $result['whatsapp_link'],
+                'whatsapp_sent' => $result['whatsapp_sent'],
             ];
 
             return ApiResponseClass::sendResponse(

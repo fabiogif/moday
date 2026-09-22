@@ -51,6 +51,8 @@ return [
     'evolution_api' => [
         'url' => env('EVOLUTION_API_URL'),
         'key' => env('EVOLUTION_API_KEY'),
+        // Recebe alerta quando a instância de algum tenant cai (além do e-mail do próprio tenant)
+        'alert_email' => env('EVOLUTION_ALERT_EMAIL'),
     ],
 
     'cosmos' => [

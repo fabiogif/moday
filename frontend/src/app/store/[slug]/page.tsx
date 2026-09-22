@@ -180,6 +180,7 @@ export default function PublicStorePage() {
     total: string
     whatsapp_message: string
     whatsapp_link?: string | null
+    whatsapp_sent?: boolean
     delivery_fee?: string
     delivery_fee_type?: string | null
     estimated_delivery_minutes?: number | null
@@ -2480,7 +2481,7 @@ export default function PublicStorePage() {
                   <ol className="space-y-2 sm:space-y-3">
                     <li className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">1</span>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 pt-0.5">Confirme seu pedido via WhatsApp</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 pt-0.5">{orderResult?.whatsapp_sent ? "Seu pedido já foi enviado ao restaurante" : "Confirme seu pedido via WhatsApp"}</p>
                     </li>
                     <li className="flex items-start gap-3">
                       <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white text-xs font-bold flex items-center justify-center">2</span>
@@ -2519,7 +2520,17 @@ export default function PublicStorePage() {
                   </div>
                 )}
 
-                {orderResult?.whatsapp_link ? (
+                {orderResult?.whatsapp_sent ? (
+                  <div className="w-full rounded-xl border border-green-200 bg-green-50 p-4 text-center dark:border-green-900 dark:bg-green-950/30 sm:p-6" role="status">
+                    <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+                      <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <p className="font-semibold text-green-900 dark:text-green-100">Pedido enviado ao restaurante!</p>
+                    <p className="mt-1 text-sm text-green-700 dark:text-green-300">
+                      O restaurante já recebeu seu pedido e vai começar a preparar. Não é preciso enviar nada pelo WhatsApp.
+                    </p>
+                  </div>
+                ) : orderResult?.whatsapp_link ? (
                   <Button 
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0" 
                     size="lg" 
@@ -2882,11 +2893,17 @@ export default function PublicStorePage() {
               <p>A taxa de entrega será confirmada pelo restaurante.</p>
             )}
             <p>Você receberá atualizações assim que o restaurante começar a preparar seu pedido.</p>
-            <p>Guarde o número acima. Você pode enviar o pedido ao restaurante pelo WhatsApp.</p>
+            {orderResult?.whatsapp_sent ? (
+              <p className="font-medium text-green-700 dark:text-green-400">
+                Seu pedido já foi enviado automaticamente ao restaurante.
+              </p>
+            ) : (
+              <p>Guarde o número acima. Você pode enviar o pedido ao restaurante pelo WhatsApp.</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 w-full pt-2">
-            {orderResult?.whatsapp_link && (
+            {!orderResult?.whatsapp_sent && orderResult?.whatsapp_link && (
               <Button asChild className="w-full">
                 <a href={orderResult.whatsapp_link} target="_blank" rel="noopener noreferrer">
                   Enviar para o WhatsApp do restaurante
@@ -2894,7 +2911,7 @@ export default function PublicStorePage() {
               </Button>
             )}
             <Button
-              variant={orderResult?.whatsapp_link ? "outline" : "default"}
+              variant={!orderResult?.whatsapp_sent && orderResult?.whatsapp_link ? "outline" : "default"}
               className="w-full"
               onClick={() => setShowSuccessModal(false)}
             >

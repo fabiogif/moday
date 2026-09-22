@@ -89,11 +89,16 @@ class WhatsAppService
         })->implode("\n");
 
         $total   = number_format((float) $order->total, 2, ',', '.');
-        $message = "*Novo Pedido de Venda #{$order->identify}*\n\n";
-        $message .= "*Cliente:* {$client->name}\n";
+        $message = "*Novo Pedido #{$order->identify}*\n";
+        if ($order->created_at) {
+            $message .= 'Realizado às ' . $order->created_at->format('H:i') . "\n";
+        }
+        $message .= "\n*Cliente:* {$client->name}\n";
         $message .= "*Telefone:* {$client->phone}\n";
-        $message .= "*Email:* {$client->email}\n\n";
-        $message .= "*Produtos:*\n{$lines}\n\n";
+        if ($client->email) {
+            $message .= "*Email:* {$client->email}\n";
+        }
+        $message .= "\n*Produtos:*\n{$lines}\n\n";
 
         if ((float) $order->discount_amount > 0) {
             $discount = number_format((float) $order->discount_amount, 2, ',', '.');

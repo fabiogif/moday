@@ -107,7 +107,7 @@ class PublicOrderService
         $saleOrder->loadMissing(['items.product', 'client']);
         $this->sendCompletionEmail($tenant, $saleOrder);
         $this->broadcastSaleOrderCreated($saleOrder);
-        $this->notifyRestaurantWhatsApp($saleOrder);
+        $whatsAppSent = $this->notifyRestaurantWhatsApp($saleOrder, $tenant);
         $whatsAppData = $this->generateWhatsAppData($saleOrder, $client, $tenant);
 
         return [
@@ -118,6 +118,7 @@ class PublicOrderService
             'coupon_code'     => $couponResult['coupon']?->code,
             'whatsapp_message' => $whatsAppData['message'],
             'whatsapp_link'    => $whatsAppData['link'],
+            'whatsapp_sent'    => $whatsAppSent,
         ];
     }
 
@@ -307,15 +308,25 @@ class PublicOrderService
         return ['message' => $message, 'link' => $link];
     }
 
-    private function notifyRestaurantWhatsApp(SaleOrder $order): void
+    /**
+     * Enfileira o envio do pedido ao WhatsApp do restaurante.
+     * Retorna false quando o restaurante não tem envio automático — o cardápio mostra o link wa.me.
+     */
+    private function notifyRestaurantWhatsApp(SaleOrder $order, Tenant $tenant): bool
     {
+        if (!$tenant->sendsOrdersToWhatsApp()) {
+            return false;
+        }
+
         try {
             \App\Jobs\SendRestaurantOrderWhatsApp::dispatch($order);
+            return true;
         } catch (\Throwable $e) {
             \Log::warning('PublicOrderService: falha ao enfileirar WhatsApp do restaurante', [
                 'sale_order_id' => $order->id,
                 'error'         => $e->getMessage(),
             ]);
+            return false;
         }
     }
 

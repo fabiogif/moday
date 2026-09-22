@@ -144,6 +144,37 @@ services:
       --max-time=3600
       --timeout=120
 
+  scheduler:
+    image: moday-backend-app:latest
+    container_name: moday-scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      TZ: America/Sao_Paulo
+    env_file:
+      - .env
+    volumes:
+      - ./app:/var/www/html/app
+      - ./routes:/var/www/html/routes
+      - ./config:/var/www/html/config
+      - ./database:/var/www/html/database
+      - ./resources:/var/www/html/resources
+      - ./bootstrap/app.php:/var/www/html/bootstrap/app.php
+      - ./bootstrap/providers.php:/var/www/html/bootstrap/providers.php
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    networks:
+      - moday-backend
+      - evolution-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    command: php artisan schedule:work
+
 networks:
   moday-backend:
     driver: bridge
