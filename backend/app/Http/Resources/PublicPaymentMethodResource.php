@@ -19,6 +19,7 @@ class PublicPaymentMethodResource extends JsonResource
             'name' => $this->resource['name'] ?? '',
             'type' => $this->resource['type'] ?? null,
             'description' => $this->resource['description'] ?? null,
+            'pix_key' => $this->resource['pix_key'] ?? null,
             'is_active' => $this->resource['is_active'] ?? true,
         ];
     }

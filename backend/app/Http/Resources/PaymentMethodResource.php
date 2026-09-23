@@ -19,6 +19,7 @@ class PaymentMethodResource extends JsonResource
             'uuid' => $this->uuid,
             'name' => $this->name,
             'description' => $this->description,
+            'pix_key' => $this->pix_key,
             'is_active' => $this->is_active,
             'tenant_id' => $this->tenant_id,
             'created_at' => $this->created_at,

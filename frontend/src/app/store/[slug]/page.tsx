@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState, useCallback, useRef, type MouseEvent } from "react"
-import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info, Flame, Sparkles } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info, Flame, Sparkles, Copy } from "lucide-react"
 import { OrderStepper } from "@/components/order-stepper"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -1162,6 +1162,30 @@ export default function PublicStorePage() {
   const estimatedTime = storeInfo?.settings?.delivery_pickup?.pickup_time_minutes
   const estimatedTimeLabel = estimatedTime ? `${estimatedTime} min` : '30-45 min'
   const acceptedPayments = paymentMethods.length > 0 ? paymentMethods : [{ uuid: 'default', name: 'Verificar na loja' }]
+  const selectedPixKey: string | null = paymentMethods.find(m => m.uuid === paymentMethod)?.pix_key || null
+
+  const copyPixKey = async () => {
+    if (!selectedPixKey) return
+    try {
+      await navigator.clipboard.writeText(selectedPixKey)
+      toast.success('Chave PIX copiada!')
+    } catch {
+      toast.error('Erro ao copiar chave PIX')
+    }
+  }
+
+  const pixKeyBox = selectedPixKey && (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">Chave PIX</p>
+        <p className="truncate font-mono text-sm font-medium">{selectedPixKey}</p>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={copyPixKey} className="shrink-0">
+        <Copy className="mr-1.5 h-4 w-4" />
+        Copiar
+      </Button>
+    </div>
+  )
 
   // "Perguntar CPF/CNPJ" é opt-in por tenant; assume true (comportamento atual) até o tenant configurar explicitamente
   const invoiceDocumentAskEnabled = storeInfo?.settings?.invoice_document?.ask_enabled ?? true
@@ -2190,6 +2214,7 @@ export default function PublicStorePage() {
                             </Label>
                           </div>
                         ))}
+                        {pixKeyBox}
                       </RadioGroup>
                     ) : (
                       <div className="py-3 text-center text-muted-foreground sm:py-4">
@@ -2241,6 +2266,7 @@ export default function PublicStorePage() {
                         <p><strong>Endereço:</strong> {deliveryData.address}, {deliveryData.number} — {deliveryData.neighborhood}, {deliveryData.city}/{deliveryData.state}</p>
                       )}
                       <p><strong>Pagamento:</strong> {paymentMethodName || "—"}</p>
+                      {pixKeyBox}
                       {shippingMethod === 'delivery' && deliveryFeeInfo && (
                         <p>
                           <strong>Taxa de entrega:</strong>{' '}

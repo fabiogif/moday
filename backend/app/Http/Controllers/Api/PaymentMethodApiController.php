@@ -58,6 +58,7 @@ class PaymentMethodApiController extends Controller
             $paymentMethod = $this->paymentMethodService->createPaymentMethod([
                 'name' => $request->name,
                 'description' => $request->description,
+                'pix_key' => $request->pix_key,
                 'is_active' => $request->is_active ?? true,
             ], $tenantId);
 
@@ -114,6 +115,7 @@ class PaymentMethodApiController extends Controller
             $paymentMethod = $this->paymentMethodService->updatePaymentMethod($uuid, [
                 'name' => $request->name,
                 'description' => $request->description,
+                'pix_key' => $request->pix_key,
                 'is_active' => $request->is_active ?? true,
             ], $tenantId);
 

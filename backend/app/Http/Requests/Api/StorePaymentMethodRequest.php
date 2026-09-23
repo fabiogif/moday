@@ -24,6 +24,7 @@ class StorePaymentMethodRequest extends BaseRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'pix_key' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ];
     }
@@ -39,6 +40,7 @@ class StorePaymentMethodRequest extends BaseRequest
             'name.max' => 'O nome não pode ter mais de 255 caracteres.',
             'description.string' => 'A descrição deve ser um texto válido.',
             'description.max' => 'A descrição não pode ter mais de 1000 caracteres.',
+            'pix_key.max' => 'A chave PIX não pode ter mais de 255 caracteres.',
             'is_active.boolean' => 'O campo ativo deve ser verdadeiro ou falso.',
         ];
     }

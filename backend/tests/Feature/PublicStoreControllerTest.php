@@ -108,7 +108,7 @@ class PublicStoreControllerTest extends TestCase
         $slug = 'empresa-dev';
         $tenantId = 1;
         $methods = [
-            ['uuid' => 'pm-1', 'name' => 'PIX'],
+            ['uuid' => 'pm-1', 'name' => 'PIX', 'pix_key' => 'loja@pix.com'],
             ['uuid' => 'pm-2', 'name' => 'Cartão'],
         ];
         app()->bind(PublicStoreRepositoryInterface::class, function () use ($methods, $tenantId, $slug) {
@@ -122,7 +122,9 @@ class PublicStoreControllerTest extends TestCase
 
         $this->getJson("/api/store/{$slug}/payment-methods")
             ->assertStatus(200)
-            ->assertJson([ 'success' => true ]);
+            ->assertJson([ 'success' => true ])
+            ->assertJsonPath('data.0.pix_key', 'loja@pix.com')
+            ->assertJsonPath('data.1.pix_key', null);
     }
 
     public function test_get_payment_methods_store_not_found()

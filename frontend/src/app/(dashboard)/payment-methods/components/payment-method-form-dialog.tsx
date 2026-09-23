@@ -32,6 +32,7 @@ interface PaymentMethod {
   uuid: string
   name: string
   description?: string
+  pix_key?: string | null
   is_active: boolean
   tenant_id?: number
   created_at: string
@@ -41,6 +42,7 @@ interface PaymentMethod {
 interface PaymentMethodFormValues {
   name: string
   description?: string
+  pix_key?: string | null
   is_active?: boolean
 }
 
@@ -53,6 +55,9 @@ const paymentMethodFormSchema = z.object({
   description: z.string().max(1000, {
     message: "Descrição não pode ter mais de 1000 caracteres.",
   }).optional(),
+  pix_key: z.string().max(255, {
+    message: "Chave PIX não pode ter mais de 255 caracteres.",
+  }).optional().nullable(),
   is_active: z.boolean().optional().default(true),
 })
 
@@ -75,14 +80,17 @@ export function PaymentMethodFormDialog({
     defaultValues: {
       name: paymentMethod?.name || "",
       description: paymentMethod?.description || "",
+      pix_key: paymentMethod?.pix_key || "",
       is_active: paymentMethod?.is_active ?? true,
     },
   })
 
+  const isPix = /pix/i.test(form.watch("name") || "")
+
   const handleSubmit = async (data: PaymentMethodFormValues) => {
     setLoading(true)
     try {
-      await onSubmit(data)
+      await onSubmit({ ...data, pix_key: isPix ? data.pix_key?.trim() || null : null })
       form.reset()
       setOpen(false)
     } catch (error) {
@@ -98,6 +106,7 @@ export function PaymentMethodFormDialog({
       form.reset({
         name: paymentMethod?.name || "",
         description: paymentMethod?.description || "",
+        pix_key: paymentMethod?.pix_key || "",
         is_active: paymentMethod?.is_active ?? true,
       })
     }
@@ -157,6 +166,25 @@ export function PaymentMethodFormDialog({
                 </FormItem>
               )}
             />
+
+            {isPix && (
+              <FormField
+                control={form.control}
+                name="pix_key"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Chave PIX</FormLabel>
+                    <FormControl>
+                      <Input placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormDescription>
+                      Exibida no cardápio para o cliente copiar
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

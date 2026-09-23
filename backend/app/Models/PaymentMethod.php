@@ -15,6 +15,7 @@ class PaymentMethod extends Model
         'name',
         'type',
         'description',
+        'pix_key',
         'tenant_id',
         'is_active'
     ];

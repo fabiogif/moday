@@ -36,6 +36,7 @@ interface PaymentMethod {
   uuid: string
   name: string
   description?: string
+  pix_key?: string | null
   is_active: boolean
   tenant_id?: number
   created_at: string
@@ -45,6 +46,7 @@ interface PaymentMethod {
 interface PaymentMethodFormValues {
   name: string
   description?: string
+  pix_key?: string | null
   is_active?: boolean
 }
 
