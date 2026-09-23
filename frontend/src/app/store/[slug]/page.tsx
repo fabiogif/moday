@@ -2424,6 +2424,7 @@ export default function PublicStorePage() {
                       <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Pagamento</p>
                     </div>
                     <p className="font-semibold text-gray-900 dark:text-gray-100">{paymentMethodName || 'Não selecionado'}</p>
+                    {selectedPixKey && <div className="mt-3">{pixKeyBox}</div>}
                   </div>
                   <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-3 dark:border-purple-900 dark:from-purple-950/20 dark:to-pink-950/20 sm:p-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -2910,6 +2911,8 @@ export default function PublicStorePage() {
             <p>Você receberá atualizações assim que o restaurante começar a preparar seu pedido.</p>
             <p>Guarde o número acima. Você pode enviar o pedido ao restaurante pelo WhatsApp.</p>
           </div>
+
+          {pixKeyBox}
 
           <div className="flex flex-col gap-3 w-full pt-2">
             {orderResult?.whatsapp_link && (
