@@ -208,6 +208,21 @@ class CouponApiTest extends TestCase
     }
 
     #[Test]
+    public function public_store_promotions_lists_active_featured_coupons()
+    {
+        $this->tenant->update(['slug' => 'loja-teste']);
+        Coupon::factory()->for($this->tenant)->create(['code' => 'DESTAQUE', 'is_featured' => true]);
+        Coupon::factory()->for($this->tenant)->create(['code' => 'EXPIRADO', 'is_featured' => true, 'end_at' => now()->subDay()]);
+        Coupon::factory()->for($this->tenant)->create(['code' => 'COMUM', 'is_featured' => false]);
+
+        $response = $this->getJson('/api/store/loja-teste/promotions');
+
+        $response->assertStatus(200);
+        $codes = collect($response->json('data.slides'))->where('type', 'coupon')->pluck('code')->all();
+        $this->assertSame(['DESTAQUE'], $codes);
+    }
+
+    #[Test]
     public function public_store_rejects_invalid_coupon_code()
     {
         $this->tenant->update(['slug' => 'loja-teste']);
