@@ -405,3 +405,55 @@ describe('PublicStorePage - Performance', () => {
   })
 })
 
+
+describe('PublicStorePage - Horário por método de entrega', () => {
+  const { toast } = jest.requireMock('sonner') as { toast: { error: jest.Mock } }
+
+  function mockIsOpen(isOpen: boolean) {
+    const base = (global.fetch as jest.Mock).getMockImplementation()!
+    ;(global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url.includes('/is-open')) {
+        return createJsonFetchResponse({
+          success: true,
+          data: { is_open: isOpen, is_always_open: false, store_hours: { quarta: [{ start: '18:00', end: '23:00', delivery_type: 'delivery' }] } },
+        })
+      }
+      return base(url)
+    })
+  }
+
+  async function goToShippingStepWithPickup() {
+    render(<PublicStorePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    fireEvent.change(await screen.findByLabelText(/Como podemos te chamar/i), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByLabelText(/Celular com WhatsApp/i), { target: { value: '71988887777' } })
+    fireEvent.click(screen.getAllByRole('button', { name: /Escolher entrega/i })[0])
+    fireEvent.click(await screen.findByRole('radio', { name: 'Buscar no restaurante' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Forma de pagamento/i })[0])
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setupStoreFetchMock()
+  })
+
+  it('não avança da etapa de entrega quando a retirada está fechada', async () => {
+    mockIsOpen(false)
+    await goToShippingStepWithPickup()
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Retirada indisponível no momento. A loja não está atendendo retiradas neste horário.')
+    })
+    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/is-open?delivery_type=pickup'))
+    expect(screen.queryAllByRole('button', { name: /Revisar pedido/i })).toHaveLength(0)
+  })
+
+  it('avança para o pagamento quando a retirada está aberta', async () => {
+    mockIsOpen(true)
+    await goToShippingStepWithPickup()
+
+    expect((await screen.findAllByRole('button', { name: /Revisar pedido/i })).length).toBeGreaterThan(0)
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+})

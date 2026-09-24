@@ -173,6 +173,7 @@ export default function PublicStorePage() {
   const [paymentMethodName, setPaymentMethodName] = useState("")
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [shippingMethod, setShippingMethod] = useState("delivery")
+  const [checkingHours, setCheckingHours] = useState(false)
   const [serviceTypes, setServiceTypes] = useState<any[]>([])
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null)
   const [orderResult, setOrderResult] = useState<{
@@ -1115,8 +1116,32 @@ export default function PublicStorePage() {
     }
   }
 
-  const goNext = () => {
+  // A loja atende o método de entrega escolhido agora? Falha de rede libera (o servidor valida no envio).
+  const isShippingMethodOpen = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(buildApiUrl(`${endpoints.store.isOpen(slug)}?delivery_type=${shippingMethod}`))
+      const data = await response.json()
+      if (!data.success) return true
+      const { is_open, is_always_open, store_hours } = data.data
+      return Boolean(is_open || is_always_open || Object.keys(store_hours ?? {}).length === 0)
+    } catch {
+      return true
+    }
+  }
+
+  const goNext = async () => {
     if (!validateWizardStep(currentStep)) return
+    if (currentStep === 2) {
+      setCheckingHours(true)
+      const open = await isShippingMethodOpen()
+      setCheckingHours(false)
+      if (!open) {
+        toast.error(shippingMethod === 'delivery'
+          ? 'Entrega indisponível no momento. A loja não está atendendo entregas neste horário.'
+          : 'Retirada indisponível no momento. A loja não está atendendo retiradas neste horário.')
+        return
+      }
+    }
     setCompletedSteps((prev) => new Set(prev).add(currentStep))
     setCurrentStep((s) => Math.min(s + 1, 4))
     setMobileSummaryOpen(false)
@@ -2619,7 +2644,7 @@ export default function PublicStorePage() {
               <Button type="button" variant="outline" onClick={goBack} className="h-11 flex-1 sm:h-12 sm:flex-none sm:w-32">
                 <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
               </Button>
-              <Button type="button" onClick={goNext} className="h-11 flex-1 sm:h-12">
+              <Button type="button" onClick={goNext} disabled={checkingHours} className="h-11 flex-1 sm:h-12">
                 {getNextStepLabel(currentStep)} <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -2644,7 +2669,7 @@ export default function PublicStorePage() {
                 <Button type="button" variant="outline" onClick={goBack} className="h-12 w-32">
                   <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
                 </Button>
-                <Button type="button" onClick={goNext} className="h-12 w-48">
+                <Button type="button" onClick={goNext} disabled={checkingHours} className="h-12 w-48">
                   {getNextStepLabel(currentStep)} <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>

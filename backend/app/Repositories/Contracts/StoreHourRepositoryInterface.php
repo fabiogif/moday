@@ -15,5 +15,6 @@ interface StoreHourRepositoryInterface
     public function getActiveHours(int $tenantId);
     public function checkOverlap(int $tenantId, int $dayOfWeek, string $startTime, string $endTime, ?int $excludeId = null): bool;
     public function isAlwaysOpen(int $tenantId): bool;
+    public function hasActiveHours(int $tenantId): bool;
 }
 

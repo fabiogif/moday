@@ -233,6 +233,16 @@ class StoreHourService
         return $this->storeHourRepository->getByDeliveryType($tenantId, $deliveryType);
     }
 
+    /**
+     * Loja aceita pedido público agora para o método de entrega (delivery|pickup)?
+     * Sem horários ativos cadastrados = sempre aceita (mesmo fallback do cardápio).
+     */
+    public function acceptsOrdersNow(int $tenantId, string $shippingMethod): bool
+    {
+        return !$this->storeHourRepository->hasActiveHours($tenantId)
+            || $this->isStoreOpen($tenantId, $shippingMethod);
+    }
+
     public function isStoreOpen(int $tenantId, ?string $deliveryType = 'both'): bool
     {
         // Verificar se a loja está sempre aberta

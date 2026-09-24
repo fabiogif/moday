@@ -356,7 +356,7 @@ class PublicStoreController extends Controller
     /**
      * Verifica se a loja está aberta
      */
-    public function checkStoreHours(string $slug): JsonResponse
+    public function checkStoreHours(Request $request, string $slug): JsonResponse
     {
         try {
             $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
@@ -369,7 +369,10 @@ class PublicStoreController extends Controller
                 );
             }
 
-            $isOpen = $this->storeHourService->isStoreOpen($tenant->id);
+            $deliveryType = in_array($request->query('delivery_type'), ['delivery', 'pickup'], true)
+                ? $request->query('delivery_type')
+                : 'both';
+            $isOpen = $this->storeHourService->isStoreOpen($tenant->id, $deliveryType);
             $storeHours = $this->storeHourService->getAllStoreHours($tenant->id, ['is_active' => true]);
             
             // Formatar horários para exibição

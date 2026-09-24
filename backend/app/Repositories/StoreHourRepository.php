@@ -113,5 +113,13 @@ class StoreHourRepository implements StoreHourRepositoryInterface
             ->where('is_active', true)
             ->exists();
     }
+
+    public function hasActiveHours(int $tenantId): bool
+    {
+        return $this->entity
+            ->where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->exists();
+    }
 }
 

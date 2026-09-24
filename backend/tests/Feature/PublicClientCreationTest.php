@@ -7,7 +7,9 @@ use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\Product;
 use App\Models\PaymentMethod;
+use App\Models\StoreHour;
 use App\Models\User;
+use Carbon\Carbon;
 use Tymon\JWTAuth\Http\Middleware\Authenticate as JWTAuthenticate;
 use App\Repositories\Contracts\PublicStoreRepositoryInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -535,5 +537,85 @@ class PublicClientCreationTest extends TestCase
         $this->assertNotNull($carlos, 'Cliente Carlos não encontrado na lista');
         $this->assertEquals('Carlos', $carlos['name']);
         $this->assertEquals('44444444444', $carlos['cpf']);
+    }
+
+    private function storeHoursOrder(string $shippingMethod): array
+    {
+        return [
+            'client' => ['name' => 'Ana', 'phone' => '71988887777'],
+            'products' => [['uuid' => $this->product->uuid, 'quantity' => 1]],
+            'delivery' => $shippingMethod === 'delivery'
+                ? [
+                    'is_delivery' => true,
+                    'address' => 'Rua A',
+                    'number' => '10',
+                    'neighborhood' => 'Centro',
+                    'city' => 'Salvador',
+                    'state' => 'BA',
+                    'zip_code' => '40000-000',
+                ]
+                : ['is_delivery' => false],
+            'payment_method' => $this->paymentMethod->uuid,
+            'shipping_method' => $shippingMethod,
+        ];
+    }
+
+    private function openTodayAt(string $type, string $start, string $end): void
+    {
+        // Quarta-feira (day_of_week = 3), 19:00
+        Carbon::setTestNow(Carbon::parse('2026-09-23 19:00', config('app.timezone')));
+
+        StoreHour::factory()->forDay(3)->create([
+            'tenant_id' => $this->tenant->id,
+            'delivery_type' => $type,
+            'start_time' => $start,
+            'end_time' => $end,
+        ]);
+    }
+
+    #[Test]
+    public function it_rejects_order_when_store_is_closed()
+    {
+        $this->openTodayAt('both', '08:00', '12:00');
+
+        $response = $this->postJson("/api/store/{$this->slug}/orders", $this->storeHoursOrder('pickup'));
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['shipping_method' => 'Retirada indisponível no momento.']);
+        $this->assertDatabaseCount('sale_orders', 0);
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    #[Test]
+    public function it_rejects_delivery_but_accepts_pickup_in_pickup_only_period()
+    {
+        $this->openTodayAt('pickup', '18:00', '23:00');
+
+        $this->postJson("/api/store/{$this->slug}/orders", $this->storeHoursOrder('delivery'))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['shipping_method' => 'Entrega indisponível no momento. A loja não está atendendo entregas neste horário.']);
+
+        $this->postJson("/api/store/{$this->slug}/orders", $this->storeHoursOrder('pickup'))
+            ->assertStatus(201);
+    }
+
+    #[Test]
+    public function is_open_filters_by_delivery_type()
+    {
+        $this->openTodayAt('pickup', '18:00', '23:00');
+
+        $this->getJson("/api/store/{$this->slug}/is-open?delivery_type=delivery")
+            ->assertOk()->assertJsonPath('data.is_open', false);
+        $this->getJson("/api/store/{$this->slug}/is-open?delivery_type=pickup")
+            ->assertOk()->assertJsonPath('data.is_open', true);
+        $this->getJson("/api/store/{$this->slug}/is-open")
+            ->assertOk()->assertJsonPath('data.is_open', true);
+    }
+
+    #[Test]
+    public function it_accepts_order_when_no_hours_are_configured()
+    {
+        $this->postJson("/api/store/{$this->slug}/orders", $this->storeHoursOrder('pickup'))
+            ->assertStatus(201);
     }
 }

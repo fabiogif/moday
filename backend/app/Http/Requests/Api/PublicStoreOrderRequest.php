@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api;
 use App\Models\Tenant;
 use App\Services\CouponService;
 use App\Services\PublicOrderCalculationService;
+use App\Services\StoreHourService;
 use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
@@ -79,7 +80,32 @@ class PublicStoreOrderRequest extends FormRequest
 
             // Validate coupon if provided
             $this->validateCouponCode($validator);
+
+            // Reject orders outside opening hours for the chosen shipping method
+            $this->validateStoreHours($validator);
         });
+    }
+
+    /**
+     * Validate the store is open for the chosen shipping method.
+     */
+    private function validateStoreHours($validator): void
+    {
+        $shippingMethod = $this->input('shipping_method');
+        if (!in_array($shippingMethod, ['delivery', 'pickup'], true)) {
+            return;
+        }
+
+        $tenant = Tenant::where('slug', $this->route('slug'))->where('is_active', true)->first();
+        if (!$tenant) {
+            return;
+        }
+
+        if (!app(StoreHourService::class)->acceptsOrdersNow($tenant->id, $shippingMethod)) {
+            $validator->errors()->add('shipping_method', $shippingMethod === 'delivery'
+                ? 'Entrega indisponível no momento. A loja não está atendendo entregas neste horário.'
+                : 'Retirada indisponível no momento. A loja não está atendendo retiradas neste horário.');
+        }
     }
 
     /**
