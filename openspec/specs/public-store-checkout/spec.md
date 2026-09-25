@@ -126,16 +126,32 @@ When the selected payment method has a PIX key, the menu SHALL display the key w
 - **WHEN** the selected payment method has no `pix_key`
 - **THEN** no PIX key box is displayed
 
-### Requirement: Client lookup for checkout autofill
-`GET /store/{slug}/clients/lookup` SHALL accept `cpf` or `phone`, respond 422 when neither is given, and otherwise respond 200 with `exists`, `client` and `address` (null values when not found). It SHALL NOT require authentication.
-
-#### Scenario: Unknown client
-- **WHEN** the lookup phone matches no client of the store
-- **THEN** the response is 200 with `exists: false`
-
 ### Requirement: Public order tracking by phone
 `GET /store/{slug}/orders/track` SHALL require a `phone` with 10 or 11 digits (after removing non-digits) and SHALL return the client's in-progress order, or 404 when none exists.
 
 #### Scenario: Invalid phone
 - **WHEN** `phone` has 9 digits
 - **THEN** the system responds 422 with "Telefone inválido. Informe DDD + número."
+
+### Requirement: Checkout prefill only for the logged-in customer
+The menu SHALL prefill the customer data step (name, e-mail, phone, CPF) and the delivery address only from `GET /store/{slug}/auth/me`, sent with the customer's session. The menu SHALL NOT request customer data based on what a visitor types. `GET /store/{slug}/auth/me` SHALL respond 401 when there is no valid customer session or when the authenticated customer belongs to a store other than `{slug}`. Fields the customer already typed SHALL NOT be overwritten by empty values from the session.
+
+#### Scenario: Public lookup removed
+- **WHEN** anyone calls `GET /store/{slug}/clients/lookup?phone=...`
+- **THEN** the system responds 404 and returns no customer data
+
+#### Scenario: Guest types a known phone
+- **WHEN** a visitor without a customer session types the phone number of an existing customer in checkout
+- **THEN** no request with that phone is made to look up customer data and no field is filled automatically
+
+#### Scenario: Logged-in customer
+- **WHEN** a customer logged in to this store opens checkout
+- **THEN** name, e-mail, phone, CPF and the saved delivery address are prefilled from `auth/me`
+
+#### Scenario: Session from another store
+- **WHEN** a customer logged in to store A calls `GET /store/B/auth/me`
+- **THEN** the system responds 401 and the checkout of store B is not prefilled
+
+#### Scenario: No session
+- **WHEN** checkout calls `auth/me` without a customer session
+- **THEN** the system responds 401 and checkout continues with empty fields, without an error message
