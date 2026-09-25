@@ -92,6 +92,7 @@ jest.mock('@/hooks/use-authenticated-api', () => ({
   ),
   useAuthenticatedOrders: jest.fn(() => createDefaultApiState()),
   useAuthenticatedOrderStats: jest.fn(() => createDefaultApiState({})),
+  useAuthenticatedActiveOrderStatuses: jest.fn(() => createDefaultApiState()),
   useAuthenticatedTables: jest.fn(() => createDefaultApiState()),
   useAuthenticatedPlans: jest.fn(() => createDefaultApiState()),
   useAuthenticatedServiceTypes: jest.fn(() => createDefaultApiState()),

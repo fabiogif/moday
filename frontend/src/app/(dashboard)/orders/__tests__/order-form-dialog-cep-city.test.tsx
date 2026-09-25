@@ -12,12 +12,20 @@ jest.mock('@/contexts/auth-context', () => ({
   useAuth: () => ({ token: 'fake-token', isAuthenticated: true }),
 }))
 
-jest.mock('@/hooks/use-authenticated-api', () => ({
-  useAuthenticatedClients: () => ({ data: [], loading: false, error: null, refetch: jest.fn() }),
-  useAuthenticatedCatalogProducts: () => ({ data: [], loading: false, error: null }),
-  useAuthenticatedTables: () => ({ data: [], loading: false, error: null }),
-  useMutation: () => ({ mutate: jest.fn(), loading: false, error: null }),
-}))
+// Retornos estáveis entre renders, como nos hooks reais: um `data: []` novo a cada
+// chamada faz o useEffect([clientsData]) do formulário rodar em loop e trava o teste.
+jest.mock('@/hooks/use-authenticated-api', () => {
+  const clients = { data: [], loading: false, error: null, refetch: jest.fn() }
+  const products = { data: [], loading: false, error: null }
+  const tables = { data: [], loading: false, error: null }
+  const mutation = { mutate: jest.fn(), loading: false, error: null }
+  return {
+    useAuthenticatedClients: () => clients,
+    useAuthenticatedCatalogProducts: () => products,
+    useAuthenticatedTables: () => tables,
+    useMutation: () => mutation,
+  }
+})
 
 jest.mock('@/lib/api-client', () => {
   const actual = jest.requireActual('@/lib/api-client')
@@ -85,7 +93,7 @@ describe('OrderFormDialog - preenchimento de Cidade de entrega pelo CEP', () => 
     await user.tab()
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Rua das Flores, Av. Paulista')).toHaveValue('Praça da Sé')
+      expect(screen.getByPlaceholderText('Rua das Flores, 123')).toHaveValue('Praça da Sé')
     })
 
     const cityCombobox = screen.getByRole('combobox', { name: /Cidade/i })

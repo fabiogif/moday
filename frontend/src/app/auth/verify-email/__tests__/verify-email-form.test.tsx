@@ -49,6 +49,7 @@ jest.mock('@/lib/auth-storage', () => ({
 describe('VerifyEmailForm', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    ;(resendVerificationEmail as jest.Mock).mockResolvedValue({ message: 'Código enviado para o seu e-mail.' })
   })
 
   it('renderiza destino mascarado e input de código', () => {
@@ -59,7 +60,7 @@ describe('VerifyEmailForm', () => {
     expect(screen.getByText('j***@empresa.com')).toBeInTheDocument()
     expect(screen.getByLabelText(/código de 6 dígitos/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /confirmar e-mail/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /reenviar código/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reenvi(ar|ando)/i })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /voltar para o login/i }).length).toBeGreaterThan(0)
   })
 
@@ -96,18 +97,26 @@ describe('VerifyEmailForm', () => {
     })
   })
 
-  it('permite reenviar o código', async () => {
+  it('envia o código automaticamente ao abrir e bloqueia o reenvio durante a espera', async () => {
+    render(<VerifyEmailForm />)
+
+    expect(await screen.findByRole('button', { name: /reenviar em 60s/i })).toBeDisabled()
+    expect(resendVerificationEmail).toHaveBeenCalledTimes(1)
+  })
+
+  it('permite reenviar o código quando o envio automático falhou', async () => {
     const user = userEvent.setup()
-    ;(resendVerificationEmail as jest.Mock).mockResolvedValue({
-      message: 'Novo código enviado para o seu e-mail.',
-    })
+    ;(resendVerificationEmail as jest.Mock)
+      .mockRejectedValueOnce(new Error('Falha de rede'))
+      .mockResolvedValueOnce({ message: 'Novo código enviado para o seu e-mail.' })
 
     render(<VerifyEmailForm />)
 
-    await user.click(screen.getByRole('button', { name: /reenviar código/i }))
+    await user.click(await screen.findByRole('button', { name: /reenviar código/i }))
 
     await waitFor(() => {
-      expect(resendVerificationEmail).toHaveBeenCalled()
+      expect(resendVerificationEmail).toHaveBeenCalledTimes(2)
+      expect(screen.getByRole('button', { name: /reenviar em 60s/i })).toBeDisabled()
     })
   })
 
