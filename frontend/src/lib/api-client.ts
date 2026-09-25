@@ -545,6 +545,7 @@ export const endpoints = {
     createOrder: (slug: string) => `/api/store/${slug}/orders`,
     trackOrder: (slug: string) => `/api/store/${slug}/orders/track`,
     isOpen: (slug: string) => `/api/store/${slug}/is-open`,
+    promotions: (slug: string) => `/api/store/${slug}/promotions`,
     authMe: (slug: string) => `/api/store/${slug}/auth/me`,
     deliveryFeePreview: (slug: string) => `/api/store/${slug}/delivery-fee/preview`,
   },

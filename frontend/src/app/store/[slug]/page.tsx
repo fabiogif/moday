@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState, useCallback, type MouseEvent } from "react"
-import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info, Flame, Sparkles, Copy } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Copy } from "lucide-react"
 import { OrderStepper } from "@/components/order-stepper"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { toast } from "sonner"
 import Image from "next/image"
 import { maskCPF, maskCNPJ, maskPhone, maskZipCode } from '@/lib/masks'
@@ -29,34 +29,13 @@ import { ReviewsSection } from './components/reviews-section'
 import { apiClient, endpoints } from '@/lib/api-client'
 import { buildApiUrl } from '@/lib/api-config'
 import { ProductRecommendations } from './components/product-recommendations'
-import { CategoryFilterChips } from './components/category-filter-chips'
-
-interface ProductVariation {
-  id: string
-  name: string
-  price: number
-}
-
-interface ProductOptional {
-  id: string
-  name: string
-  price: number
-}
-
-interface Product {
-  uuid: string
-  name: string
-  description: string
-  price: number | string
-  promotional_price?: number | string
-  image: string
-  qtd_stock: number
-  brand: string
-  categories: Array<{ uuid: string; name: string }>
-  variations?: ProductVariation[]   // Seleção única (tamanhos)
-  optionals?: ProductOptional[]     // Múltipla escolha com quantidade
-  sold_qty?: number
-}
+import { StoreHero } from './components/store-hero'
+import { CouponStrip, type CouponSlide } from './components/coupon-strip'
+import { MenuOffers, MenuTopSellers } from './components/menu-showcases'
+import { MenuCategoryTabs } from './components/menu-category-tabs'
+import { MenuProductRow } from './components/menu-product-row'
+import { CartBar } from './components/cart-bar'
+import { formatPrice, getNumericPrice, getDisplayPrice, type Product, type ProductVariation } from './menu-utils'
 
 interface StoreInfo {
   id?: number
@@ -99,26 +78,14 @@ interface CartItem extends Product {
   }>
 }
 
+/** Altura do header fixo do cardápio (busca + abas): scroll-margin das seções e margem do scroll-spy */
+const MENU_STICKY_OFFSET = 112
+/** Produtos em 2 colunas só a partir de xl, quando sobra largura mesmo com o resumo do pedido ao lado */
+const menuRowsGridClass = "xl:grid xl:grid-cols-2 xl:gap-x-8"
+
 export default function PublicStorePage() {
   const params = useParams()
   const slug = params.slug as string
-
-  // Helper function to convert price to number and format
-  const formatPrice = (price: number | string): string => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price
-    if (isNaN(numPrice)) {
-      return '0,00'
-    }
-    return numPrice.toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
-
-  // Helper function to get numeric price
-  const getNumericPrice = (price: number | string): number => {
-    return typeof price === 'string' ? parseFloat(price) || 0 : price
-  }
 
   const [storeInfo, setStoreInfo] = useState<StoreInfo | null>(null)
   const [products, setProducts] = useState<Product[]>([])
@@ -128,7 +95,6 @@ export default function PublicStorePage() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [productSearchQuery, setProductSearchQuery] = useState("")
   
   // Estados para avaliação
@@ -268,47 +234,43 @@ export default function PublicStorePage() {
   // Hook para buscar CEP
   const { searchCEP, loading: cepLoading, found: cepFound, notifyCepChange } = useViaCEP()
 
-  // Extrair categorias únicas dos produtos
+  // Cardápio em seções: todas as categorias empilhadas; sem categoria vai para "Outros" no fim
   const categories = Array.from(
     new Set(
-      products.flatMap(product => 
+      products.flatMap(product =>
         product.categories?.map(cat => cat.name) || []
       )
     )
   ).sort()
+  const uncategorized = products.filter(product => !product.categories?.length)
+  const menuSections = [
+    ...categories.map((name, index) => ({
+      id: `categoria-${index}`,
+      name,
+      products: products.filter(product => product.categories?.some(cat => cat.name === name)),
+    })),
+    ...(uncategorized.length > 0 ? [{ id: 'categoria-outros', name: 'Outros', products: uncategorized }] : []),
+  ]
 
-  // Filtrar produtos por categoria
-  const productsInCategory = selectedCategory === "all"
-    ? products
-    : products.filter(product =>
-        product.categories?.some(cat => cat.name === selectedCategory)
+  // Busca (nome ou descrição) troca as seções por uma lista única
+  const searchQuery = productSearchQuery.trim().toLowerCase()
+  const searchResults = searchQuery
+    ? products.filter(product =>
+        product.name.toLowerCase().includes(searchQuery) ||
+        product.description?.toLowerCase().includes(searchQuery)
       )
+    : []
 
-  // Filtrar por busca (nome ou descrição)
-  const filteredProducts = (() => {
-    const query = productSearchQuery.trim().toLowerCase()
-    if (!query) return productsInCategory
-    return productsInCategory.filter(product =>
-      product.name.toLowerCase().includes(query) ||
-      product.description?.toLowerCase().includes(query)
-    )
-  })()
+  // Ofertas: maior desconto primeiro
+  const offerProducts = products
+    .map(product => ({ product, discount: getDisplayPrice(product).discountPercent }))
+    .filter(({ discount }) => discount > 0)
+    .sort((a, b) => b.discount - a.discount)
+    .slice(0, 8)
+    .map(({ product }) => product)
 
-  // Produtos com ofertas (têm promotional_price)
-  const productsWithOffers = products
-    .filter(product => product.promotional_price && product.promotional_price < product.price)
-    .map(product => ({
-      ...product,
-      discountPercent: Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)
-    }))
-    .sort((a, b) => b.discountPercent - a.discountPercent)
-    .slice(0, 4)
-
-  // 4 Melhores ofertas (maior desconto)
-  const bestOffers = productsWithOffers
-
-  // Mais vendidos (quantidade vendida real, vinda do backend)
-  const bestsellers = products
+  // Preferidos: quantidade vendida real, vinda do backend
+  const topSellers = products
     .filter(product => (product.sold_qty ?? 0) > 0)
     .sort((a, b) => (b.sold_qty ?? 0) - (a.sold_qty ?? 0))
     .slice(0, 6)
@@ -1220,8 +1182,6 @@ export default function PublicStorePage() {
     })
   }
 
-  const showMobileSummaryButton = cart.length > 0 && currentStep === 0 && !orderSuccess && !mobileSummaryOpen && !isStoreOpen
-
   const renderSummaryContent = (variant: 'cart' | 'checkout' | 'review', hideActions = false, idPrefix = 'summary') => {
     if (cart.length === 0) {
       return (
@@ -1435,152 +1395,29 @@ export default function PublicStorePage() {
     setSelectedOptionalsQty({})
   }
 
-  const renderHighlightRow = (title: string, icon: React.ReactNode, items: Product[]) => {
-    if (items.length === 0) return null
-
-    return (
-      <div className="space-y-2">
-        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-          {icon}
-          {title}
-        </h2>
-        <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {items.map((product) => {
-            const price = product.promotional_price || product.price
-            const hasDiscount = product.promotional_price && product.promotional_price < product.price
-
-            return (
-              <button
-                key={product.uuid}
-                type="button"
-                onClick={() => openProductDetail(product)}
-                className="group flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md sm:w-36"
-              >
-                <div className="relative aspect-square w-full flex-shrink-0 overflow-hidden bg-muted">
-                  {product.image ? (
-                    <Image
-                      src={resolveImageUrl(product.image) || ""}
-                      alt={product.name}
-                      fill
-                      className="object-cover transition-transform duration-300 ease-out group-hover:scale-110 group-active:scale-110"
-                      sizes="144px"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                    </div>
-                  )}
-                  {hasDiscount && (
-                    <Badge className="absolute left-1 top-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                      -{Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)}%
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex flex-col gap-0.5 p-2">
-                  <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground group-hover:text-primary transition-colors">
-                    {product.name}
-                  </p>
-                  <span className="text-sm font-bold text-primary leading-tight">
-                    R$ {formatPrice(price)}
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
+  const isMenuStep = !orderSuccess && currentStep === 0
+  const deliverySettings = storeInfo.settings?.delivery_pickup
+  const freeDeliveryAbove = deliverySettings?.delivery_enabled !== false && Number(deliverySettings?.delivery_free_above_value) > 0
+    ? Number(deliverySettings?.delivery_free_above_value)
+    : undefined
+  const cartSavings = cart.reduce((sum, item) => {
+    const original = getNumericPrice(item.price)
+    const promo = getNumericPrice(item.promotional_price)
+    return promo > 0 && promo < original ? sum + (original - promo) * item.quantity : sum
+  }, 0)
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header das etapas do checkout — no cardápio o topo é o StoreHero */}
+      {!isMenuStep && (
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur shadow-md">
         <div className="border-b">
           <div className="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
             <div className="flex items-center gap-3">
-              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="lg:hidden">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Abrir menu</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-full p-0 sm:max-w-sm">
-                  <div className="space-y-6 p-6">
-                    <div className="flex items-center gap-3">
-                      {storeInfo.logo ? (
-                        <Image
-                          src={resolveImageUrl(storeInfo.logo) || ""}
-                          alt={storeInfo.name}
-                          width={48}
-                          height={48}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                          <Store className="h-6 w-6 text-muted-foreground" />
-                        </div>
-              )}
-              <div>
-                        <h2 className="text-lg font-semibold">{storeInfo.name}</h2>
-                        {locationText && <p className="text-sm text-muted-foreground">{locationText}</p>}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Button
-                        className="w-full gap-2"
-                        onClick={() => {
-                          setMobileSummaryOpen(true)
-                          setMobileMenuOpen(false)
-                        }}
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        Ver carrinho {cartCount > 0 && `(${cartCount})`}
-                      </Button>
-                      <Button variant="outline" className="w-full gap-2" asChild>
-                        <Link href={`/store/${slug}/track`} onClick={() => setMobileMenuOpen(false)}>
-                          <Package className="h-4 w-4" />
-                          Acompanhar pedido
-                        </Link>
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato e Endereço</p>
-                      {displayWhatsapp !== 'Não informado' && (
-                        <a
-                          href={whatsappLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 transition hover:bg-emerald-100 dark:hover:bg-emerald-950/40"
-                        >
-                          <MessageCircle className="h-4 w-4 flex-shrink-0" />
-                          <span>{displayWhatsapp}</span>
-                        </a>
-                      )}
-                      {locationText && (
-                        <a
-                          href={mapsLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-start gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground transition hover:bg-muted"
-                        >
-                          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                          <span>{locationText}</span>
-                        </a>
-                      )}
-                      <div className="flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4 flex-shrink-0 text-primary" />
-                        <span>{attendanceText}</span>
-                      </div>
-                    </div>
-            </div>
-                </SheetContent>
-              </Sheet>
+              <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Abrir menu</span>
+              </Button>
 
               {storeInfo.logo ? (
                 <Image
@@ -1659,156 +1496,191 @@ export default function PublicStorePage() {
           </div>
         )}
       </header>
+      )}
+
+      {/* Informações e contato da loja (menu do header e nome da loja no cardápio) */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetContent side="left" className="w-full p-0 sm:max-w-sm">
+                  <div className="space-y-6 p-6">
+                    <div className="flex items-center gap-3">
+                      {storeInfo.logo ? (
+                        <Image
+                          src={resolveImageUrl(storeInfo.logo) || ""}
+                          alt={storeInfo.name}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                          <Store className="h-6 w-6 text-muted-foreground" />
+                        </div>
+              )}
+              <div>
+                        <h2 className="text-lg font-semibold">{storeInfo.name}</h2>
+                        {locationText && <p className="text-sm text-muted-foreground">{locationText}</p>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Button
+                        className="w-full gap-2"
+                        onClick={() => {
+                          setMobileSummaryOpen(true)
+                          setMobileMenuOpen(false)
+                        }}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        Ver carrinho {cartCount > 0 && `(${cartCount})`}
+                      </Button>
+                      <Button variant="outline" className="w-full gap-2" asChild>
+                        <Link href={`/store/${slug}/track`} onClick={() => setMobileMenuOpen(false)}>
+                          <Package className="h-4 w-4" />
+                          Acompanhar pedido
+                        </Link>
+                      </Button>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contato e Endereço</p>
+                      {displayWhatsapp !== 'Não informado' && (
+                        <a
+                          href={whatsappLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400 transition hover:bg-emerald-100 dark:hover:bg-emerald-950/40"
+                        >
+                          <MessageCircle className="h-4 w-4 flex-shrink-0" />
+                          <span>{displayWhatsapp}</span>
+                        </a>
+                      )}
+                      {locationText && (
+                        <a
+                          href={mapsLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-start gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground transition hover:bg-muted"
+                        >
+                          <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                          <span>{locationText}</span>
+                        </a>
+                      )}
+                      <div className="flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4 flex-shrink-0 text-primary" />
+                        <span>{attendanceText}</span>
+                      </div>
+                    </div>
+            </div>
+                </SheetContent>
+              </Sheet>
 
       <main className={`flex-1 ${
         orderSuccess
           ? 'pb-4 sm:pb-8 lg:pb-0'
-          : currentStep === 4
-            ? 'pb-24 lg:pb-4'
-            : 'pb-28 lg:pb-4'
+          : currentStep === 0
+            ? (cart.length > 0 ? 'pb-40 lg:pb-20' : 'pb-4')
+            : currentStep === 4
+              ? 'pb-24 lg:pb-4'
+              : 'pb-28 lg:pb-4'
       }`}>
         <div className="w-full">
-          {!orderSuccess && currentStep === 0 && (
-            <section className="container mx-auto space-y-10 overflow-x-hidden px-4 py-6 sm:py-10">
+          {isMenuStep && (
+            <>
+            <StoreHero
+              name={storeInfo.name}
+              logoUrl={resolveImageUrl(storeInfo.logo)}
+              coverImageUrl={resolveImageUrl((topSellers[0] ?? offerProducts[0])?.image)}
+              rating={reviewStats}
+              hoursSlot={<StoreHoursBanner slug={slug} onStatusChange={setIsStoreOpen} />}
+              deliveryEnabled={deliverySettings?.delivery_enabled !== false}
+              freeDeliveryAbove={freeDeliveryAbove}
+              pickup={{
+                enabled: !!deliverySettings?.pickup_enabled,
+                minutes: deliverySettings?.pickup_time_minutes,
+                discountPercent: deliverySettings?.pickup_discount_enabled ? deliverySettings?.pickup_discount_percent : undefined,
+              }}
+              ordersHref={`/store/${slug}/track`}
+              onBack={typeof window !== 'undefined' && window.history.length > 1 ? () => window.history.back() : undefined}
+              onSearchClick={() => document.getElementById('menu-search')?.focus()}
+              onRatingClick={() => document.getElementById('avaliacoes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onInfoClick={() => setMobileMenuOpen(true)}
+            />
+            <section className="container mx-auto max-w-6xl px-4 pb-8 pt-6">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-                <div className="min-w-0 flex-1 space-y-6">
-                  {/* Destaques: mais vendidos e ofertas */}
-                  {selectedCategory === 'all' && !productSearchQuery.trim() && (
-                    <div className="space-y-5">
-                      {renderHighlightRow('Mais vendidos', <Flame className="h-4 w-4 text-orange-500" />, bestsellers)}
-                      {renderHighlightRow('Destaques', <Sparkles className="h-4 w-4 text-primary" />, bestOffers)}
+                <div className="min-w-0 flex-1 space-y-8">
+                  {!searchQuery && (
+                    <>
+                      <CouponStrip coupons={couponSlides} />
+                      <MenuOffers products={offerProducts} onOpen={openProductDetail} onAdd={handleAddProduct} />
+                      <MenuTopSellers products={topSellers} onOpen={openProductDetail} />
+                    </>
+                  )}
+
+                  <div>
+                    {/* Header fixo do cardápio: busca + abas de categoria */}
+                    <div className="sticky top-0 z-30 -mx-4 bg-background px-4 pt-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          id="menu-search"
+                          type="search"
+                          value={productSearchQuery}
+                          onChange={(e) => setProductSearchQuery(e.target.value)}
+                          placeholder={`Buscar em ${storeInfo.name}`}
+                          aria-label={`Buscar em ${storeInfo.name}`}
+                          className="h-11 rounded-full border-0 bg-muted pl-10 pr-10 text-[15px] [&::-webkit-search-cancel-button]:hidden"
+                        />
+                        {productSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setProductSearchQuery("")}
+                            aria-label="Limpar busca"
+                            className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-background"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      {searchQuery ? (
+                        <div className="h-3 border-b border-border/60" />
+                      ) : (
+                        <MenuCategoryTabs sections={menuSections} stickyOffset={MENU_STICKY_OFFSET} />
+                      )}
                     </div>
-                  )}
 
-                  {/* Busca de produtos */}
-                  <div className="relative w-full sm:max-w-xs">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      value={productSearchQuery}
-                      onChange={(e) => setProductSearchQuery(e.target.value)}
-                      placeholder="Buscar no cardápio..."
-                      className="h-10 rounded-full pl-10 pr-9"
-                    />
-                    {productSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setProductSearchQuery("")}
-                        aria-label="Limpar busca"
-                        className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Category filter chips */}
-                  {categories.length > 0 && (
-                    <CategoryFilterChips
-                      categories={categories}
-                      selected={selectedCategory}
-                      onSelect={setSelectedCategory}
-                    />
-                  )}
-
-                  <div className="mt-0">
-                    {filteredProducts.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-muted p-12 text-center">
-                        <p className="text-lg text-muted-foreground">
-                          {productSearchQuery.trim() ? 'Nenhum produto encontrado para sua busca.' : 'Nenhum produto encontrado nesta categoria.'}
-                        </p>
-                      </div>
+                    {searchQuery ? (
+                      searchResults.length === 0 ? (
+                        <p className="py-12 text-center text-muted-foreground">Nenhum produto encontrado para sua busca.</p>
+                      ) : (
+                        <div className={menuRowsGridClass}>
+                          {searchResults.map((product) => (
+                            <MenuProductRow key={product.uuid} product={product} onOpen={openProductDetail} onAdd={handleAddProduct} />
+                          ))}
+                        </div>
+                      )
+                    ) : menuSections.length === 0 ? (
+                      <p className="py-12 text-center text-muted-foreground">Nenhum produto encontrado no cardápio.</p>
                     ) : (
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 xl:grid-cols-2 2xl:grid-cols-3">
-                        {filteredProducts.map((product) => {
-                          const price = product.promotional_price || product.price;
-                          const hasDiscount = product.promotional_price && product.promotional_price < product.price;
-                          const hasCustomization = (product.variations && product.variations.length > 0) || (product.optionals && product.optionals.length > 0);
-
-                          return (
-                            <article
-                              key={product.uuid}
-                              className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition hover:border-primary/40 hover:shadow-md w-full sm:flex-row"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => openProductDetail(product)}
-                                className="flex min-w-0 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-1 sm:flex-row"
-                                aria-label={`Ver detalhes de ${product.name}`}
-                              >
-                              {/* Image — mantida em destaque: full-width 4:3 no mobile, quadrada ao lado no desktop */}
-                              <div className="relative aspect-[16/10] w-full flex-shrink-0 overflow-hidden bg-muted sm:aspect-square sm:h-28 sm:w-28 md:h-32 md:w-32">
-                                {product.image ? (
-                                  <Image
-                                    src={resolveImageUrl(product.image) || ""}
-                                    alt={product.name}
-                                    fill
-                                    className="object-cover transition-transform duration-300 ease-out group-hover:scale-110 group-active:scale-110"
-                                    sizes="(max-width: 640px) 100vw, 128px"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center">
-                                    <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-                                  </div>
-                                )}
-                                {hasDiscount && (
-                                  <Badge className="absolute left-1.5 top-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                                    -{Math.round((1 - (getNumericPrice(product.promotional_price!) / getNumericPrice(product.price))) * 100)}%
-                                  </Badge>
-                                )}
-                              </div>
-
-                              {/* Nome */}
-                              <div className="flex min-w-0 items-start gap-1 p-2.5 pb-1 sm:flex-1 sm:items-center sm:pb-2.5">
-                                <p className="min-w-0 flex-1 line-clamp-2 font-semibold text-sm leading-snug text-foreground group-hover:text-primary transition-colors">
-                                  {product.name}
-                                </p>
-                                {product.description && (
-                                  <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50 mt-0.5 sm:mt-0" aria-hidden />
-                                )}
-                              </div>
-                              </button>
-
-                              {/* Preço + variação + botão adicionar — compactos na mesma área */}
-                              <div className="flex items-center justify-between gap-2 p-2.5 pt-0 sm:w-auto sm:flex-col sm:items-end sm:justify-center sm:pt-2.5 sm:pl-0">
-                                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                                  {hasDiscount && (
-                                    <span className="text-[10px] text-muted-foreground line-through">
-                                      R$ {formatPrice(product.price)}
-                                    </span>
-                                  )}
-                                  <span className="text-sm font-bold text-primary leading-tight">
-                                    R$ {formatPrice(price)}
-                                  </span>
-                                  {hasCustomization && (
-                                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
-                                      Personalizável
-                                    </span>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  disabled={product.qtd_stock === 0}
-                                  onClick={(e) => handleAddProduct(product, e)}
-                                  aria-label={product.qtd_stock === 0 ? 'Produto esgotado' : `Adicionar ${product.name} ao carrinho`}
-                                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none ${
-                                    product.qtd_stock === 0
-                                      ? 'bg-muted text-muted-foreground'
-                                      : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95'
-                                  }`}
-                                >
-                                  {product.qtd_stock === 0 ? (
-                                    <X className="h-5 w-5" />
-                                  ) : (
-                                    <Plus className="h-5 w-5" strokeWidth={2.5} />
-                                  )}
-                                </button>
-                              </div>
-                            </article>
-                          )
-                        })}
-                      </div>
+                      menuSections.map((section) => (
+                        <section
+                          key={section.id}
+                          id={section.id}
+                          aria-labelledby={`${section.id}-titulo`}
+                          style={{ scrollMarginTop: MENU_STICKY_OFFSET }}
+                          className="pt-6"
+                        >
+                          <h2 id={`${section.id}-titulo`} className="border-b border-border/60 pb-3 text-xl font-bold">
+                            {section.name}
+                          </h2>
+                          <div className={menuRowsGridClass}>
+                            {section.products.map((product) => (
+                              <MenuProductRow key={product.uuid} product={product} onOpen={openProductDetail} onAdd={handleAddProduct} />
+                            ))}
+                          </div>
+                        </section>
+                      ))
                     )}
                   </div>
 
@@ -1845,12 +1717,12 @@ export default function PublicStorePage() {
                   )}
                 </div>
 
-                {cartCount > 0 && (
-                  <aside
-                    className="hidden w-full shrink-0 lg:block lg:w-[22rem] xl:w-96"
-                    id="order-summary"
-                  >
-                    <Card className="sticky top-32 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
+                {/* Resumo sempre visível em telas grandes (vazio mostra o convite para adicionar itens) */}
+                <aside
+                  className="hidden w-full shrink-0 lg:block lg:w-[22rem] lg:self-stretch xl:w-96"
+                  id="order-summary"
+                >
+                    <Card className="sticky top-6 space-y-0 overflow-hidden rounded-3xl border border-border/60 shadow-2xl">
                       <CardHeader className="min-w-0 space-y-1 pb-0">
                         <CardTitle className="flex items-center justify-between gap-3 text-xl">
                           <span className="min-w-0 truncate">Seu pedido</span>
@@ -1866,22 +1738,11 @@ export default function PublicStorePage() {
                         {renderSummaryContent('cart', false, 'aside')}
                       </CardContent>
                     </Card>
-                  </aside>
-                )}
+                </aside>
               </div>
 
-              {cartCount === 0 && (
-                <div className="fixed bottom-6 right-6 z-40 hidden lg:block">
-                  <div
-                    id="order-summary"
-                    className="flex items-center gap-2 rounded-full border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-lg"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Carrinho (0 itens)
-                  </div>
-                </div>
-              )}
             </section>
+            </>
           )}
         </div>
                 
@@ -2653,24 +2514,6 @@ export default function PublicStorePage() {
         </div>
       )}
 
-      {showMobileSummaryButton && (
-        <button
-          onClick={() => setMobileSummaryOpen(true)}
-          className="fixed bottom-5 left-4 right-4 z-[60] flex items-center justify-between gap-3 rounded-2xl bg-primary px-5 py-3.5 text-primary-foreground shadow-2xl transition active:scale-[0.98] lg:hidden"
-        >
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-primary">
-                {cartCount}
-              </span>
-            </div>
-            <span className="text-sm font-semibold">Ver carrinho</span>
-          </div>
-          <span className="text-sm font-bold">R$ {formatPrice(cartTotal)}</span>
-        </button>
-      )}
-
       {!orderSuccess && currentStep === 0 && cart.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t pt-3 pb-4 px-4 hidden lg:block">
           <div className="container mx-auto flex items-center justify-between gap-4">
@@ -2685,16 +2528,15 @@ export default function PublicStorePage() {
         </div>
       )}
 
-      {!orderSuccess && currentStep === 0 && cart.length > 0 && isStoreOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background px-3 pt-2.5 pb-3 lg:hidden">
-          <div className="mb-1.5 flex items-center justify-between text-sm font-bold">
-            <span>Total: R$ {formatPrice(cartTotal)}</span>
-            <span className="text-muted-foreground">{cartCount} item(ns)</span>
-          </div>
-          <Button type="button" onClick={handleStartCheckout} className="h-11 w-full sm:h-12">
-            Continuar pedido <ChevronRight className="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+      {isMenuStep && cart.length > 0 && !mobileSummaryOpen && (
+        <CartBar
+          logoUrl={resolveImageUrl(storeInfo.logo)}
+          total={cartTotal}
+          itemCount={cartCount}
+          freeDeliveryAbove={freeDeliveryAbove}
+          savings={cartSavings}
+          onOpenCart={() => setMobileSummaryOpen(true)}
+        />
       )}
 
       <Sheet open={mobileSummaryOpen} onOpenChange={setMobileSummaryOpen}>
@@ -2939,7 +2781,9 @@ export default function PublicStorePage() {
         }}
       />
 
-      <ReviewsSection tenantSlug={slug} />
+      <div id="avaliacoes" style={{ scrollMarginTop: 16 }}>
+        <ReviewsSection tenantSlug={slug} />
+      </div>
 
       {/* Footer */}
       <SiteFooter variant="compact" />
