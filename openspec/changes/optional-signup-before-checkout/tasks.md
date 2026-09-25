@@ -15,5 +15,7 @@
 ## 3. Verification
 
 - [x] 3.1 Run the full frontend Jest suite (131 suites, 860 passed, 1 skipped), type-check and ESLint on the touched files with no new findings
-- [x] 3.2 Check the dialog in the local store on desktop (448px wide, no horizontal overflow). Mobile viewport check not completed: the browser froze while emulating 390px; mobile layout relies on the responsive classes and is pending a manual check
-- [x] 3.3 Run `graphify update .` in `frontend/`
+- [x] 3.2 Check the flow in a real browser (headless Chromium) on the local store at 390×844, 768×1024 and 1366×800: dialog fits the screen, continue without registering, register and continue (prefilled, session saved), close keeps the cart, e-mail already registered then continue — 13/13 checks
+- [x] 3.3 Fix found during the mobile check: the "Seu pedido" sheet clipped "Continuar pedido" below the screen (pre-existing); the order summary now scrolls and the actions stay pinned to the sheet footer — verified visible without scrolling at 390×844 and 320×568
+- [x] 3.4 Fix found during the mobile check: the menu scrolled horizontally at 320px because the showcase cards' `sr-only` text (absolute) escaped the carousel's overflow; the carousel is now `relative` — page width equals the viewport at 320, 360, 375, 390, 414 and 768px
+- [x] 3.5 Run `graphify update .` in `frontend/`

@@ -14,8 +14,9 @@ interface ShowcaseProps {
   onAdd: (product: Product, event: MouseEvent) => void
 }
 
+// relative: os textos sr-only (absolute) dos cards ficam presos ao carrossel; sem isso escapam do overflow e alargam a página no celular
 const carouselClass =
-  "-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+  "relative -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 
 function ShowcaseImage({ product, children }: { product: Product; children?: React.ReactNode }) {
   const imageUrl = product.image ? resolveImageUrl(product.image) : null

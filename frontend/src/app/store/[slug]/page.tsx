@@ -1215,16 +1215,7 @@ export default function PublicStorePage() {
     })
   }
 
-  const renderSummaryContent = (variant: 'cart' | 'checkout' | 'review', hideActions = false, idPrefix = 'summary') => {
-    if (cart.length === 0) {
-      return (
-        <div className="min-w-0 space-y-3 break-words text-sm text-muted-foreground">
-          <p>Nenhum item no carrinho ainda.</p>
-          <p>Explore o cardápio e adicione seus produtos favoritos!</p>
-        </div>
-      )
-    }
-
+  const renderSummaryActions = (variant: 'cart' | 'checkout' | 'review') => {
     const buttonLabel =
       variant === 'cart'
         ? 'Continuar pedido'
@@ -1235,6 +1226,41 @@ export default function PublicStorePage() {
       variant === 'cart'
         ? cart.length === 0 || !isStoreOpen
         : submitting
+
+    return (
+      <>
+        <Button
+          className="w-full rounded-full"
+          size="lg"
+          onClick={buttonAction}
+          disabled={buttonDisabled}
+        >
+          {buttonLabel}
+        </Button>
+        {variant === 'cart' && !isStoreOpen && cart.length > 0 && (
+          <p className="text-center text-xs text-muted-foreground">
+            A loja está fechada no momento. O pedido poderá ser finalizado quando estivermos abertos.
+          </p>
+        )}
+
+        {variant === 'cart' && (
+          <Button variant="ghost" className="w-full text-sm" onClick={() => setCart([])}>
+            Esvaziar carrinho
+          </Button>
+        )}
+      </>
+    )
+  }
+
+  const renderSummaryContent = (variant: 'cart' | 'checkout' | 'review', hideActions = false, idPrefix = 'summary') => {
+    if (cart.length === 0) {
+      return (
+        <div className="min-w-0 space-y-3 break-words text-sm text-muted-foreground">
+          <p>Nenhum item no carrinho ainda.</p>
+          <p>Explore o cardápio e adicione seus produtos favoritos!</p>
+        </div>
+      )
+    }
 
     return (
       <div className="min-w-0 space-y-4 overflow-hidden">
@@ -1371,29 +1397,7 @@ export default function PublicStorePage() {
 
         </div>
 
-        {!hideActions && (
-          <>
-            <Button
-              className="w-full rounded-full"
-              size="lg"
-              onClick={buttonAction}
-              disabled={buttonDisabled}
-            >
-              {buttonLabel}
-            </Button>
-            {variant === 'cart' && !isStoreOpen && cart.length > 0 && (
-              <p className="text-center text-xs text-muted-foreground">
-                A loja está fechada no momento. O pedido poderá ser finalizado quando estivermos abertos.
-              </p>
-            )}
-
-            {variant === 'cart' && (
-              <Button variant="ghost" className="w-full text-sm" onClick={() => setCart([])}>
-                Esvaziar carrinho
-              </Button>
-            )}
-          </>
-        )}
+        {!hideActions && renderSummaryActions(variant)}
       </div>
     )
   }
@@ -2573,13 +2577,21 @@ export default function PublicStorePage() {
       )}
 
       <Sheet open={mobileSummaryOpen} onOpenChange={setMobileSummaryOpen}>
-        <SheetContent side="bottom" className="z-[70] w-full max-h-[85dvh] overflow-x-hidden overflow-y-auto px-4 py-4 pb-6 sm:mx-auto sm:max-w-lg sm:px-6 sm:py-6 sm:pb-8">
+        <SheetContent side="bottom" className="z-[70] w-full max-h-[85dvh] overflow-x-hidden px-4 py-4 pb-6 sm:mx-auto sm:max-w-lg sm:px-6 sm:py-6 sm:pb-8">
           <SheetHeader>
             <SheetTitle>Seu pedido</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 min-w-0 space-y-4 overflow-hidden pb-2 break-words">
-            {renderSummaryContent(currentStep === 0 ? 'cart' : currentStep === 4 ? 'review' : 'checkout', currentStep >= 1, 'sheet')}
+          {/* Só o resumo rola; "Continuar pedido" fica fixo no rodapé para não sumir abaixo da tela no celular */}
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="mt-4 min-w-0 space-y-4 pb-2 break-words">
+              {renderSummaryContent(currentStep === 0 ? 'cart' : currentStep === 4 ? 'review' : 'checkout', true, 'sheet')}
+            </div>
           </div>
+          {currentStep === 0 && cart.length > 0 && (
+            <div className="shrink-0 space-y-2 border-t pt-3">
+              {renderSummaryActions('cart')}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
