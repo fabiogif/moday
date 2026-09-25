@@ -103,12 +103,12 @@ class ClientAuthController extends Controller
     /**
      * Get authenticated client info
      */
-    public function me(Request $request): JsonResponse
+    public function me(Request $request, string $slug): JsonResponse
     {
         try {
             $client = $request->user('client');
 
-            if (!$client) {
+            if (!$client || !$this->authService->clientBelongsToStore($client, $slug)) {
                 return ApiResponseClass::sendResponse('', 'Cliente não autenticado', 401);
             }
 

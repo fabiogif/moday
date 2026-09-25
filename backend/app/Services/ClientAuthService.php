@@ -23,6 +23,16 @@ class ClientAuthService
         return $this->tenantRepository->findActiveBySlug($slug);
     }
 
+    /**
+     * Sessão de cliente só vale na loja em que ele se cadastrou.
+     */
+    public function clientBelongsToStore(Client $client, string $slug): bool
+    {
+        $tenant = $this->findActiveTenantBySlug($slug);
+
+        return $tenant !== null && (int) $client->tenant_id === (int) $tenant->id;
+    }
+
     public function emailExistsForTenant(string $email, int $tenantId): bool
     {
         return $this->clientRepository->emailExistsForTenant($email, $tenantId);

@@ -1004,10 +1004,6 @@ Route::prefix('store/{slug}')->group(function () {
     Route::post('/orders', [PublicStoreController::class, 'createOrder'])
         ->middleware('throttle:10,1'); // 10 requests per minute
 
-    // Lookup existing client by CPF or phone (autofill checkout)
-    Route::get('/clients/lookup', [PublicStoreController::class, 'lookupClient'])
-        ->middleware('throttle:20,1');
-    
     // Track order (public consultation by CPF or phone)
     Route::get('/orders/track', [PublicStoreController::class, 'trackOrder'])
         ->middleware('throttle:10,1'); // 10 requests per minute

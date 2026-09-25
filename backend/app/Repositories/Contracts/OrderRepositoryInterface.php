@@ -63,6 +63,4 @@ interface OrderRepositoryInterface
 
     public function getOrdersByClientIdWithRelations(int $clientId): \Illuminate\Support\Collection;
 
-    public function findLastDeliveryOrderByClientId(int $clientId, int $tenantId): ?Order;
-
 }

@@ -324,16 +324,4 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
             ->get();
     }
 
-    public function findLastDeliveryOrderByClientId(int $clientId, int $tenantId): ?Order
-    {
-        return $this->entity
-            ->where('tenant_id', $tenantId)
-            ->where('client_id', $clientId)
-            ->where('is_delivery', true)
-            ->whereNotNull('delivery_address')
-            ->where('delivery_address', '!=', '')
-            ->orderByDesc('created_at')
-            ->first();
-    }
-
 }

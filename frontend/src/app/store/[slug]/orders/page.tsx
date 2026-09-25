@@ -3,7 +3,6 @@
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ClientOrders } from '@/components/client-orders'
-import { ClientAuthProvider } from '@/contexts/client-auth-context'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Store } from 'lucide-react'
 
@@ -12,7 +11,6 @@ export default function ClientOrdersPage() {
   const slug = params.slug as string
 
   return (
-    <ClientAuthProvider>
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="border-b">
@@ -61,6 +59,5 @@ export default function ClientOrdersPage() {
           </div>
         </footer>
       </div>
-    </ClientAuthProvider>
   )
 }

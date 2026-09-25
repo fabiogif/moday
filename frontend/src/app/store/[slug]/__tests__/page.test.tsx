@@ -453,6 +453,75 @@ describe('PublicStorePage - Horário por método de entrega', () => {
     mockIsOpen(true)
     await goToShippingStepWithPickup()
 
+describe('PublicStorePage - Dados do cliente sem busca pública', () => {
+  const { toast } = jest.requireMock('sonner') as { toast: { error: jest.Mock } }
+
+  function mockAuthMe(response: { ok: boolean; status: number; body?: unknown }) {
+    const base = (global.fetch as jest.Mock).getMockImplementation()!
+    ;(global.fetch as jest.Mock).mockImplementation((url: string, init?: RequestInit) => {
+      if (url.includes('/auth/me')) {
+        return Promise.resolve({
+          ok: response.ok,
+          status: response.status,
+          headers: { get: () => 'application/json' },
+          json: () => Promise.resolve(response.body ?? { success: false }),
+        })
+      }
+      return base(url, init)
+    })
+  }
+
+  async function goToClientStep() {
+    render(<PublicStorePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    return screen.findByLabelText(/Como podemos te chamar/i)
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    setupStoreFetchMock()
+  })
+
+  it('preenche os dados com a sessão do cliente logado nesta loja', async () => {
+    mockAuthMe({
+      ok: true,
+      status: 200,
+      body: { success: true, data: { name: 'Maria Logada', email: 'maria@teste.com', phone: '71988887777' } },
+    })
+
+    const nameInput = await goToClientStep()
+
+    await waitFor(() => expect((nameInput as HTMLInputElement).value).toBe('Maria Logada'))
+    expect((screen.getByLabelText(/Celular com WhatsApp/i) as HTMLInputElement).value).toBe('(71) 98888-7777')
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/store/test-store/auth/me'),
+      expect.objectContaining({ credentials: 'include' })
+    )
+  })
+
+  it('sem sessão segue com os campos vazios e sem mensagem de erro', async () => {
+    mockAuthMe({ ok: false, status: 401 })
+
+    const nameInput = await goToClientStep()
+
+    expect((nameInput as HTMLInputElement).value).toBe('')
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('digitar um telefone não consulta dados de cliente', async () => {
+    mockAuthMe({ ok: false, status: 401 })
+    await goToClientStep()
+
+    fireEvent.change(screen.getByLabelText(/Celular com WhatsApp/i), { target: { value: '71988887777' } })
+    fireEvent.blur(screen.getByLabelText(/Celular com WhatsApp/i))
+    await new Promise((r) => setTimeout(r, 700))
+
+    const urls = (global.fetch as jest.Mock).mock.calls.map(([url]) => String(url))
+    expect(urls.some((u) => u.includes('clients/lookup') || u.includes('71988887777'))).toBe(false)
+  })
+})
+
     expect((await screen.findAllByRole('button', { name: /Revisar pedido/i })).length).toBeGreaterThan(0)
     expect(toast.error).not.toHaveBeenCalled()
   })

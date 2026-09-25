@@ -260,7 +260,7 @@ class PublicClientCreationTest extends TestCase
     }
 
     #[Test]
-    public function it_lookups_client_by_cpf_and_returns_saved_address(): void
+    public function public_client_lookup_is_not_exposed(): void
     {
         Client::create([
             'uuid' => fake()->uuid(),
@@ -269,58 +269,34 @@ class PublicClientCreationTest extends TestCase
             'phone' => '71988887777',
             'cpf' => '12345678901',
             'address' => 'Av. Principal',
-            'number' => '100',
-            'neighborhood' => 'Centro',
-            'city' => 'Salvador',
-            'state' => 'BA',
-            'zip_code' => '40000000',
-            'complement' => 'Bloco A',
             'tenant_id' => $this->tenant->id,
             'is_active' => true,
         ]);
 
-        $response = $this->getJson("/api/store/{$this->slug}/clients/lookup?cpf=12345678901");
+        foreach (['phone=71988887777', 'cpf=12345678901'] as $query) {
+            $response = $this->getJson("/api/store/{$this->slug}/clients/lookup?{$query}");
 
-        $response->assertStatus(200)
-            ->assertJsonPath('data.exists', true)
-            ->assertJsonPath('data.client.name', 'Cliente Cadastrado')
-            ->assertJsonPath('data.address.address', 'Av. Principal')
-            ->assertJsonPath('data.address.number', '100')
-            ->assertJsonPath('data.address.city', 'Salvador');
+            $response->assertNotFound();
+            $this->assertStringNotContainsString('Cliente Cadastrado', $response->getContent());
+            $this->assertStringNotContainsString('Av. Principal', $response->getContent());
+        }
     }
 
     #[Test]
-    public function it_lookups_client_by_phone_and_returns_address_from_last_delivery_order(): void
+    public function order_tracking_by_phone_stays_public(): void
     {
-        $client = Client::create([
-            'uuid' => fake()->uuid(),
-            'name' => 'Cliente Telefone',
-            'email' => 'telefone@teste.com',
-            'phone' => '71977776666',
-            'tenant_id' => $this->tenant->id,
-            'is_active' => true,
-        ]);
+        $this->postJson("/api/store/{$this->slug}/orders", [
+            'client' => ['name' => 'Ana Guest', 'phone' => '71966665555'],
+            'products' => [['uuid' => $this->product->uuid, 'quantity' => 1]],
+            'delivery' => ['is_delivery' => false],
+            'payment_method' => $this->paymentMethod->uuid,
+            'shipping_method' => 'pickup',
+        ])->assertStatus(201);
 
-        \App\Models\Order::factory()->create([
-            'tenant_id' => $this->tenant->id,
-            'client_id' => $client->id,
-            'is_delivery' => true,
-            'delivery_address' => 'Rua do Pedido',
-            'delivery_number' => '50',
-            'delivery_neighborhood' => 'Pituba',
-            'delivery_city' => 'Salvador',
-            'delivery_state' => 'BA',
-            'delivery_zip_code' => '41810000',
-            'delivery_complement' => 'Casa 2',
-        ]);
-
-        $response = $this->getJson("/api/store/{$this->slug}/clients/lookup?phone=71977776666");
-
-        $response->assertStatus(200)
-            ->assertJsonPath('data.exists', true)
-            ->assertJsonPath('data.client.name', 'Cliente Telefone')
-            ->assertJsonPath('data.address.address', 'Rua do Pedido')
-            ->assertJsonPath('data.address.neighborhood', 'Pituba');
+        // Sem login nem token: consulta de pedido do cardápio continua aberta
+        $this->getJson("/api/store/{$this->slug}/orders/track?phone=71966665555")
+            ->assertOk()
+            ->assertJsonPath('success', true);
     }
 
     #[Test]

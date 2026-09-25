@@ -93,6 +93,33 @@ class ClientAuthenticationTest extends TestCase
     }
 
     #[Test]
+    public function auth_me_recusa_sessao_de_outra_loja()
+    {
+        $outraLoja = Tenant::factory()->create([
+            'slug' => 'outra-loja',
+            'is_active' => true,
+            'plan_id' => $this->tenant->plan_id,
+        ]);
+        Client::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Cliente Loja A',
+            'email' => 'cliente-a@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $token = $this->postJson("/api/store/{$this->tenant->slug}/auth/login", [
+            'email' => 'cliente-a@example.com',
+            'password' => 'password123',
+        ])->json('data.token');
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+            ->getJson("/api/store/{$outraLoja->slug}/auth/me");
+
+        $response->assertStatus(401);
+        $this->assertStringNotContainsString('Cliente Loja A', $response->getContent());
+    }
+
+    #[Test]
     public function auth_me_autentica_via_cookie_sem_header_authorization()
     {
         $client = Client::factory()->create([

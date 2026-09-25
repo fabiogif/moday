@@ -6,7 +6,7 @@ use App\Classes\ApiResponseClass;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\PublicStoreOrderRequest;
 use App\Http\Resources\{PublicProductResource, PublicStoreInfoResource, PublicPaymentMethodResource, CouponResource};
-use App\Services\{PublicOrderService, PublicStoreService, StoreHourService, OrderService, CouponService, LoyaltyProgramService, PublicOrderCalculationService, PublicClientService};
+use App\Services\{PublicOrderService, PublicStoreService, StoreHourService, OrderService, CouponService, LoyaltyProgramService, PublicOrderCalculationService};
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +22,6 @@ class PublicStoreController extends Controller
         private readonly CouponService $couponService,
         private readonly LoyaltyProgramService $loyaltyProgramService,
         private readonly PublicOrderCalculationService $publicOrderCalculationService,
-        private readonly PublicClientService $publicClientService,
     ) {}
 
     /**
@@ -306,50 +305,6 @@ class PublicStoreController extends Controller
             ]);
 
             return ApiResponseClass::rollback($e, 'Erro ao carregar promoções');
-        }
-    }
-
-    /**
-     * Busca cliente existente por CPF ou telefone (autofill no checkout público).
-     */
-    public function lookupClient(Request $request, string $slug): JsonResponse
-    {
-        try {
-            $tenant = $this->publicStoreService->getTenantEntityBySlug($slug);
-
-            if (!$tenant) {
-                return ApiResponseClass::sendResponse('', 'Loja não encontrada', 404);
-            }
-
-            $cpf = $request->query('cpf');
-            $phone = $request->query('phone');
-
-            if (!$cpf && !$phone) {
-                return ApiResponseClass::sendResponse('', 'Informe CPF ou telefone', 422);
-            }
-
-            $result = $this->publicClientService->lookupClient($tenant, $cpf, $phone);
-
-            if (!$result) {
-                return ApiResponseClass::sendResponse([
-                    'exists' => false,
-                    'client' => null,
-                    'address' => null,
-                ], 'Cliente não encontrado', 200);
-            }
-
-            return ApiResponseClass::sendResponse([
-                'exists' => true,
-                'client' => $result['client'],
-                'address' => $result['address'],
-            ], 'Cliente encontrado', 200);
-        } catch (\Exception $e) {
-            Log::error('Error looking up client', [
-                'error' => $e->getMessage(),
-                'slug' => $slug,
-            ]);
-
-            return ApiResponseClass::rollback($e, 'Erro ao buscar cliente');
         }
     }
 

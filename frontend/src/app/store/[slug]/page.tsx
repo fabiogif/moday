@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { useEffect, useState, useCallback, useRef, type MouseEvent } from "react"
+import { useEffect, useState, useCallback, type MouseEvent } from "react"
 import { ShoppingCart, Plus, Minus, Store, MapPin, Phone, Image as ImageIcon, Loader2, Search, Package, Menu, X, MessageCircle, Check, Clock, CreditCard, User, Truck, ClipboardCheck, ChevronLeft, ChevronRight, Info, Flame, Sparkles, Copy } from "lucide-react"
 import { OrderStepper } from "@/components/order-stepper"
 import { Button } from "@/components/ui/button"
@@ -195,97 +195,75 @@ export default function PublicStorePage() {
   })
   const [couponCode, setCouponCode] = useState("")
   const [isStoreOpen, setIsStoreOpen] = useState(true) // Default true para não bloquear até carregar
-  const clientLookupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastClientLookupKeyRef = useRef<string>("")
+  const [reviewStats, setReviewStats] = useState<{ average: number; total: number } | null>(null)
+  const [couponSlides, setCouponSlides] = useState<CouponSlide[]>([])
 
-  const lookupExistingClient = useCallback(async (cpf?: string, phone?: string) => {
-    const cpfDigits = cpf?.replace(/\D/g, "") ?? ""
-    const phoneDigits = phone?.replace(/\D/g, "") ?? ""
-
-    if (cpfDigits.length < 11 && phoneDigits.length < 10) {
-      return
+  // Avaliação e cupons do topo do cardápio: se falhar, o cardápio segue sem eles (sem toast)
+  useEffect(() => {
+    let cancelled = false
+    const getPublicData = async (path: string) => {
+      try {
+        const response = await fetch(buildApiUrl(path), { headers: { Accept: "application/json" } })
+        if (!response.ok) return null
+        const result = await response.json()
+        return result?.success ? result.data : null
+      } catch {
+        return null
+      }
     }
-
-    const lookupKey = `${cpfDigits}|${phoneDigits}`
-    if (lookupKey === lastClientLookupKeyRef.current) {
-      return
-    }
-
-    try {
-      const params = new URLSearchParams()
-      if (cpfDigits.length === 11) params.set("cpf", cpfDigits)
-      if (phoneDigits.length >= 10) params.set("phone", phoneDigits)
-
-      const response = await fetch(
-        buildApiUrl(`/api/store/${slug}/clients/lookup?${params.toString()}`),
-        {
-          method: "GET",
-          headers: { Accept: "application/json" },
-          mode: "cors",
-        }
-      )
-
-      if (!response.ok) return
-
-      const result = await response.json()
-      if (!result.success || !result.data?.exists) {
-        lastClientLookupKeyRef.current = lookupKey
-        return
-      }
-
-      lastClientLookupKeyRef.current = lookupKey
-
-      const foundClient = result.data.client
-      const foundAddress = result.data.address
-
-      if (foundClient) {
-        setClientData((prev) => ({
-          ...prev,
-          name: foundClient.name || prev.name,
-          email: foundClient.email || prev.email,
-          phone: foundClient.phone ? maskPhone(foundClient.phone) : prev.phone,
-          cpf: foundClient.cpf ? maskCPF(foundClient.cpf) : prev.cpf,
-        }))
-      }
-
-      if (foundAddress) {
-        setDeliveryData((prev) => ({
-          ...prev,
-          address: foundAddress.address || prev.address,
-          number: foundAddress.number || prev.number,
-          neighborhood: foundAddress.neighborhood || prev.neighborhood,
-          city: foundAddress.city || prev.city,
-          state: foundAddress.state || prev.state,
-          zip_code: foundAddress.zip_code ? maskZipCode(foundAddress.zip_code) : prev.zip_code,
-          complement: foundAddress.complement || prev.complement,
-          notes: foundAddress.notes || prev.notes,
-        }))
-        toast.success("Cliente encontrado! Dados preenchidos automaticamente.")
-      } else if (foundClient) {
-        toast.success("Cliente encontrado! Dados pessoais preenchidos.")
-      }
-    } catch {
-      // Silencioso — lookup é opcional
+    getPublicData(endpoints.reviews.public.stats(slug)).then((stats) => {
+      if (cancelled || !stats) return
+      setReviewStats({ average: Number(stats.average_rating) || 0, total: Number(stats.total) || 0 })
+    })
+    getPublicData(endpoints.store.promotions(slug)).then((data) => {
+      if (cancelled || !Array.isArray(data?.slides)) return
+      setCouponSlides(data.slides.filter((slide: CouponSlide & { type?: string }) => slide.type === 'coupon' && slide.code))
+    })
+    return () => {
+      cancelled = true
     }
   }, [slug])
-
-  const scheduleClientLookup = useCallback((cpf?: string, phone?: string) => {
-    if (clientLookupTimeoutRef.current) {
-      clearTimeout(clientLookupTimeoutRef.current)
-    }
-
-    clientLookupTimeoutRef.current = setTimeout(() => {
-      lookupExistingClient(cpf, phone)
-    }, 600)
-  }, [lookupExistingClient])
-
+  // Preenche o checkout só com os dados do cliente logado nesta loja (sessão via cookie).
+  // Visitante digita os próprios dados — não há busca de cliente por telefone/CPF.
   useEffect(() => {
-    return () => {
-      if (clientLookupTimeoutRef.current) {
-        clearTimeout(clientLookupTimeoutRef.current)
+    let cancelled = false
+    const prefillFromSession = async () => {
+      try {
+        const response = await fetch(buildApiUrl(endpoints.store.authMe(slug)), {
+          headers: { Accept: "application/json" },
+          credentials: "include",
+        })
+        if (!response.ok) return
+        const result = await response.json()
+        const me = result?.data
+        if (cancelled || !result?.success || !me) return
+
+        setClientData((prev) => ({
+          ...prev,
+          name: prev.name || me.name || "",
+          email: prev.email || me.email || "",
+          phone: prev.phone || (me.phone ? maskPhone(me.phone) : ""),
+          cpf: prev.cpf || (me.cpf ? maskCPF(me.cpf) : ""),
+        }))
+        setDeliveryData((prev) => ({
+          ...prev,
+          address: prev.address || me.address || "",
+          number: prev.number || me.number || "",
+          neighborhood: prev.neighborhood || me.neighborhood || "",
+          city: prev.city || me.city || "",
+          state: prev.state || me.state || "",
+          zip_code: prev.zip_code || (me.zip_code ? maskZipCode(me.zip_code) : ""),
+          complement: prev.complement || me.complement || "",
+        }))
+      } catch {
+        // Sem sessão ou sem rede: segue com os campos vazios
       }
     }
-  }, [])
+    prefillFromSession()
+    return () => {
+      cancelled = true
+    }
+  }, [slug])
 
   // Hook para buscar CEP
   const { searchCEP, loading: cepLoading, found: cepFound, notifyCepChange } = useViaCEP()
@@ -1918,7 +1896,7 @@ export default function PublicStorePage() {
                   <CardHeader className={storeFormHeaderClass}>
                     <CardTitle className="text-base sm:text-lg">Seus dados</CardTitle>
                     <CardDescription className="text-xs sm:text-sm">
-                      Já pediu aqui antes? Informe celular ou CPF e preenchemos tudo automaticamente.
+                      Informe seus dados para acompanharmos o pedido. Com conta nesta loja, eles já vêm preenchidos.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className={storeFormContentClass}>
@@ -1951,14 +1929,8 @@ export default function PublicStorePage() {
                           id="phone"
                           value={clientData.phone}
                           onChange={(e) => {
-                            const masked = maskPhone(e.target.value)
-                            setClientData({ ...clientData, phone: masked })
-                            const digits = masked.replace(/\D/g, "")
-                            if (digits.length >= 10) {
-                              scheduleClientLookup(clientData.cpf, digits)
-                            }
+                            setClientData({ ...clientData, phone: maskPhone(e.target.value) })
                           }}
-                          onBlur={() => scheduleClientLookup(clientData.cpf, clientData.phone)}
                           placeholder="(11) 99999-9999"
                           required
                           className={storeFormInputClass}
@@ -1974,14 +1946,8 @@ export default function PublicStorePage() {
                               id="cpf"
                               value={clientData.cpf}
                               onChange={(e) => {
-                                const masked = maskCPF(e.target.value)
-                                setClientData({ ...clientData, cpf: masked })
-                                const digits = masked.replace(/\D/g, "")
-                                if (digits.length === 11) {
-                                  scheduleClientLookup(digits, clientData.phone)
-                                }
+                                setClientData({ ...clientData, cpf: maskCPF(e.target.value) })
                               }}
-                              onBlur={() => scheduleClientLookup(clientData.cpf, clientData.phone)}
                               placeholder="000.000.000-00"
                               className={storeFormInputClass}
                             />

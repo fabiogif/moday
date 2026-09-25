@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Client;
 use App\Models\Tenant;
 use App\Repositories\Contracts\ClientRepositoryInterface;
-use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -13,39 +12,7 @@ class PublicClientService
 {
     public function __construct(
         private readonly ClientRepositoryInterface $clientRepository,
-        private readonly OrderRepositoryInterface $orderRepository,
     ) {}
-
-    /**
-     * Busca cliente existente por CPF ou telefone para autofill no cardápio público.
-     */
-    public function lookupClient(Tenant $tenant, ?string $cpf = null, ?string $phone = null): ?array
-    {
-        $client = null;
-
-        $cleanCpf = $this->cleanCpf($cpf);
-        if ($cleanCpf) {
-            $client = $this->clientRepository->findByCpfAndTenant($cleanCpf, $tenant->id);
-        }
-
-        if (!$client && $phone) {
-            $client = $this->clientRepository->findByPhoneAndTenant($phone, $tenant->id);
-        }
-
-        if (!$client) {
-            return null;
-        }
-
-        return [
-            'client' => [
-                'name' => $client->name,
-                'email' => $client->email,
-                'phone' => $client->phone,
-                'cpf' => $client->cpf,
-            ],
-            'address' => $this->resolveClientAddress($client, $tenant->id),
-        ];
-    }
 
     /**
      * Create or update client for public store
@@ -192,37 +159,6 @@ class PublicClientService
         $clean = preg_replace('/\D/', '', $phone);
 
         return strlen($clean) >= 10 ? $clean : null;
-    }
-
-    private function resolveClientAddress(Client $client, int $tenantId): ?array
-    {
-        if ($client->hasCompleteAddress()) {
-            return [
-                'address' => $client->address,
-                'number' => $client->number,
-                'neighborhood' => $client->neighborhood,
-                'city' => $client->city,
-                'state' => $client->state,
-                'zip_code' => $client->zip_code,
-                'complement' => $client->complement,
-            ];
-        }
-
-        $lastOrder = $this->orderRepository->findLastDeliveryOrderByClientId($client->id, $tenantId);
-        if (!$lastOrder) {
-            return null;
-        }
-
-        return [
-            'address' => $lastOrder->delivery_address,
-            'number' => $lastOrder->delivery_number,
-            'neighborhood' => $lastOrder->delivery_neighborhood,
-            'city' => $lastOrder->delivery_city,
-            'state' => $lastOrder->delivery_state,
-            'zip_code' => $lastOrder->delivery_zip_code,
-            'complement' => $lastOrder->delivery_complement,
-            'notes' => $lastOrder->delivery_notes,
-        ];
     }
 
     private function extractAddressFieldsFromDelivery(?array $delivery): array
