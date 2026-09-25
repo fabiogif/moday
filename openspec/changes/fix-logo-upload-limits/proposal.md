@@ -21,6 +21,7 @@ The store logo upload had three different contracts: the panel accepted JPG/PNG/
 ## Impact
 
 - Backend: `UpdateTenantRequest`, `FileUploadService` (`logo` config), `TenantService` (upload errors → `ValidationException`, cleanup of partial uploads), `TenantApiController::update` (422 on `ValidationException`), new `PruneTenantImages` command; tests in `TenantApiControllerUpdateTest` and `PruneTenantImagesCommandTest`.
+- Infra: `docker/php-fpm/uploads.ini` + `Dockerfile.production` raise PHP's upload limits (2M → 10M per file, 8M → 12M per request); needs the production image rebuilt on deploy.
 - Frontend: company settings logo picker checks the same types/size as the cover (`IMAGE_UPLOAD_ACCEPT` / `IMAGE_UPLOAD_MAX_SIZE`).
 - Existing GIF/SVG logos stay as they are; only new uploads are restricted.
 - Running the prune command in production is a separate, manual step (report first, delete after review).
