@@ -35,6 +35,17 @@ class FileUploadService
             'quality' => 90,
             'path_prefix' => 'tenants/{tenant_uuid}/logos',
         ],
+        // Capa do cardápio público: mesmo disco do logo, redimensionada para banner
+        'cover' => [
+            'disk' => 'logos',
+            'max_size' => 5120, // 5MB
+            'allowed_types' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_width' => 1920,
+            'max_height' => 1080,
+            'quality' => 85,
+            'path_prefix' => 'tenants/{tenant_uuid}/covers',
+            'use_hash_name' => true,
+        ],
         'document' => [
             'disk' => 'temp',
             'max_size' => 10240, // 10MB

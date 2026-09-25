@@ -51,6 +51,8 @@ interface StoreInfo {
   state: string
   zipcode: string
   logo: string
+  /** Capa enviada no painel; sem ela o topo usa a foto do produto mais vendido */
+  cover?: string | null
   whatsapp: string
   settings?: {
     delivery_pickup?: {
@@ -1628,7 +1630,7 @@ export default function PublicStorePage() {
             <StoreHero
               name={storeInfo.name}
               logoUrl={resolveImageUrl(storeInfo.logo)}
-              coverImageUrl={resolveImageUrl((topSellers[0] ?? offerProducts[0])?.image)}
+              coverImageUrl={resolveImageUrl(storeInfo.cover) ?? resolveImageUrl((topSellers[0] ?? offerProducts[0])?.image)}
               rating={reviewStats}
               hoursSlot={<StoreHoursBanner slug={slug} onStatusChange={setIsStoreOpen} />}
               deliveryEnabled={deliverySettings?.delivery_enabled !== false}

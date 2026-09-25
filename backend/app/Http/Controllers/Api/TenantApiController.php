@@ -10,7 +10,6 @@ use App\Services\AuthTenantService;
 use App\Services\TenantService;
 use Illuminate\Http\{Request, JsonResponse, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class TenantApiController extends Controller
@@ -86,31 +85,7 @@ class TenantApiController extends Controller
                 return ApiResponseClass::sendResponse(null, 'Empresa não encontrada', 404);
             }
 
-            // Lidar com upload de logo
-            if ($request->hasFile('logo') && $request->file('logo')->isValid()) {
-                $tenant = $this->tenantService->getTenantByUuid($uuid);
-                
-                if ($tenant) {
-                    // Deletar logo antigo se existir
-                    if ($tenant->logo) {
-                        // Extrair o path do storage da URL
-                        $oldPath = str_replace('/storage/', '', parse_url($tenant->logo, PHP_URL_PATH));
-                        if (Storage::disk('public')->exists($oldPath)) {
-                            Storage::disk('public')->delete($oldPath);
-                        }
-                    }
-                    
-                    // Fazer upload do novo logo usando FileUploadService
-                    $fileUploadService = app(\App\Services\FileUploadService::class);
-                    $uploadResult = $fileUploadService->uploadFile(
-                        $request->file('logo'), 
-                        'logo', 
-                        $uuid
-                    );
-                    $data['logo'] = $uploadResult['path'];
-                }
-            }
-            
+            // Upload/remoção de logo e capa (arquivos em $data) são tratados no TenantService
             $tenant = $this->tenantService->update($uuid, $data);
             
             if (!$tenant) {

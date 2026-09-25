@@ -37,6 +37,7 @@ readonly class PublicStoreService
                 'state' => $tenant->state,
                 'zipcode' => $tenant->zipcode,
                 'logo' => ImageHelper::publicAssetPath($tenant->logo, 'logos'),
+                'cover' => ImageHelper::publicAssetPath($tenant->cover, 'logos'),
                 'whatsapp' => $this->formatWhatsApp($tenant->phone),
                 'settings' => $tenant->settings ?? [],
             ];

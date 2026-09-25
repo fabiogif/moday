@@ -23,6 +23,10 @@ export interface ImageDropzoneProps {
   label?: string;
   hint?: string;
   hasPreview?: boolean;
+  /** Rótulo acessível da área de envio */
+  ariaLabel?: string;
+  /** Mensagem quando o tipo do arquivo não está em `accept` */
+  invalidTypeMessage?: string;
 }
 
 export function ImageDropzone({
@@ -34,6 +38,8 @@ export function ImageDropzone({
   label,
   hint = "Formatos: JPG, PNG, GIF, SVG · Máximo: 2MB",
   hasPreview = false,
+  ariaLabel = "Área para enviar imagem do produto",
+  invalidTypeMessage = "Tipo de arquivo inválido! Use: JPG, PNG, GIF ou SVG",
 }: ImageDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
@@ -50,13 +56,13 @@ export function ImageDropzone({
       }
 
       if (accept.length > 0 && !accept.includes(file.type)) {
-        toast.error("Tipo de arquivo inválido! Use: JPG, PNG, GIF ou SVG");
+        toast.error(invalidTypeMessage);
         return;
       }
 
       onFileSelect(file);
     },
-    [accept, maxSize, onFileSelect]
+    [accept, maxSize, onFileSelect, invalidTypeMessage]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,7 +124,7 @@ export function ImageDropzone({
         role="button"
         tabIndex={disabled ? -1 : 0}
         aria-disabled={disabled}
-        aria-label="Área para enviar imagem do produto"
+        aria-label={ariaLabel}
         onClick={openFilePicker}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

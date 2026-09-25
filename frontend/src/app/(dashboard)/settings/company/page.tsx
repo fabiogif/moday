@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient, endpoints } from "@/lib/api-client"
 import { toast } from "sonner"
-import { Loader2, Building2, Upload, X, ExternalLink, Copy, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
+import { Loader2, Building2, Upload, X, ExternalLink, Copy, MapPin, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react"
 import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,8 @@ import { validateCNPJ, validateEmail, validatePhone } from "@/lib/masks"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { useReceitaWS } from "@/hooks/use-receitaws"
 import { type CompanyData } from "@/services/receitaws"
+import { useImageField } from "./use-image-field"
+import { ImageDropzone } from "@/components/image-dropzone"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { StateCityFormFields } from "@/components/location/state-city-form-fields"
 import { applyCepToForm, clearCepLinkedFields } from "@/lib/apply-cep-to-form"
@@ -64,10 +66,14 @@ const companyFormSchema = z.object({
 type CompanyFormValues = z.infer<typeof companyFormSchema>
 
 const STEPS = [
-  { label: "Logo", icon: Upload },
+  { label: "Logo e capa", icon: Upload },
   { label: "Dados da Empresa", icon: Building2 },
   { label: "Endereço", icon: MapPin },
 ]
+
+// Mesmos limites do backend (UpdateTenantRequest / FileUploadService "cover")
+const COVER_ACCEPT = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+const COVER_MAX_SIZE = 5 * 1024 * 1024
 
 const STEP_FIELDS: (keyof CompanyFormValues)[][] = [
   [],
@@ -111,6 +117,7 @@ interface TenantData {
   zipcode?: string
   country?: string
   logo?: string
+  cover?: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -121,9 +128,8 @@ export default function CompanySettings() {
   const [tenantData, setTenantData] = useState<TenantData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [removeLogo, setRemoveLogo] = useState(false)
+  const logo = useImageField({ removed: 'Logo marcado para remoção', removeCanceled: 'Remoção de logo cancelada' })
+  const cover = useImageField({ removed: 'Capa marcada para remoção', removeCanceled: 'Remoção da capa cancelada' })
   const [currentStep, setCurrentStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set())
   const [validatingStep, setValidatingStep] = useState(false)
@@ -344,30 +350,8 @@ export default function CompanySettings() {
         return
       }
 
-      setLogoFile(file)
-      setRemoveLogo(false)
-      
-      // Criar preview
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
+      logo.select(file)
     }
-  }
-
-  // Remover logo
-  const handleRemoveLogo = () => {
-    setLogoFile(null)
-    setLogoPreview(null)
-    setRemoveLogo(true)
-    toast.success('Logo marcado para remoção')
-  }
-
-  // Cancelar remoção
-  const handleCancelRemove = () => {
-    setRemoveLogo(false)
-    toast.success('Remoção de logo cancelada')
   }
 
   // Copiar slug/URL da loja
@@ -415,7 +399,7 @@ export default function CompanySettings() {
 
       // Preparar FormData se houver arquivo
       let response
-      if (logoFile || removeLogo) {
+      if (logo.hasChanges || cover.hasChanges) {
         const formData = new FormData()
         
         // Adicionar _method para Laravel reconhecer como PUT
@@ -428,15 +412,9 @@ export default function CompanySettings() {
           }
         })
         
-        // Adicionar arquivo se houver
-        if (logoFile) {
-          formData.append('logo', logoFile)
-        }
-        
-        // Marcar para remover logo se necessário
-        if (removeLogo && !logoFile) {
-          formData.append('remove_logo', 'true')
-        }
+        // Arquivo novo ou remoção pendente
+        logo.appendTo(formData, 'logo')
+        cover.appendTo(formData, 'cover')
         
         // Usar POST com _method=PUT para upload de arquivo
         response = await apiClient.post(`/api/tenant/${tenantData.uuid}`, formData)
@@ -451,9 +429,8 @@ export default function CompanySettings() {
         // Atualizar dados locais
         if (response.data) {
           setTenantData(response.data as TenantData)
-          setLogoFile(null)
-          setLogoPreview(null)
-          setRemoveLogo(false)
+          logo.reset()
+          cover.reset()
         }
       }
     } catch (error: any) {
@@ -666,15 +643,15 @@ export default function CompanySettings() {
                 {/* Preview do Logo */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="w-32 h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted/30">
-                    {logoPreview ? (
+                    {logo.preview ? (
                       <Image 
-                        src={logoPreview} 
+                        src={logo.preview} 
                         alt="logo padrão" 
                         width={128} 
                         height={128} 
                         className="object-cover w-full h-full"
                       />
-                    ) : tenantData?.logo && !removeLogo ? (
+                    ) : tenantData?.logo && !logo.markedForRemoval ? (
                       <Image 
                         src={resolveImageUrl(tenantData.logo) || ""} 
                         alt="Logo atual" 
@@ -690,24 +667,24 @@ export default function CompanySettings() {
                       </div>
                     )}
                   </div>
-                  {(tenantData?.logo || logoPreview) && !removeLogo && (
+                  {(tenantData?.logo || logo.preview) && !logo.markedForRemoval && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleRemoveLogo}
+                      onClick={logo.markForRemoval}
                       className="text-destructive hover:text-destructive"
                     >
                       <X className="h-4 w-4 mr-1" />
                       Remover Logo
                     </Button>
                   )}
-                  {removeLogo && (
+                  {logo.markedForRemoval && (
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={handleCancelRemove}
+                      onClick={logo.cancelRemoval}
                     >
                       Cancelar Remoção
                     </Button>
@@ -740,15 +717,15 @@ export default function CompanySettings() {
                       />
                     </Label>
                   </div>
-                  {logoFile && (
+                  {logo.file && (
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-sm font-medium">Arquivo selecionado:</p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {logoFile.name} ({(logoFile.size / 1024).toFixed(2)} KB)
+                        {logo.file.name} ({(logo.file.size / 1024).toFixed(2)} KB)
                       </p>
                     </div>
                   )}
-                  {removeLogo && (
+                  {logo.markedForRemoval && (
                     <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
                       <p className="text-sm font-medium text-destructive">
                         O logo será removido ao salvar as alterações
@@ -757,6 +734,88 @@ export default function CompanySettings() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          )}
+
+          {/* Capa do cardápio público (banner do topo de /store/{slug}) */}
+          {currentStep === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Capa do cardápio</CardTitle>
+              <CardDescription>
+                Imagem do topo do seu cardápio digital. Recomendamos 1600×640 px, com o conteúdo importante no centro — em celulares as laterais são cortadas. Sem capa, o cardápio usa a foto do produto mais vendido.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(() => {
+                const coverSrc = cover.preview
+                  ?? (tenantData?.cover && !cover.markedForRemoval ? resolveImageUrl(tenantData.cover) : null)
+                return (
+                  <>
+                    <div className="relative aspect-[5/2] w-full overflow-hidden rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30">
+                      {coverSrc ? (
+                        <Image
+                          src={coverSrc}
+                          alt="Prévia da capa do cardápio"
+                          fill
+                          sizes="(min-width: 1024px) 768px, 100vw"
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                          <ImageIcon className="mb-2 h-10 w-10" />
+                          <span className="text-xs">Sem capa</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <ImageDropzone
+                      onFileSelect={cover.select}
+                      accept={COVER_ACCEPT}
+                      maxSize={COVER_MAX_SIZE}
+                      hasPreview={!!coverSrc}
+                      ariaLabel="Área para enviar a capa do cardápio"
+                      hint="JPG, PNG ou WEBP · Máximo: 5MB"
+                      invalidTypeMessage="Tipo de arquivo inválido! Use: JPG, PNG ou WEBP"
+                    />
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {(tenantData?.cover || cover.preview) && !cover.markedForRemoval && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={cover.markForRemoval}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remover capa
+                        </Button>
+                      )}
+                      {cover.markedForRemoval && (
+                        <Button type="button" variant="outline" size="sm" onClick={cover.cancelRemoval}>
+                          Cancelar remoção
+                        </Button>
+                      )}
+                      {cover.file && (
+                        <p className="text-xs text-muted-foreground">
+                          {cover.file.name} ({(cover.file.size / 1024).toFixed(2)} KB)
+                        </p>
+                      )}
+                    </div>
+
+                    {cover.markedForRemoval && (
+                      <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+                        <p className="text-sm font-medium text-destructive">
+                          A capa será removida ao salvar as alterações
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
           )}

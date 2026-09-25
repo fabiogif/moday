@@ -29,6 +29,7 @@ class TenantResource extends JsonResource
             'zipcode' => $this->zipcode,
             'country' => $this->country,
             'logo' => ImageHelper::publicAssetPath($this->logo, 'logos'),
+            'cover' => ImageHelper::publicAssetPath($this->cover, 'logos'),
             'settings' => $this->settings ?? [],
             'is_active' => $this->is_active,
             'created_at' => $this->created_at,

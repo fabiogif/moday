@@ -27,6 +27,7 @@ class PublicStoreInfoResource extends JsonResource
             'state' => $this->resource['state'] ?? null,
             'zipcode' => $this->resource['zipcode'] ?? null,
             'logo' => $this->resource['logo'] ?? null,
+            'cover' => $this->resource['cover'] ?? null,
             'whatsapp' => $this->resource['whatsapp'] ?? null,
             'settings' => $this->resource['settings'] ?? [],
         ];

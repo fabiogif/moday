@@ -635,3 +635,33 @@ describe('PublicStorePage - Cadastro opcional ao continuar o pedido', () => {
     expect(screen.queryByRole('dialog', { name: 'Deseja se cadastrar?' })).not.toBeInTheDocument()
   })
 })
+
+describe('PublicStorePage - Capa do topo', () => {
+  const soldProducts = () => mockProducts.map((p, i) => ({ ...p, sold_qty: i === 1 ? 30 : 0 }))
+
+  async function heroImageSrc() {
+    const hero = await screen.findByRole('region', { name: 'Informações da loja' })
+    await within(hero).findByRole('heading', { level: 1, name: 'Loja Teste' })
+    await screen.findByRole('heading', { name: 'Preferidos' })
+    return hero.querySelector('img[alt=""]')?.getAttribute('src') ?? null
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockStoreOpen = true
+  })
+
+  it('usa a capa enviada pela loja mesmo quando há mais vendidos', async () => {
+    setupStoreFetchMock(soldProducts(), { ...mockStoreInfo, cover: '/storage/logos/tenants/t1/covers/capa.jpg' } as typeof mockStoreInfo)
+    render(<PublicStorePage />)
+
+    expect(await heroImageSrc()).toContain('capa.jpg')
+  })
+
+  it('sem capa usa a foto do produto mais vendido, como antes', async () => {
+    setupStoreFetchMock(soldProducts())
+    render(<PublicStorePage />)
+
+    expect(await heroImageSrc()).toContain('coca.jpg')
+  })
+})

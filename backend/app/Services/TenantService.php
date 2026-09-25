@@ -2,15 +2,23 @@
 
 namespace App\Services;
 
+use App\Helpers\ImageHelper;
 use App\Models\Plan;
+use App\Models\Tenant;
 use App\Repositories\Contracts\PaginateRepositoryInterface;
 use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class TenantService
 {
+    /** Imagens da loja: campo => tipo de upload do FileUploadService (ambas no disco "logos") */
+    private const IMAGE_FIELDS = ['logo' => 'logo', 'cover' => 'cover'];
+
     public function __construct(private readonly TenantRepositoryInterface $tenantRepositoryInterface,
                                 private readonly PlanRepositoryInterface   $planRepositoryInterface,
+                                private readonly FileUploadService         $fileUploadService,
                                 private Plan                               $plan,
                                 private array                              $data = []){}
 
@@ -105,21 +113,53 @@ class TenantService
             $data['slug'] = $slug;
         }
 
-        // Remover flag de remoção de logo dos dados
-        $removeLogo = isset($data['remove_logo']) && $data['remove_logo'];
-        unset($data['remove_logo']);
-
-        // Se marcado para remover logo
-        if ($removeLogo) {
-            // Deletar logo antigo se existir
-            if ($tenant->logo && \Storage::exists($tenant->logo)) {
-                \Storage::delete($tenant->logo);
+        $replacedImages = [];
+        foreach (self::IMAGE_FIELDS as $field => $uploadType) {
+            $old = $this->applyImageChange($tenant, $data, $field, $uploadType);
+            if ($old !== null) {
+                $replacedImages[] = $old;
             }
-            $data['logo'] = null;
         }
 
         $tenant->update($data);
-        
+
+        // Só apaga as imagens antigas depois que as novas foram salvas no tenant
+        foreach ($replacedImages as $oldImage) {
+            $this->deleteStoredImage($oldImage);
+        }
+
         return $tenant->fresh();
+    }
+
+    /**
+     * Novo arquivo em $data[$field] é enviado ao storage; "remove_{$field}" limpa o campo.
+     * Qualquer outro valor do campo é ignorado (o caminho só muda por upload ou remoção).
+     *
+     * @return string|null imagem anterior a apagar depois de salvar, se houve troca/remoção
+     */
+    private function applyImageChange(Tenant $tenant, array &$data, string $field, string $uploadType): ?string
+    {
+        $file = $data[$field] ?? null;
+        $remove = !empty($data["remove_{$field}"]);
+        unset($data[$field], $data["remove_{$field}"]);
+
+        if ($file instanceof UploadedFile) {
+            $data[$field] = $this->fileUploadService->uploadFile($file, $uploadType, $tenant->uuid)['path'];
+        } elseif ($remove) {
+            $data[$field] = null;
+        } else {
+            return null;
+        }
+
+        return $tenant->{$field} ?: null;
+    }
+
+    private function deleteStoredImage(string $image): void
+    {
+        $path = ImageHelper::normalizeToStoragePath($image);
+
+        if ($path && Storage::disk('logos')->exists($path)) {
+            Storage::disk('logos')->delete($path);
+        }
     }
 }

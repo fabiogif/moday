@@ -13,7 +13,7 @@ class Tenant extends Model
 
     protected $fillable = [
         'name', 'slug', 'subdomain', 'cnpj', 'email', 'phone', 'address',
-        'city', 'state', 'zipcode', 'country', 'url', 'logo', 'active',
+        'city', 'state', 'zipcode', 'country', 'url', 'logo', 'cover', 'active',
         'is_active', 'settings', 'subscription', 'expire_at', 'plan_id', 'uuid',
         'subscription_id', 'subscription_plan', 'subscription_active',
         'subscription_suspended', 'account_status', 'trial_started_at',

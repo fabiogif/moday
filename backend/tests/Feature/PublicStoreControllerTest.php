@@ -53,6 +53,43 @@ class PublicStoreControllerTest extends TestCase
             ->assertJson([ 'success' => true ]);
     }
 
+    private function bindStoreWithCover(?string $cover): void
+    {
+        $tenant = (new Tenant())->forceFill([
+            'id' => 1,
+            'uuid' => 'tenant-uuid',
+            'name' => 'Empresa Dev',
+            'slug' => 'empresa-dev',
+            'email' => 'contato@empresa.dev',
+            'phone' => '11999999999',
+            'cover' => $cover,
+            'settings' => [],
+        ]);
+        app()->bind(PublicStoreRepositoryInterface::class, fn () => new class($tenant) implements PublicStoreRepositoryInterface {
+            public function __construct(private Tenant $tenant) {}
+            public function getTenantBySlug(string $slug): ?Tenant { return $this->tenant; }
+            public function getActiveProducts(int $tenantId): array { return []; }
+            public function getActivePaymentMethods(int $tenantId): array { return []; }
+        });
+    }
+
+    public function test_get_store_info_returns_cover_path()
+    {
+        $this->bindStoreWithCover('tenants/tenant-uuid/covers/capa.jpg');
+
+        $cover = $this->getJson('/api/store/empresa-dev/info')->assertOk()->json('data.cover');
+
+        $this->assertStringStartsWith('/storage/', $cover);
+        $this->assertStringEndsWith('tenants/tenant-uuid/covers/capa.jpg', $cover);
+    }
+
+    public function test_get_store_info_returns_null_cover_without_upload()
+    {
+        $this->bindStoreWithCover(null);
+
+        $this->getJson('/api/store/empresa-dev/info')->assertOk()->assertJsonPath('data.cover', null);
+    }
+
     public function test_get_store_info_not_found()
     {
         $slug = 'inexistente';

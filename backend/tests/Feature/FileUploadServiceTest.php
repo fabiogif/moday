@@ -135,6 +135,21 @@ class FileUploadServiceTest extends TestCase
     }
 
     #[Test]
+    public function capa_da_loja_e_salva_na_pasta_de_capas_e_redimensionada_para_banner()
+    {
+        $cover = UploadedFile::fake()->image('capa.png', 3000, 1200);
+
+        $result = $this->fileUploadService->uploadFile($cover, 'cover', $this->tenant->uuid);
+
+        Storage::disk($result['disk'])->assertExists($result['path']);
+        $this->assertStringContainsString('tenants/' . $this->tenant->uuid . '/covers', $result['path']);
+
+        $imageInfo = getimagesize(Storage::disk($result['disk'])->path($result['path']));
+        $this->assertLessThanOrEqual(1920, $imageInfo[0]);
+        $this->assertLessThanOrEqual(1080, $imageInfo[1]);
+    }
+
+    #[Test]
     public function redimensiona_imagem_acima_do_limite_de_dimensoes()
     {
         // Imagens maiores que 2048x2048 devem ser redimensionadas, nao rejeitadas
