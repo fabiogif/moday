@@ -54,9 +54,7 @@ class OrderCreated implements ShouldBroadcast
         $orderArray = $order->toArray();
         $orderArray['source'] = 'order';
         $orderArray['href'] = '/orders?view=' . ($order->identify ?? $order->id);
-        $orderArray['customer_name'] = $order->client?->name
-            ?? $orderArray['customer_name']
-            ?? 'Cliente';
+        $orderArray['customer_name'] = $order->contactName() ?? 'Cliente';
 
         return [
             'order' => $orderArray,

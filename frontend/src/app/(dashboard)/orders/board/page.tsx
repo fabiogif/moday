@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo, useCallback } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { 
   DndContext, 
   DragEndEvent, 
@@ -167,7 +168,7 @@ function OrderCard({
     (order.delivery_address && `${order.delivery_address}${order.delivery_number ? ', ' + order.delivery_number : ''} - ${order.delivery_neighborhood || ''}, ${order.delivery_city || ''} - ${order.delivery_state || ''}`)
   )
 
-  const customerName = order.client?.name || order.client_full_name
+  const customerName = orderContact(order).name
   const total = typeof order.total === 'string' ? parseFloat(order.total) : order.total
   
   const columnInfo = columns.find(col => col.id === order.status) || COLUMNS.find(col => col.id === order.status)
@@ -525,9 +526,10 @@ export default function OrdersBoardPage() {
       identify: rawOrder.identify || String(rawOrder.id),
       total,
       client: rawOrder.client,
-      client_full_name: rawOrder.client?.name || rawOrder.client_full_name,
-      client_email: rawOrder.client?.email || rawOrder.client_email,
-      client_phone: rawOrder.client?.phone || rawOrder.client_phone,
+      // Campos planos da API já trazem o contato do pedido (com fallback ao cadastro)
+      client_full_name: rawOrder.client_full_name || rawOrder.client?.name,
+      client_email: rawOrder.client_email || rawOrder.client?.email,
+      client_phone: rawOrder.client_phone || rawOrder.client?.phone,
       table: rawOrder.table,
       status: rawOrder.status || "Preparo",
       date: rawOrder.date || rawOrder.created_at,

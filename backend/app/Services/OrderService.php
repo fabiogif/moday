@@ -845,7 +845,7 @@ readonly class OrderService
             return [
                 'id' => $order->id,
                 'identify' => $order->identify,
-                'client_name' => $order->client?->name ?? 'Sem cliente',
+                'client_name' => $order->contactName() ?? 'Sem cliente',
                 'total' => $order->total,
                 'status' => $order->status,
                 'created_at' => $order->created_at->format('d/m/Y'),
@@ -872,7 +872,7 @@ readonly class OrderService
             'identify' => $order->identify,
             'total' => $order->total,
             'client_id' => $order->client_id,
-            'client_name' => $order->client?->name ?? null,
+            'client_name' => $order->contactName(),
             'payment_method_id' => $order->payment_method_id,
             'payment_method_name' => $order->paymentMethod?->name ?? null,
             'status' => $order->status,

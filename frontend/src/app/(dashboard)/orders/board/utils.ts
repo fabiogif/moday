@@ -1,4 +1,5 @@
 import type { BoardOrder } from "./types"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import type { OrderDetails } from "../types"
 
 export function normalizeBoardOrder(rawOrder: any): BoardOrder {
@@ -11,9 +12,10 @@ export function normalizeBoardOrder(rawOrder: any): BoardOrder {
     identify: rawOrder.identify || String(rawOrder.id),
     total,
     client: rawOrder.client,
-    client_full_name: rawOrder.client?.name || rawOrder.client_full_name,
-    client_email: rawOrder.client?.email || rawOrder.client_email,
-    client_phone: rawOrder.client?.phone || rawOrder.client_phone,
+    // Campos planos da API já trazem o contato do pedido (com fallback ao cadastro)
+    client_full_name: rawOrder.client_full_name || rawOrder.client?.name,
+    client_email: rawOrder.client_email || rawOrder.client?.email,
+    client_phone: rawOrder.client_phone || rawOrder.client?.phone,
     table: rawOrder.table,
     status: rawOrder.status || "Em Preparo",
     date: rawOrder.date || rawOrder.created_at,
@@ -52,9 +54,7 @@ export function boardOrderToDetails(order: BoardOrder): OrderDetails {
     client: order.client
       ? {
           id: order.client.id,
-          name: order.client.name,
-          email: order.client.email || order.client_email || "",
-          phone: order.client.phone || order.client_phone || "",
+          ...orderContact(order),
           address: order.client.address,
           city: order.client.city,
           state: order.client.state,

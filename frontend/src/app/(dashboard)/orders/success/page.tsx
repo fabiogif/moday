@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2, Package, MapPin, User, Phone, Mail, ArrowLeft, Download, CreditCard, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -250,18 +251,18 @@ function OrderSuccessContent() {
                 <CardContent className="space-y-3 print:px-0 print:py-2">
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span>{order.client.name}</span>
+                    <span>{orderContact(order).name}</span>
                   </div>
-                  {order.client.email && (
+                  {orderContact(order).email && (
                     <div className="flex items-center gap-2 text-sm">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{order.client.email}</span>
+                      <span>{orderContact(order).email}</span>
                     </div>
                   )}
-                  {order.client.phone && (
+                  {orderContact(order).phone && (
                     <div className="flex items-center gap-2 text-sm">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{order.client.phone}</span>
+                      <span>{orderContact(order).phone}</span>
                     </div>
                   )}
                 </CardContent>

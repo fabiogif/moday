@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import {
@@ -242,9 +243,9 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
         
         <div class="client-info">
           <strong>CLIENTE:</strong><br>
-          ${order.client?.name || (order as any).customerName || (order as any).customer?.name || 'N/A'}<br>
-          ${order.client?.email || (order as any).customerEmail || (order as any).customer?.email || 'N/A'}<br>
-          ${order.client?.phone || (order as any).customerPhone || (order as any).customer?.phone || 'N/A'}
+          ${orderContact(order).name || 'N/A'}<br>
+          ${orderContact(order).email || 'N/A'}<br>
+          ${orderContact(order).phone || 'N/A'}
           ${isDelivery ? `<br><br><strong>ENDEREÇO DE ENTREGA:</strong><br>${getFullDeliveryAddress()}` : ''}
         </div>
         
@@ -284,12 +285,7 @@ export function ReceiptDialog({ order, open, onOpenChange }: ReceiptDialogProps)
     `
   }
 
-  const getClientEmail = () =>
-    order.client?.email ||
-    (order as any).customerEmail ||
-    (order as any).customer?.email ||
-    (order as any).client_email ||
-    ''
+  const getClientEmail = () => orderContact(order).email
 
   const getOrderIdentify = () =>
     (order as Order).identify || (order as OrderReceipt).orderNumber
@@ -346,7 +342,8 @@ ${order.comment ? `\n📝 Observações: ${order.comment}` : ''}
 
 Obrigado pela preferência! 🍽️`
 
-    const whatsappUrl = order.client?.phone ? `https://wa.me/55${order.client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}` : null
+    const contactPhone = orderContact(order).phone
+    const whatsappUrl = contactPhone ? `https://wa.me/55${contactPhone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}` : null
     if (!whatsappUrl) {
       toast.error('Cliente não possui telefone cadastrado')
       return
@@ -422,27 +419,9 @@ Obrigado pela preferência! 🍽️`
               <div>
                 <h3 className="font-semibold mb-2">Cliente</h3>
                 <div className="space-y-1 text-sm">
-                  <p><strong>Nome:</strong> {
-                      order.client?.name || 
-                      (order as any).customerName || 
-                      (order as any).customer?.name || 
-                      (order as any).client_name ||
-                      'N/A'
-                    }</p>
-                  <p><strong>Email:</strong> {
-                      order.client?.email || 
-                      (order as any).customerEmail || 
-                      (order as any).customer?.email ||
-                      (order as any).client_email ||
-                      'N/A'
-                    }</p>
-                  <p><strong>Telefone:</strong> {
-                      order.client?.phone || 
-                      (order as any).customerPhone || 
-                      (order as any).customer?.phone ||
-                      (order as any).client_phone ||
-                      'N/A'
-                    }</p>
+                  <p><strong>Nome:</strong> {orderContact(order).name || 'N/A'}</p>
+                  <p><strong>Email:</strong> {orderContact(order).email || 'N/A'}</p>
+                  <p><strong>Telefone:</strong> {orderContact(order).phone || 'N/A'}</p>
                 </div>
               </div>
             </div>

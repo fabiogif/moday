@@ -1,4 +1,5 @@
 import { format } from 'date-fns'
+import { orderContact } from "./order-contact"
 import { ptBR } from 'date-fns/locale'
 import type { Order } from '../types'
 
@@ -68,12 +69,7 @@ export function normalizeOrderItems(order: Order): NormalizedOrderItem[] {
 }
 
 export function getClientPhone(order: Order): string | null {
-  return (
-    order.client?.phone ||
-    (order as any).client_phone ||
-    (order as any).customerPhone ||
-    null
-  )
+  return orderContact(order).phone || null
 }
 
 export function getFullDeliveryAddress(order: Order): string | null {
@@ -103,9 +99,8 @@ export function generateOrderReceiptHtml(order: Order, companyName = 'Alba Tec')
   const orderDate = order.created_at || order.date || order.orderDate
   const items = normalizeOrderItems(order)
   const isDelivery = Boolean(order.is_delivery)
-  const clientName =
-    order.client?.name || order.customerName || (order as any).client_full_name || 'N/A'
-  const clientEmail = order.client?.email || order.customerEmail || (order as any).client_email || ''
+  const { name: contactName, email: clientEmail } = orderContact(order)
+  const clientName = contactName || 'N/A'
   const clientPhone = getClientPhone(order) || ''
   const paymentLabel =
     (order as any).payment_method_name ||

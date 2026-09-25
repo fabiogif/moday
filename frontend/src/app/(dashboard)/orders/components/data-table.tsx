@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -253,15 +254,11 @@ export function DataTable({
         return (
           <div>
             <div className="font-medium">
-              {client?.name ||
-                row.original?.client?.name ||
-                row.original?.customerName ||
+              {orderContact({ ...row.original, client: client ?? row.original?.client }).name ||
                 "Nome não informado"}
             </div>
             <div className="text-sm text-muted-foreground">
-              {client?.email ||
-                row.original?.client?.email ||
-                row.original?.customerEmail ||
+              {orderContact({ ...row.original, client: client ?? row.original?.client }).email ||
                 "Email não informado"}
             </div>
           </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useEffect, useRef } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import Image from "next/image"
 import {
   useAuthenticatedCatalogProducts,
@@ -1726,8 +1727,8 @@ const handleClientChange = (value: string) => {
         if (order.client) {
           const clientId = order.client.uuid || order.client.identify || order.client.id
           setSelectedClientId(String(clientId || ""))
-          setCustomerName(order.client.name || "")
-          setCustomerPhone(order.client.phone || "")
+          setCustomerName(orderContact(order).name)
+          setCustomerPhone(orderContact(order).phone)
           setShowClientSection(true)
         }
         
@@ -3772,7 +3773,7 @@ const handleClientChange = (value: string) => {
                           {order.client && (
                             <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1 truncate">
                               <User className="h-2.5 w-2.5 flex-shrink-0" />
-                              <span className="truncate">{order.client.name}</span>
+                              <span className="truncate">{orderContact(order).name}</span>
                             </div>
                           )}
                           

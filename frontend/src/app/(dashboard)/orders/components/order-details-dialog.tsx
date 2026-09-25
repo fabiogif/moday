@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import {
@@ -168,20 +169,20 @@ export function OrderDetailsDialog({ order, open, onOpenChange }: OrderDetailsDi
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7">
                   <div>
                     <p className="text-sm text-muted-foreground">Nome</p>
-                    <p className="font-medium">{order.client?.name || 'N/A'}</p>
+                    <p className="font-medium">{orderContact(order).name || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">{order.client?.email || 'N/A'}</p>
+                      <p className="font-medium">{orderContact(order).email || 'N/A'}</p>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Telefone</p>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <p className="font-medium">{order.client?.phone || 'N/A'}</p>
+                      <p className="font-medium">{orderContact(order).phone || 'N/A'}</p>
                     </div>
                   </div>
                   {order.client?.address && (

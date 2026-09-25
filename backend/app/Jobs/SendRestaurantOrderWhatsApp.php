@@ -42,7 +42,7 @@ class SendRestaurantOrderWhatsApp implements ShouldQueue
             return;
         }
 
-        $message = $whatsAppService->generateSaleOrderMessage($order, $order->client, $tenant);
+        $message = $whatsAppService->generateSaleOrderMessage($order, $order->client, $tenant, $order->mirrorOrder());
 
         // ponytail: retry após timeout com a mensagem já aceita pela Evolution pode duplicar; guardar message id se isso aparecer
         if (!$evolutionApi->sendText($tenant->evolution_instance, $tenant->phone, $message, linkPreview: false)) {

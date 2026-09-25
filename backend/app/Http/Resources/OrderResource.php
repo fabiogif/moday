@@ -27,9 +27,10 @@ class OrderResource extends JsonResource
             'identify' => $this->identify,
             'total' => $this->total,
             'client' => $clientData,
-            'client_full_name' => $this->client?->name,
-            'client_email' => $this->client?->email,
-            'client_phone' => $this->client?->phone,   
+            // Contato digitado no checkout quando existe; senão o do cliente vinculado
+            'client_full_name' => $this->contactName(),
+            'client_email' => $this->contactEmail(),
+            'client_phone' => $this->contactPhone(),
 
             'table' => $this->whenLoaded('table', function () {
                 return $this->table ? new TableResource($this->table) : null;

@@ -45,8 +45,9 @@ class SendWhatsAppNotification implements ShouldQueue
         }
 
         $instance = $this->order->tenant?->evolution_instance;
-        $phone    = $this->order->client?->whatsapp
-                 ?? $this->order->client?->phone;
+        // Número digitado neste pedido; sem ele, o WhatsApp/telefone do cadastro
+        $phone    = $this->order->customer_phone
+                 ?: ($this->order->client?->whatsapp ?? $this->order->client?->phone);
 
         if (!$instance || !$phone) {
             Log::info('SendWhatsAppNotification: skip — instância ou telefone não configurado', [
@@ -81,7 +82,6 @@ class SendWhatsAppNotification implements ShouldQueue
     private function buildMessage(): string
     {
         $order     = $this->order;
-        $client    = $order->client;
         $pagamento = $order->paymentMethod?->name ?? $order->payment_method ?? 'Não informado';
         $endereco  = $order->is_delivery
             ? ($order->full_delivery_address ?: 'Não informado')
@@ -103,7 +103,7 @@ class SendWhatsAppNotification implements ShouldQueue
             return implode("\n", [
                 "✅ *Pedido Recebido — #{$order->identify}*",
                 "",
-                "Olá, " . ($client?->name ?? 'Cliente') . "! Seu pedido foi recebido.",
+                "Olá, " . ($order->contactName() ?? 'Cliente') . "! Seu pedido foi recebido.",
                 "",
                 "📦 *Itens:*",
                 $itens,
@@ -121,7 +121,7 @@ class SendWhatsAppNotification implements ShouldQueue
         return implode("\n", [
             "🔔 *Atualização do Pedido #{$order->identify}*",
             "",
-            "Olá, " . ($client?->name ?? 'Cliente') . "!",
+            "Olá, " . ($order->contactName() ?? 'Cliente') . "!",
             "",
             "📦 *Itens:*",
             $itens,

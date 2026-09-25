@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Order;
+use Illuminate\Support\Facades\Hash;
 use App\Models\Plan;
 use App\Models\Tenant;
 use App\Models\Product;
@@ -300,7 +302,7 @@ class PublicClientCreationTest extends TestCase
     }
 
     #[Test]
-    public function it_updates_existing_client_when_cpf_already_exists()
+    public function it_links_existing_client_by_cpf_without_overwriting_data()
     {
         // Criar cliente existente
         $existingClient = Client::create([
@@ -337,11 +339,18 @@ class PublicClientCreationTest extends TestCase
         // Verificar que não criou cliente duplicado
         $this->assertEquals(1, Client::where('cpf', '11111111111')->count());
 
-        // Verificar que atualizou os dados
+        // Cadastro existente não é sobrescrito pelo pedido
         $existingClient->refresh();
-        $this->assertEquals('João Silva Santos', $existingClient->name);
-        $this->assertEquals('71988888888', $existingClient->phone);
+        $this->assertEquals('João', $existingClient->name);
+        $this->assertEquals('71999999999', $existingClient->phone);
         $this->assertEquals('joao@teste.com', $existingClient->email);
+
+        // O contato digitado fica no próprio pedido
+        $order = Order::where('client_id', $existingClient->id)->latest('id')->first();
+        $this->assertEquals('João Silva Santos', $order->customer_name);
+        $this->assertEquals('71988888888', $order->customer_phone);
+        $this->assertEquals('João Silva Santos', $order->contactName());
+        $this->assertEquals('71988888888', $order->contactPhone());
     }
 
     #[Test]
@@ -391,11 +400,15 @@ class PublicClientCreationTest extends TestCase
 
         $response->assertStatus(201);
 
-        // Verificar que atualizou nome e telefone, mas MANTEVE o email original
+        // Cadastro do cliente A mantido integralmente
         $clientA->refresh();
-        $this->assertEquals('Cliente A Atualizado', $clientA->name);
-        $this->assertEquals('71977777777', $clientA->phone);
-        $this->assertEquals('clienteA@teste.com', $clientA->email); // Email mantido
+        $this->assertEquals('Cliente A', $clientA->name);
+        $this->assertEquals('71999999999', $clientA->phone);
+        $this->assertEquals('clienteA@teste.com', $clientA->email);
+
+        $order = Order::where('client_id', $clientA->id)->latest('id')->first();
+        $this->assertEquals('Cliente A Atualizado', $order->customer_name);
+        $this->assertEquals('71977777777', $order->customer_phone);
     }
 
     #[Test]
@@ -435,9 +448,72 @@ class PublicClientCreationTest extends TestCase
         // Verificar que não duplicou
         $this->assertEquals(1, Client::where('email', 'maria@teste.com')->count());
 
-        // Verificar que atualizou
+        // Nome do cadastro mantido; o digitado fica no pedido
         $existingClient->refresh();
-        $this->assertEquals('Maria Santos', $existingClient->name);
+        $this->assertEquals('Maria', $existingClient->name);
+        $this->assertEquals('Maria Santos', Order::where('client_id', $existingClient->id)->latest('id')->first()->customer_name);
+    }
+
+    private function pickupOrderFor(array $client): array
+    {
+        return [
+            'client' => $client,
+            'products' => [['uuid' => $this->product->uuid, 'quantity' => 1]],
+            'delivery' => ['is_delivery' => false],
+            'payment_method' => $this->paymentMethod->uuid,
+            'shipping_method' => 'pickup',
+        ];
+    }
+
+    #[Test]
+    public function it_fills_only_empty_fields_of_existing_client()
+    {
+        $existing = Client::create([
+            'uuid' => fake()->uuid(),
+            'name' => 'Paula',
+            'email' => null,
+            'phone' => '71999990000',
+            'cpf' => '33333333333',
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+        ]);
+
+        $this->postJson("/api/store/{$this->slug}/orders", $this->pickupOrderFor([
+            'name' => 'Paula Nova',
+            'email' => 'paula@teste.com',
+            'phone' => '71911112222',
+            'cpf' => '333.333.333-33',
+        ]))->assertStatus(201);
+
+        $existing->refresh();
+        $this->assertEquals('paula@teste.com', $existing->email); // estava vazio: preenchido
+        $this->assertEquals('Paula', $existing->name);            // já tinha: mantido
+        $this->assertEquals('71999990000', $existing->phone);
+    }
+
+    #[Test]
+    public function it_never_changes_a_customer_with_password()
+    {
+        $account = Client::create([
+            'uuid' => fake()->uuid(),
+            'name' => 'Conta Registrada',
+            'email' => 'conta@teste.com',
+            'phone' => '71955554444',
+            'password' => Hash::make('segredo123'),
+            'tenant_id' => $this->tenant->id,
+            'is_active' => true,
+        ]);
+
+        $this->postJson("/api/store/{$this->slug}/orders", $this->pickupOrderFor([
+            'name' => 'Outra Pessoa',
+            'email' => 'conta@teste.com',
+            'phone' => '71900000000',
+        ]))->assertStatus(201);
+
+        $account->refresh();
+        $this->assertEquals('Conta Registrada', $account->name);
+        $this->assertEquals('71955554444', $account->phone);
+        $this->assertTrue(Hash::check('segredo123', $account->password));
     }
 
     #[Test]

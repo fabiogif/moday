@@ -29,9 +29,9 @@ class WhatsAppService
         $total = number_format((float) $order->total, 2, ',', '.');
 
         $message = "*Novo Pedido #{$order->identify}*\n\n";
-        $message .= "*Cliente:* {$client->name}\n";
-        $message .= "*Telefone:* {$client->phone}\n";
-        $message .= "*Email:* {$client->email}\n\n";
+        $message .= "*Cliente:* {$order->contactName()}\n";
+        $message .= "*Telefone:* {$order->contactPhone()}\n";
+        $message .= "*Email:* {$order->contactEmail()}\n\n";
         $message .= "*Produtos:*\n{$products}\n\n";
         $message .= "*Total:* R$ {$total}\n\n";
 
@@ -74,7 +74,10 @@ class WhatsAppService
         return $link;
     }
 
-    public function generateSaleOrderMessage(\App\Models\SaleOrder $order, \App\Models\Client $client, \App\Models\Tenant $tenant): string
+    /**
+     * @param \App\Models\Order|null $mirror pedido do quadro com o contato digitado no checkout (quando existe)
+     */
+    public function generateSaleOrderMessage(\App\Models\SaleOrder $order, \App\Models\Client $client, \App\Models\Tenant $tenant, ?\App\Models\Order $mirror = null): string
     {
         $order->loadMissing('items.product');
 
@@ -93,10 +96,13 @@ class WhatsAppService
         if ($order->created_at) {
             $message .= 'Realizado às ' . $order->created_at->format('H:i') . "\n";
         }
-        $message .= "\n*Cliente:* {$client->name}\n";
-        $message .= "*Telefone:* {$client->phone}\n";
-        if ($client->email) {
-            $message .= "*Email:* {$client->email}\n";
+        $name  = $mirror?->contactName() ?? $client->name;
+        $phone = $mirror?->contactPhone() ?? $client->phone;
+        $email = $mirror?->contactEmail() ?? $client->email;
+        $message .= "\n*Cliente:* {$name}\n";
+        $message .= "*Telefone:* {$phone}\n";
+        if ($email) {
+            $message .= "*Email:* {$email}\n";
         }
         $message .= "\n*Produtos:*\n{$lines}\n\n";
 

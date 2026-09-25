@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { useParams, useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -626,9 +627,9 @@ export default function EditOrderPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
-                  <p className="font-medium">{order.client.name}</p>
-                  <p className="text-sm text-muted-foreground">{order.client.email}</p>
-                  <p className="text-sm text-muted-foreground">{order.client.phone}</p>
+                  <p className="font-medium">{orderContact(order).name}</p>
+                  <p className="text-sm text-muted-foreground">{orderContact(order).email}</p>
+                  <p className="text-sm text-muted-foreground">{orderContact(order).phone}</p>
                 </div>
               </CardContent>
             </Card>

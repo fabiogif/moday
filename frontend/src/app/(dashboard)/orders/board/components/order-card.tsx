@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { Badge } from "@/components/ui/badge"
@@ -38,7 +39,7 @@ export function OrderCard({ order, isDragOverlay = false, onOpen }: OrderCardPro
       (order.delivery_address &&
         `${order.delivery_address}${order.delivery_number ? ", " + order.delivery_number : ""} - ${order.delivery_neighborhood || ""}, ${order.delivery_city || ""} - ${order.delivery_state || ""}`))
 
-  const customerName = order.client?.name || order.client_full_name
+  const customerName = orderContact(order).name
   const total = typeof order.total === "string" ? parseFloat(order.total) : order.total
 
   const handleClick = (e: React.MouseEvent) => {

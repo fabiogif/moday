@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo } from "react"
+import { orderContact } from "@/app/(dashboard)/orders/utils/order-contact"
 import { Search, Loader2, X, Edit, Utensils, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -262,7 +263,7 @@ export function CombinedSearch({
                       </p>
                       {order.client && (
                         <p className="text-xs text-muted-foreground">
-                          Cliente: {order.client.name}
+                          Cliente: {orderContact(order).name}
                         </p>
                       )}
                       {order.table && (

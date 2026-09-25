@@ -53,4 +53,17 @@ class SendWhatsAppNotificationTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    public function test_new_order_goes_to_the_phone_and_name_typed_for_the_order(): void
+    {
+        Http::fake(['http://evolution.test/*' => Http::response(['key' => ['id' => 'm1']], 200)]);
+        $order = $this->makeOrder(true);
+        $order->update(['customer_name' => 'João Novo', 'customer_phone' => '71911112222']);
+
+        (new SendWhatsAppNotification($order->fresh(), 'new_order'))->handle(new EvolutionApiService());
+
+        Http::assertSent(fn ($request) =>
+            $request->data()['number'] === '5571911112222'
+            && str_contains($request->data()['text'], 'Olá, João Novo!'));
+    }
 }

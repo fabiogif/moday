@@ -212,6 +212,10 @@ class PublicOrderService
             'tenant_id'        => $tenant->id,
             'identify'         => $saleOrder->identify,
             'client_id'        => $client->id,
+            // Snapshot do contato digitado: o cadastro do cliente não é sobrescrito pelo pedido
+            'customer_name'    => $validatedData['client']['name'] ?? null,
+            'customer_phone'   => preg_replace('/\D/', '', (string) ($validatedData['client']['phone'] ?? '')) ?: null,
+            'customer_email'   => $validatedData['client']['email'] ?? null,
             'status'           => $initialStatus?->name ?? 'Em Preparo',
             'order_status_id'  => $initialStatus?->id,
             'origin'           => 'store',
@@ -303,7 +307,7 @@ class PublicOrderService
 
     private function generateWhatsAppData(SaleOrder $order, $client, Tenant $tenant): array
     {
-        $message = $this->whatsAppService->generateSaleOrderMessage($order, $client, $tenant);
+        $message = $this->whatsAppService->generateSaleOrderMessage($order, $client, $tenant, $this->findDashboardOrder($order));
         $phone   = $tenant->whatsapp ?? $tenant->phone;
         $link    = $this->whatsAppService->generateLink($phone, $message);
 
@@ -348,9 +352,7 @@ class PublicOrderService
     /** Espelho `Order` (quadro Kanban) do pedido de venda — ver docblock da classe. */
     private function findDashboardOrder(SaleOrder $saleOrder): ?Order
     {
-        return Order::where('identify', $saleOrder->identify)
-            ->where('tenant_id', $saleOrder->tenant_id)
-            ->first();
+        return $saleOrder->mirrorOrder();
     }
 
     private function broadcastSaleOrderCreated(SaleOrder $order): void

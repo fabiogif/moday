@@ -28,7 +28,7 @@ class OrderEmailService
     {
         $order = $this->loadOrderForEmail($order);
 
-        $email = $order->client?->email;
+        $email = $order->contactEmail();
         if (!$email) {
             Log::warning('OrderEmailService: Cliente sem e-mail', [
                 'order_id' => $order->id,
@@ -40,7 +40,7 @@ class OrderEmailService
         }
 
         try {
-            $sender($order, $email, $order->client->name ?? 'Cliente');
+            $sender($order, $email, $order->contactName() ?? 'Cliente');
 
             Log::info('OrderEmailService: E-mail enviado', [
                 'order_id' => $order->id,

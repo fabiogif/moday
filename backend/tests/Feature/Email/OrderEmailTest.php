@@ -146,4 +146,16 @@ class OrderEmailTest extends TestCase
         $response->assertStatus(422);
         Mail::assertNothingSent();
     }
+
+    #[Test]
+    public function it_sends_receipt_to_the_email_typed_for_the_order(): void
+    {
+        Mail::fake();
+        $this->order->update(['customer_email' => 'maria.nova@example.com']);
+
+        app(OrderEmailService::class)->sendOrderReceiptEmail($this->order->fresh());
+
+        Mail::assertSent(OrderReceiptMail::class, fn (OrderReceiptMail $mail) => $mail->hasTo('maria.nova@example.com'));
+        Mail::assertNotSent(OrderReceiptMail::class, fn (OrderReceiptMail $mail) => $mail->hasTo('maria.cliente@example.com'));
+    }
 }

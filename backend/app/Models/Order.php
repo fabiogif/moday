@@ -22,6 +22,9 @@ class Order extends Model
         'tenant_id', 
         'identify', 
         'client_id', 
+        'customer_name',
+        'customer_phone',
+        'customer_email',
         'table_id', 
         'total', 
         'subtotal',
@@ -78,6 +81,22 @@ class Order extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /** Contato do pedido: o digitado no checkout (snapshot) ou, sem ele, o do cliente vinculado */
+    public function contactName(): ?string
+    {
+        return $this->customer_name ?: $this->client?->name;
+    }
+
+    public function contactPhone(): ?string
+    {
+        return $this->customer_phone ?: $this->client?->phone;
+    }
+
+    public function contactEmail(): ?string
+    {
+        return $this->customer_email ?: $this->client?->email;
     }
 
     public function table()

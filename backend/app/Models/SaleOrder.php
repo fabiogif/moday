@@ -93,6 +93,14 @@ class SaleOrder extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    /** Espelho `Order` (quadro Kanban) do pedido de venda público: mesmo identify e tenant */
+    public function mirrorOrder(): ?Order
+    {
+        return Order::where('identify', $this->identify)
+            ->where('tenant_id', $this->tenant_id)
+            ->first();
+    }
+
     public function client()
     {
         return $this->belongsTo(Client::class);

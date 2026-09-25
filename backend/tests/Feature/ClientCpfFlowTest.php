@@ -73,7 +73,7 @@ class ClientCpfFlowTest extends TestCase
             ]);
     }
 
-    public function test_public_store_updates_existing_client_by_cpf()
+    public function test_public_store_links_existing_client_by_cpf_without_overwriting()
     {
         $plan = Plan::factory()->create();
         $tenant = Tenant::factory()->accessible()->create([
@@ -120,10 +120,10 @@ class ClientCpfFlowTest extends TestCase
         // Deve ser o mesmo cliente (não criar novo)
         $this->assertEquals($existingClient->id, $updatedClient->id);
         
-        // Dados devem estar atualizados
-        $this->assertEquals('Maria Atualizada', $updatedClient->name);
-        $this->assertEquals('maria.nova@example.com', $updatedClient->email);
-        $this->assertEquals('11777777777', $updatedClient->phone);
+        // Pedido sem cadastro não sobrescreve o cadastro (o contato digitado vai para o pedido)
+        $this->assertEquals('Maria Antiga', $updatedClient->name);
+        $this->assertEquals('maria.antiga@example.com', $updatedClient->email);
+        $this->assertEquals('11888888888', $updatedClient->phone);
         
         // Deve ter apenas 1 cliente com esse CPF
         $this->assertEquals(1, Client::where('cpf', '12345678900')->count());
@@ -301,7 +301,7 @@ class ClientCpfFlowTest extends TestCase
         ], $tenant);
 
         $this->assertEquals($originalId, $updated1->id);
-        $this->assertEquals('Atualização 1', $updated1->name);
+        $this->assertEquals('Nome Original', $updated1->name);
 
         // Segunda atualização
         $updated2 = $service->createOrUpdateClient([
@@ -312,8 +312,8 @@ class ClientCpfFlowTest extends TestCase
         ], $tenant);
 
         $this->assertEquals($originalId, $updated2->id);
-        $this->assertEquals('Atualização 2', $updated2->name);
-        $this->assertEquals('11222222222', $updated2->phone);
+        $this->assertEquals('Nome Original', $updated2->name);
+        $this->assertEquals('11000000000', $updated2->phone);
 
         // Confirma que só existe 1 registro com esse CPF
         $this->assertEquals(1, Client::where('cpf', '11111111111')->count());
@@ -361,7 +361,7 @@ class ClientCpfFlowTest extends TestCase
         $this->assertEquals(3, Client::where('tenant_id', $tenant->id)->count());
     }
 
-    public function test_public_store_updates_email_and_phone_when_cpf_matches()
+    public function test_public_store_keeps_email_and_phone_when_cpf_matches()
     {
         $plan = Plan::factory()->create();
         $tenant = Tenant::factory()->accessible()->create([
@@ -392,10 +392,10 @@ class ClientCpfFlowTest extends TestCase
             'cpf' => '12312312312',
         ], $tenant);
 
-        // Verificar se todos os campos foram atualizados
-        $this->assertEquals('João Silva Atualizado', $updated->name);
-        $this->assertEquals('joao.novo@example.com', $updated->email);
-        $this->assertEquals('11777777777', $updated->phone);
+        // Cliente com senha: nenhum campo preenchido é alterado pelo pedido
+        $this->assertEquals('João Silva', $updated->name);
+        $this->assertEquals('joao.antigo@example.com', $updated->email);
+        $this->assertEquals('11888888888', $updated->phone);
         $this->assertEquals('12312312312', $updated->cpf);
     }
 

@@ -65,36 +65,31 @@ class PublicClientService
             'found_by' => $foundByEmail ? 'email' : 'cpf',
         ]);
 
-        $updateData = [
-            'name' => $clientData['name'] ?? $existing->name,
-            'phone' => $this->cleanPhone($clientData['phone'] ?? null) ?? $existing->phone,
-            'is_active' => true,
-        ];
+        // Pedido sem cadastro não altera dados já preenchidos do cliente (qualquer um pode digitar
+        // o CPF/e-mail/telefone de outra pessoa). Só completa campos vazios; o contato digitado
+        // fica gravado no próprio pedido (orders.customer_*).
+        $updateData = ['is_active' => true];
 
-        $updateData = array_merge($updateData, $this->extractAddressFieldsFromDelivery($delivery));
+        $candidates = array_merge([
+            'name' => $clientData['name'] ?? null,
+            'phone' => $this->cleanPhone($clientData['phone'] ?? null),
+        ], $this->extractAddressFieldsFromDelivery($delivery));
 
-        if (!empty($clientData['cpf'])) {
-            $cleanCpf = $this->cleanCpf($clientData['cpf']);
-            if ($cleanCpf && $cleanCpf !== $existing->cpf) {
-                if (!$this->clientRepository->cpfExistsForOtherClient($cleanCpf, $existing->tenant_id, $existing->id)) {
-                    $updateData['cpf'] = $cleanCpf;
-                }
+        foreach ($candidates as $field => $value) {
+            if (filled($value) && blank($existing->{$field})) {
+                $updateData[$field] = $value;
             }
         }
 
-        if ($email && $email !== $existing->email) {
-            if (!$this->clientRepository->emailExistsForOtherClient($email, $existing->tenant_id, $existing->id)) {
-                $updateData['email'] = $email;
-                Log::info('PublicClientService: Atualizando email', [
-                    'email_antigo' => $existing->email,
-                    'email_novo' => $email,
-                ]);
-            } else {
-                Log::warning('PublicClientService: Email já existe em outro cliente, mantendo email atual', [
-                    'email_tentado' => $email,
-                    'email_mantido' => $existing->email,
-                ]);
-            }
+        $cleanCpf = $this->cleanCpf($clientData['cpf'] ?? null);
+        if ($cleanCpf && blank($existing->cpf)
+            && !$this->clientRepository->cpfExistsForOtherClient($cleanCpf, $existing->tenant_id, $existing->id)) {
+            $updateData['cpf'] = $cleanCpf;
+        }
+
+        if ($email && blank($existing->email)
+            && !$this->clientRepository->emailExistsForOtherClient($email, $existing->tenant_id, $existing->id)) {
+            $updateData['email'] = $email;
         }
 
         $updated = $this->clientRepository->updateClient($existing->id, $updateData);
