@@ -43,6 +43,18 @@ return [
         'billing_mode'   => env('MP_BILLING_MODE', 'legacy'),
     ],
 
+
+    'ifood' => [
+        'client_id' => env('IFOOD_CLIENT_ID'),
+        'client_secret' => env('IFOOD_CLIENT_SECRET'),
+        'merchant_id' => env('IFOOD_MERCHANT_ID'),
+        'oauth_url' => env('IFOOD_OAUTH_URL', 'https://merchant-api.ifood.com.br/authentication/v1.0'),
+        'base_url' => env('IFOOD_BASE_URL', 'https://merchant-api.ifood.com.br'),
+        'catalog_base_url' => env('IFOOD_CATALOG_BASE_URL', 'https://merchant-api.ifood.com.br/catalog/v2.0'),
+        'scope' => env('IFOOD_SCOPE'),
+        'webhook_secret' => env('IFOOD_WEBHOOK_SECRET'),
+        'authorization_code' => env('IFOOD_AUTHORIZATION_CODE'),
+    ],
     'google_maps' => [
         'api_key'              => env('GOOGLE_MAPS_API_KEY'),
         'service_time_minutes' => (int) env('GOOGLE_MAPS_SERVICE_TIME_MINUTES', 10),

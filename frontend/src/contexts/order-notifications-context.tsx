@@ -11,6 +11,8 @@ import { ShoppingCart, Eye } from 'lucide-react'
 import { useOrderRefresh } from '@/hooks/use-order-refresh'
 import { invalidateCache } from '@/hooks/use-authenticated-api'
 import { getAuthToken } from '@/lib/auth-storage'
+import { buildApiUrl } from '@/lib/api-config'
+import { endpoints } from '@/lib/api-client'
 
 interface OrderNotification {
   id: string
@@ -164,7 +166,8 @@ export function OrderNotificationsProvider({ children }: OrderNotificationsProvi
         if (!token) return
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/order?per_page=1&sort=created_at&order=desc`,
+          // buildApiUrl resolve a base da API (vazia em produção, localhost:8000 em dev); a env pura virava "undefined/api/order"
+          buildApiUrl(`${endpoints.orders.list}?per_page=1&sort=created_at&order=desc`),
           {
             headers: {
               Authorization: `Bearer ${token}`,

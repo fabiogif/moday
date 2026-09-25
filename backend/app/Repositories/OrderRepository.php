@@ -23,6 +23,8 @@ class OrderRepository extends BaseRepository implements OrderRepositoryInterface
         $order = [
             'identify' => $identify,
             'total' => $total,
+            'subtotal' => $total,
+            'discount_amount' => 0,
             'status' => $status,
             'origin' => $deliveryData['origin'] ?? 'admin',
             'tenant_id' => $tenantId,

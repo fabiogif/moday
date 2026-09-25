@@ -104,6 +104,10 @@ Route::prefix('delivery')->group(function () {
         ->middleware('throttle:critical');
 });
 
+// Webhook do iFood (assinatura validada via header)
+Route::post('/integrations/ifood/webhook', \App\Http\Controllers\Api\Integrations\Ifood\IfoodWebhookController::class)
+    ->name('integrations.ifood.webhook');
+
 
 // Route OPTIONS removida - deixar o GlobalCorsMiddleware tratar
 
@@ -238,6 +242,28 @@ Route::get('/service-type/menu', [ServiceTypeApiController::class, 'menu'])->mid
 
 // Rotas protegidas por JWT e tenant
 Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked', 'trial.check', 'verified.email'])->group(function () {
+    // Integração iFood
+    Route::prefix('integrations/ifood')->group(function () {
+        Route::post('/token', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodAuthController::class, 'store'])->middleware('throttle:critical');
+        Route::post('/token/refresh', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodAuthController::class, 'refresh'])->middleware('throttle:critical');
+        Route::get('/token', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodAuthController::class, 'show'])->middleware('throttle:read');
+
+        Route::post('/oauth/user-code', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOAuthController::class, 'requestUserCode'])->middleware('throttle:critical');
+
+        Route::get('/orders', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOrderController::class, 'index'])->middleware('throttle:read');
+        Route::get('/orders/{externalOrderId}', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOrderController::class, 'show'])->middleware('throttle:read');
+        Route::post('/orders/{externalOrderId}/status', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOrderController::class, 'resendStatus'])->middleware('throttle:critical');
+        Route::post('/orders/{externalOrderId}/confirm', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodOrderController::class, 'confirm'])->middleware('throttle:critical');
+
+        Route::get('/catalogs', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'catalogs'])->middleware('throttle:read');
+        Route::get('/catalogs/{catalogId}/categories', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'categories'])->middleware('throttle:read');
+        Route::get('/catalogs/{catalogId}/groups', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'groups'])->middleware('throttle:read');
+        Route::get('/catalogs/{catalogId}/unsellable-items', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'unsellableItems'])->middleware('throttle:read');
+        Route::get('/catalog-groups/{groupId}/sellable-items', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'sellableItems'])->middleware('throttle:read');
+        Route::get('/catalog/version', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'version'])->middleware('throttle:read');
+        Route::get('/catalog/snapshots', [\App\Http\Controllers\Api\Integrations\Ifood\IfoodCatalogController::class, 'snapshots'])->middleware('throttle:read');
+    });
+
     // Produtos
     Route::get('/product', [ProductApiController::class , 'productsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);
     Route::get('/product/catalog', [ProductApiController::class , 'catalogProductsByAuthenticatedUser'])->middleware(['acl.permission:products.index', 'throttle:sync']);
