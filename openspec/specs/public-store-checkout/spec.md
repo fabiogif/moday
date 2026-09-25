@@ -198,3 +198,33 @@ The cart SHALL be kept when the customer registers, cancels, closes the dialog, 
 #### Scenario: Asked once per visit
 - **WHEN** the customer answered the question, went back to the menu and taps "Continuar pedido" again
 - **THEN** checkout moves to the customer data step without asking again
+
+### Requirement: Customer session is per store
+The menu SHALL keep a customer's login only for the store where the customer logged in or registered. On another store's menu the customer SHALL be treated as not logged in (the optional sign-up question is shown and no session data is used). Logging out SHALL end the session only for the current store. A session stored before this requirement, without a store, SHALL be discarded.
+
+#### Scenario: Other store
+- **WHEN** a customer registered on store A opens store B's menu in the same browser
+- **THEN** store B treats the customer as not logged in
+
+#### Scenario: Same store
+- **WHEN** the customer returns to store A's menu
+- **THEN** the customer is still logged in there
+
+#### Scenario: Logout
+- **WHEN** a customer logged in to stores A and B logs out on store A
+- **THEN** the session on store B is kept
+
+#### Scenario: Legacy session
+- **WHEN** the browser has a customer session saved before sessions were per store
+- **THEN** that session is discarded and the customer is treated as not logged in
+
+### Requirement: Customer orders scoped to the store
+`GET /store/{slug}/orders` SHALL return the authenticated customer's orders only when the customer belongs to the store `{slug}`. It SHALL respond 401 without order data when there is no valid customer session or when the customer belongs to another store.
+
+#### Scenario: Session from another store
+- **WHEN** a customer logged in to store A calls `GET /store/B/orders`
+- **THEN** the system responds 401 and returns no orders
+
+#### Scenario: Own store
+- **WHEN** a customer logged in to store A calls `GET /store/A/orders`
+- **THEN** the system responds 200 with that customer's orders
