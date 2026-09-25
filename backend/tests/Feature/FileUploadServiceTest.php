@@ -176,6 +176,24 @@ class FileUploadServiceTest extends TestCase
     }
 
     #[Test]
+    public function remove_arquivo_temporario_do_processamento_apos_upload()
+    {
+        $tempDir = storage_path('app/temp');
+        $before = is_dir($tempDir) ? count(glob($tempDir . '/*')) : 0;
+
+        $result = $this->fileUploadService->uploadFile(
+            UploadedFile::fake()->image('grande.jpg', 2000, 1500),
+            'product',
+            $this->tenant->uuid,
+            ['quality' => 80]
+        );
+
+        Storage::disk($result['disk'])->assertExists($result['path']);
+        $this->assertGreaterThan(0, $result['size']);
+        $this->assertSame($before, is_dir($tempDir) ? count(glob($tempDir . '/*')) : 0);
+    }
+
+    #[Test]
     public function pode_fazer_upload_multiplo()
     {
         $images = [

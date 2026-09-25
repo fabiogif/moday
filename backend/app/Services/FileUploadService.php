@@ -103,8 +103,19 @@ class FileUploadService
         // Resolver disco efetivo (fallback para public se necessário)
         $storageDiskName = config("filesystems.disks.{$config['disk']}") ? $config['disk'] : 'public';
 
+        // Tamanho e tipo antes do upload: o temporário gerado no processamento é apagado logo depois
+        $size = $processedFile->getSize();
+        $mimeType = $processedFile->getMimeType();
+
         // Upload
-        $uploadedPath = $this->performUpload($processedFile, $path, $storageDiskName, $config, $options);
+        try {
+            $uploadedPath = $this->performUpload($processedFile, $path, $storageDiskName, $config, $options);
+        } finally {
+            // processFile devolve um novo arquivo em storage/app/temp quando comprime/redimensiona
+            if ($processedFile !== $file) {
+                @unlink($processedFile->getPathname());
+            }
+        }
         
         // Gerar URL
         $storageDisk = Storage::disk($storageDiskName);
@@ -116,8 +127,8 @@ class FileUploadService
             'path' => $uploadedPath,
             'url' => $url,
             'filename' => $filename,
-            'size' => $processedFile->getSize(),
-            'mime_type' => $processedFile->getMimeType(),
+            'size' => $size,
+            'mime_type' => $mimeType,
             'disk' => $storageDiskName,
         ];
     }
@@ -552,12 +563,8 @@ class FileUploadService
         if (!$uploadedPath) {
             throw new Exception("Erro ao fazer upload do arquivo");
         }
-        
-        // Limpar arquivo temporário se existir
-        if ($file->getPathname() !== $file->getRealPath()) {
-            @unlink($file->getPathname());
-        }
-        
+
+
         return $uploadedPath;
     }
 
