@@ -11,6 +11,7 @@ use App\Services\TenantService;
 use Illuminate\Http\{Request, JsonResponse, Response};
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class TenantApiController extends Controller
 {
@@ -93,6 +94,8 @@ class TenantApiController extends Controller
             }
             
             return ApiResponseClass::sendResponse(new TenantResource($tenant), 'Empresa atualizada com sucesso', Response::HTTP_OK);
+        } catch (ValidationException $ex) {
+            return ApiResponseClass::validationError($ex->errors());
         } catch (\Exception $ex) {
             return ApiResponseClass::rollback($ex);
         }

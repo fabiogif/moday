@@ -42,6 +42,6 @@ describe('Roles CRUD', () => {
     const { data, isAuthenticated } = mockUseAuthenticatedRoles()
     expect(isAuthenticated).toBe(true)
     expect(data).toHaveLength(2)
-    expect(data[0].name).toBe('Admin')
+    expect((data as Array<{ name: string }>)[0].name).toBe('Admin')
   })
 })

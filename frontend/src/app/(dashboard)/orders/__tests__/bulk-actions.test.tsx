@@ -108,12 +108,14 @@ const generateOrder = (overrides: Partial<Order> = {}): Order => ({
     id: 1,
     name: 'Cliente Teste',
     email: 'cliente@teste.com',
+    phone: '71999999999',
   },
   customerName: 'Cliente Teste',
   customerEmail: 'cliente@teste.com',
   products: [],
+  date: '25/09/2026',
   ...overrides,
-})
+} as Order)
 
 describe('Ações em Massa - DataTable', () => {
   const mockOrders: Order[] = [

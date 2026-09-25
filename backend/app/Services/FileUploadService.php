@@ -28,8 +28,9 @@ class FileUploadService
         ],
         'logo' => [
             'disk' => 'logos',
-            'max_size' => 1024, // 1MB
-            'allowed_types' => ['jpg', 'jpeg', 'png', 'gif', 'svg'],
+            // Mesmo contrato do UpdateTenantRequest e do painel: JPG/PNG/WEBP até 5MB
+            'max_size' => 5120, // 5MB
+            'allowed_types' => ['jpg', 'jpeg', 'png', 'webp'],
             'max_width' => 1024,
             'max_height' => 1024,
             'quality' => 90,

@@ -9,6 +9,7 @@ const mockEvent = {
   title: 'Black Friday 2025',
   type: 'promocao' as const,
   type_label: 'Promoção',
+  color: '#3b82f6',
   start_date: '2025-11-25T09:00:00.000Z',
   start_date_formatted: '25/11/2025 09:00',
   end_date: '2025-11-25T17:00:00.000Z',

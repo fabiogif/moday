@@ -4,6 +4,7 @@ import { ClientRegisterForm } from '@/components/client-register-form'
 import { ClientAuthProvider } from '@/contexts/client-auth-context'
 
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
+jest.mock('next/navigation', () => ({ useParams: () => ({ slug: 'test-store' }) }))
 
 global.fetch = jest.fn() as jest.Mock
 
@@ -47,7 +48,7 @@ describe('ClientRegisterForm', () => {
       expect.stringContaining('/api/store/test-store/auth/register'),
       expect.objectContaining({ method: 'POST' })
     )
-    expect(localStorage.getItem('client-auth-token')).toBe('jwt-token')
+    expect(localStorage.getItem('client-auth-token:test-store')).toBe('jwt-token')
   })
 
   it('e-mail já cadastrado mostra o motivo do 422, não o genérico "Dados inválidos"', async () => {

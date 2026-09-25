@@ -153,12 +153,13 @@ class ClientAuthController extends Controller
     /**
      * Get client's orders
      */
-    public function getOrders(Request $request): JsonResponse
+    public function getOrders(Request $request, string $slug): JsonResponse
     {
         try {
             $client = $request->user('client');
 
-            if (!$client) {
+            // Mesma regra do auth/me: sessão só vale na loja do cliente
+            if (!$client || !$this->authService->clientBelongsToStore($client, $slug)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cliente não autenticado'

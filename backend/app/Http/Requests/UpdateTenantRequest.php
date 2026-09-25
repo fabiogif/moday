@@ -42,7 +42,8 @@ class UpdateTenantRequest extends FormRequest
             'state' => 'sometimes|nullable|string|max:2',
             'zipcode' => 'sometimes|nullable|string|max:10',
             'country' => 'sometimes|nullable|string|max:100',
-            'logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,webp,svg|max:5120|dimensions:max_width=1024,max_height=1024', // 5MB, 1024x1024
+            // Sem limite de dimensão — o FileUploadService redimensiona para 1024x1024. Sem SVG (pode conter script)
+            'logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
             'remove_logo' => 'sometimes|boolean',
             // Capa do cardápio: sem limite de dimensão — o FileUploadService redimensiona para 1920x1080
             'cover' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,webp|max:5120',

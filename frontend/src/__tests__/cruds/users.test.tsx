@@ -49,6 +49,7 @@ describe('Users CRUD', () => {
       error: null,
       refetch: mockRefetch,
       isAuthenticated: true,
+      pagination: undefined,
     })
 
     render(<UsersPage />)
@@ -62,6 +63,7 @@ describe('Users CRUD', () => {
       error: 'Falha na API',
       refetch: mockRefetch,
       isAuthenticated: true,
+      pagination: undefined,
     })
 
     render(<UsersPage />)

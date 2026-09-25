@@ -169,4 +169,29 @@ class ClientAuthenticationTest extends TestCase
                 'data' => ['orders' => [], 'total_orders' => 0],
             ]);
     }
+
+    #[Test]
+    public function orders_recusa_sessao_de_outra_loja()
+    {
+        $outraLoja = Tenant::factory()->create([
+            'slug' => 'outra-loja-pedidos',
+            'is_active' => true,
+            'plan_id' => $this->tenant->plan_id,
+        ]);
+        Client::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'email' => 'cliente-pedidos@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $token = $this->postJson("/api/store/{$this->tenant->slug}/auth/login", [
+            'email' => 'cliente-pedidos@example.com',
+            'password' => 'password123',
+        ])->json('data.token');
+
+        $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+            ->getJson("/api/store/{$outraLoja->slug}/orders")
+            ->assertStatus(401)
+            ->assertJsonMissingPath('data.orders');
+    }
 }

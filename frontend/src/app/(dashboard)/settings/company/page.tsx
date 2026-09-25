@@ -15,16 +15,14 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/auth-context"
 import { apiClient, endpoints } from "@/lib/api-client"
 import { toast } from "sonner"
 import { Loader2, Building2, Upload, X, ExternalLink, Copy, MapPin, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react"
 import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { useBackendValidation, commonFieldMappings } from "@/hooks/use-backend-validation"
-import { useInputMask } from "@/hooks/use-input-mask"
-import { validateCNPJ, validateEmail, validatePhone } from "@/lib/masks"
+import { useBackendValidation } from "@/hooks/use-backend-validation"
+import { validateCNPJ, validateEmail, validatePhone, maskCNPJ, maskPhone, maskZipCode } from "@/lib/masks"
 import { useViaCEP } from "@/hooks/use-viacep"
 import { useReceitaWS } from "@/hooks/use-receitaws"
 import { type CompanyData } from "@/services/receitaws"
@@ -71,9 +69,9 @@ const STEPS = [
   { label: "Endereço", icon: MapPin },
 ]
 
-// Mesmos limites do backend (UpdateTenantRequest / FileUploadService "cover")
-const COVER_ACCEPT = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
-const COVER_MAX_SIZE = 5 * 1024 * 1024
+// Mesmos limites do backend (UpdateTenantRequest / FileUploadService) para logo e capa
+const IMAGE_UPLOAD_ACCEPT = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
+const IMAGE_UPLOAD_MAX_SIZE = 5 * 1024 * 1024
 
 const STEP_FIELDS: (keyof CompanyFormValues)[][] = [
   [],
@@ -124,7 +122,6 @@ interface TenantData {
 }
 
 export default function CompanySettings() {
-  const { user } = useAuth()
   const [tenantData, setTenantData] = useState<TenantData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -214,7 +211,7 @@ export default function CompanySettings() {
       await validateStepOnBackend(currentStep)
       setCompletedSteps((prev) => new Set(prev).add(currentStep))
       setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1))
-    } catch (error: any) {
+    } catch (error) {
       applyBackendErrors(error)
     } finally {
       setValidatingStep(false)
@@ -297,7 +294,7 @@ export default function CompanySettings() {
         const userResponse = await apiClient.get('/api/auth/me')
         
         if (userResponse.success && userResponse.data) {
-          const userData = userResponse.data as any
+          const userData = userResponse.data as { tenant?: { uuid: string } }
           
           if (userData.tenant) {
             const tenant = userData.tenant
@@ -323,8 +320,7 @@ export default function CompanySettings() {
             }
           }
         }
-      } catch (error) {
-
+      } catch {
         toast.error('Erro ao carregar informações da empresa')
       } finally {
         setLoading(false)
@@ -332,21 +328,21 @@ export default function CompanySettings() {
     }
 
     loadTenantData()
-  }, [form])
+  }, [form, resetCepLookup])
 
   // Manipular seleção de logo
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // Validar tamanho (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > IMAGE_UPLOAD_MAX_SIZE) {
         toast.error('O arquivo deve ter no máximo 5MB')
         return
       }
 
-      // Validar tipo
-      if (!file.type.startsWith('image/')) {
-        toast.error('Por favor, selecione uma imagem válida')
+      // Validar tipo (mesmo contrato do backend: sem SVG/GIF)
+      if (!IMAGE_UPLOAD_ACCEPT.includes(file.type)) {
+        toast.error('Por favor, selecione uma imagem JPG, PNG ou WEBP')
         return
       }
 
@@ -380,7 +376,7 @@ export default function CompanySettings() {
       setValidatingStep(true)
       await validateStepOnBackend(STEPS.length - 1)
       setCompletedSteps((prev) => new Set(prev).add(STEPS.length - 1))
-    } catch (error: any) {
+    } catch (error) {
       const validationErrors = applyBackendErrors(error)
       const firstErrorField = Object.keys(validationErrors).find(
         (k) => k !== '_general'
@@ -433,18 +429,11 @@ export default function CompanySettings() {
           cover.reset()
         }
       }
-    } catch (error: any) {
+    } catch (error) {
+      const apiError = error as { data?: { message?: string }; message?: string }
 
-      // Se houver erros de validação, mostrar no console
-      if (error.data?.data) {
-
-        Object.entries(error.data.data).forEach(([field, messages]) => {
-
-        })
-      }
-      
       // Mapeamento de campos específicos para empresa
-      const companyFieldMappings: Record<string, string> = {
+      const companyFieldMappings: Record<string, keyof CompanyFormValues> = {
         'name': 'name',
         'email': 'email',
         'phone': 'phone',
@@ -456,7 +445,7 @@ export default function CompanySettings() {
         'country': 'country',
       }
       
-      const handled = handleBackendErrors(error, companyFieldMappings as any)
+      const handled = handleBackendErrors(error, companyFieldMappings)
 
       const validationErrors = extractValidationErrors(error)
       const firstErrorField = Object.keys(validationErrors).find(
@@ -468,7 +457,7 @@ export default function CompanySettings() {
       }
 
       if (!handled) {
-        const errorMsg = error.data?.message || error.message || 'Erro ao atualizar empresa'
+        const errorMsg = apiError.data?.message || apiError.message || 'Erro ao atualizar empresa'
         toast.error(errorMsg)
       }
     } finally {
@@ -773,8 +762,8 @@ export default function CompanySettings() {
 
                     <ImageDropzone
                       onFileSelect={cover.select}
-                      accept={COVER_ACCEPT}
-                      maxSize={COVER_MAX_SIZE}
+                      accept={IMAGE_UPLOAD_ACCEPT}
+                      maxSize={IMAGE_UPLOAD_MAX_SIZE}
                       hasPreview={!!coverSrc}
                       ariaLabel="Área para enviar a capa do cardápio"
                       hint="JPG, PNG ou WEBP · Máximo: 5MB"
@@ -860,7 +849,7 @@ export default function CompanySettings() {
                   control={form.control}
                   name="cnpj"
                   render={({ field }) => {
-                    const handleCNPJChange = useInputMask('cnpj', field.onChange);
+                    const handleCNPJChange = (e: React.ChangeEvent<HTMLInputElement>) => field.onChange(maskCNPJ(e.target.value))
                     
                     return (
                       <FormItem>
@@ -910,7 +899,7 @@ export default function CompanySettings() {
                   control={form.control}
                   name="phone"
                   render={({ field }) => {
-                    const handlePhoneChange = useInputMask('phone', field.onChange);
+                    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => field.onChange(maskPhone(e.target.value))
                     
                     return (
                       <FormItem>
@@ -975,7 +964,8 @@ export default function CompanySettings() {
                   control={form.control}
                   name="zipcode"
                   render={({ field }) => {
-                    const handleZipCodeChange = useInputMask('zipCode', (value) => {
+                    const handleZipCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = maskZipCode(e.target.value)
                       field.onChange(value)
                       if (notifyCepChange(value)) {
                         clearCepLinkedFields(form.setValue, {
@@ -984,7 +974,7 @@ export default function CompanySettings() {
                           city: 'city',
                         })
                       }
-                    });
+                    }
                     
                     return (
                       <FormItem>

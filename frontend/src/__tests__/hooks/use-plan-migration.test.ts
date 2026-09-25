@@ -139,7 +139,7 @@ describe('usePlanMigration', () => {
 
     const { result } = renderHook(() => usePlanMigration())
 
-    let history: typeof mockHistory = []
+    let history: unknown = []
     await act(async () => {
       history = await result.current.getHistory()
     })

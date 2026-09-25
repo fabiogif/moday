@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { BankAccountForm } from '@/app/(dashboard)/contas-bancarias/components/bank-account-form'
 import api from '@/lib/api-client'
 import { toast } from 'sonner'
+import type { BankAccount } from '@/types/bank-account'
 
 jest.mock('@/lib/api-client', () => {
   const { endpoints } = jest.requireActual('@/lib/api-client')
@@ -24,7 +25,7 @@ const mockBanks = [
   { code: '260', name: 'Nubank', full_name: 'Nu Pagamentos S.A.', supports_pix: true },
 ]
 
-const mockAccounts = [
+const mockAccounts: BankAccount[] = [
   {
     uuid: '123-456',
     account_type: 'checking',

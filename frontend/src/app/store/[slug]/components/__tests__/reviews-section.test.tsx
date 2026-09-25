@@ -282,7 +282,7 @@ describe('ReviewsSection', () => {
   it('deve lidar com erro silenciosamente em produção', async () => {
     // Simular ambiente de produção
     const originalEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'production'
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = 'production'
 
     ;(apiClient.get as jest.Mock).mockRejectedValue(new Error('Erro'))
 
@@ -293,7 +293,7 @@ describe('ReviewsSection', () => {
       expect(container.firstChild).toBeNull()
     })
 
-    process.env.NODE_ENV = originalEnv
+    ;(process.env as Record<string, string | undefined>).NODE_ENV = originalEnv
   })
 
   it('deve mostrar contagem de avaliações em destaque', async () => {

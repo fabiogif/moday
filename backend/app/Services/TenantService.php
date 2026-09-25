@@ -10,6 +10,7 @@ use App\Repositories\Contracts\PlanRepositoryInterface;
 use App\Repositories\Contracts\TenantRepositoryInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class TenantService
 {
@@ -114,11 +115,23 @@ class TenantService
         }
 
         $replacedImages = [];
-        foreach (self::IMAGE_FIELDS as $field => $uploadType) {
-            $old = $this->applyImageChange($tenant, $data, $field, $uploadType);
-            if ($old !== null) {
-                $replacedImages[] = $old;
+        $uploadedImages = [];
+        try {
+            foreach (self::IMAGE_FIELDS as $field => $uploadType) {
+                $old = $this->applyImageChange($tenant, $data, $field, $uploadType);
+                if ($old !== null) {
+                    $replacedImages[] = $old;
+                }
+                if (!empty($data[$field])) {
+                    $uploadedImages[] = $data[$field];
+                }
             }
+        } catch (ValidationException $e) {
+            // Uma imagem falhou: descarta as já enviadas nesta requisição e mantém as atuais
+            foreach ($uploadedImages as $uploaded) {
+                $this->deleteStoredImage($uploaded);
+            }
+            throw $e;
         }
 
         $tenant->update($data);
@@ -144,7 +157,12 @@ class TenantService
         unset($data[$field], $data["remove_{$field}"]);
 
         if ($file instanceof UploadedFile) {
-            $data[$field] = $this->fileUploadService->uploadFile($file, $uploadType, $tenant->uuid)['path'];
+            try {
+                $data[$field] = $this->fileUploadService->uploadFile($file, $uploadType, $tenant->uuid)['path'];
+            } catch (\Exception $e) {
+                // Limites do FileUploadService (tamanho, tipo, imagem inválida) são erro do arquivo, não do servidor
+                throw ValidationException::withMessages([$field => [$e->getMessage()]]);
+            }
         } elseif ($remove) {
             $data[$field] = null;
         } else {

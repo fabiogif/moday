@@ -79,7 +79,7 @@ describe('Admin Métricas Pages', () => {
   })
 
   test('mensagens redireciona para informativo', () => {
-    render(<MensagensPage />)
+    MensagensPage()
 
     expect(mockRedirect).toHaveBeenCalledWith('/admin/informativo')
   })

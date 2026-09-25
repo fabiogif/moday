@@ -23,7 +23,7 @@ import { StateCitySelect } from '@/components/location/state-city-select'
 import { applyCepToStateHandlers } from '@/lib/apply-cep-to-form'
 import { StoreHoursBanner } from './components/store-hours-banner'
 import { SiteFooter } from '@/components/site-footer'
-import { ReviewModal } from './components/review-modal'
+import { ReviewModal, type ReviewData } from './components/review-modal'
 import { resolveImageUrl } from '@/lib/resolve-image-url'
 import { ReviewsSection } from './components/reviews-section'
 import { apiClient, endpoints } from '@/lib/api-client'
@@ -38,6 +38,23 @@ import { MenuProductRow } from './components/menu-product-row'
 import { CartBar } from './components/cart-bar'
 import { SignupPromptDialog } from './components/signup-prompt-dialog'
 import { formatPrice, getNumericPrice, getDisplayPrice, type Product, type ProductVariation } from './menu-utils'
+
+/** Forma de pagamento ativa devolvida por GET /store/{slug}/payment-methods */
+interface PublicPaymentMethod {
+  uuid: string
+  name: string
+  type?: string
+  description?: string | null
+  pix_key?: string | null
+}
+
+/** Tipo de atendimento do menu (delivery/retirada) */
+interface MenuServiceType {
+  identify?: string
+  slug?: string
+  name: string
+  requires_address?: boolean
+}
 
 interface StoreInfo {
   id?: number
@@ -145,10 +162,10 @@ export default function PublicStorePage() {
 
   const [paymentMethod, setPaymentMethod] = useState("")
   const [paymentMethodName, setPaymentMethodName] = useState("")
-  const [paymentMethods, setPaymentMethods] = useState<any[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PublicPaymentMethod[]>([])
   const [shippingMethod, setShippingMethod] = useState("delivery")
   const [checkingHours, setCheckingHours] = useState(false)
-  const [serviceTypes, setServiceTypes] = useState<any[]>([])
+  const [serviceTypes, setServiceTypes] = useState<MenuServiceType[]>([])
   const [selectedServiceType, setSelectedServiceType] = useState<string | null>(null)
   const [orderResult, setOrderResult] = useState<{
     order_id: string
@@ -163,10 +180,6 @@ export default function PublicStorePage() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [contactExpanded, setContactExpanded] = useState<{ whatsapp: boolean; location: boolean }>({
-    whatsapp: false,
-    location: false,
-  })
   const [couponCode, setCouponCode] = useState("")
   const [isStoreOpen, setIsStoreOpen] = useState(true) // Default true para não bloquear até carregar
   const [reviewStats, setReviewStats] = useState<{ average: number; total: number } | null>(null)
@@ -318,8 +331,7 @@ export default function PublicStorePage() {
       } else {
         setPaymentMethods([])
       }
-    } catch (error) {
-
+    } catch {
       toast.error('Erro ao carregar formas de pagamento')
       setPaymentMethods([])
     }
@@ -343,17 +355,17 @@ export default function PublicStorePage() {
       const data = await response.json()
       
       if (data.success && data.data) {
-        const menuTypes = Array.isArray(data.data) ? data.data : []
+        const menuTypes: MenuServiceType[] = Array.isArray(data.data) ? data.data : []
         setServiceTypes(menuTypes)
         
         // Selecionar primeiro tipo por padrão (preferir Delivery, depois Retirada)
         if (menuTypes.length > 0) {
-          const deliveryType = menuTypes.find((st: any) => (st.slug || st.identify) === 'delivery')
-          const pickupType = menuTypes.find((st: any) => (st.slug || st.identify) === 'pickup')
+          const deliveryType = menuTypes.find((st) => (st.slug || st.identify) === 'delivery')
+          const pickupType = menuTypes.find((st) => (st.slug || st.identify) === 'pickup')
           
           const defaultType = deliveryType || pickupType || menuTypes[0]
           const typeSlug = (defaultType.slug || defaultType.identify || '').toLowerCase()
-          setSelectedServiceType(defaultType.identify || defaultType.slug)
+          setSelectedServiceType(defaultType.identify || defaultType.slug || null)
           setShippingMethod(typeSlug === 'delivery' ? 'delivery' : 'pickup')
         }
       } else {
@@ -365,7 +377,7 @@ export default function PublicStorePage() {
         setSelectedServiceType('delivery')
         setShippingMethod('delivery')
       }
-    } catch (error) {
+    } catch {
       // Fallback para tipos padrão em caso de erro
       setServiceTypes([
         { identify: 'delivery', slug: 'delivery', name: 'Delivery', requires_address: true },
@@ -390,7 +402,6 @@ export default function PublicStorePage() {
 
       // Check if response is JSON
       const storeContentType = storeRes.headers.get("content-type")
-      const productsContentType = productsRes.headers.get("content-type")
 
       if (!storeContentType || !storeContentType.includes("application/json")) {
         throw new Error("API retornou resposta inválida. Verifique se o servidor Laravel está rodando.")
@@ -485,7 +496,8 @@ export default function PublicStorePage() {
       const newQty = Math.max(0, currentQty + delta)
       
       if (newQty === 0) {
-        const { [optionalId]: _, ...rest } = prev
+        const rest = { ...prev }
+        delete rest[optionalId]
         return rest
       }
       
@@ -537,31 +549,6 @@ export default function PublicStorePage() {
     return basePrice + variationPrice + optionalsTotal
   }
 
-  function updateQuantity(key: string, delta: number) {
-    const index = parseInt(key.split('-').pop() || '0')
-    setCart((prev) => {
-      const newCart = [...prev]
-      const item = newCart[index]
-      
-      if (!item) return prev
-      
-      const newQty = item.quantity + delta
-      
-      if (newQty > item.qtd_stock) {
-        toast.error("Estoque insuficiente")
-        return prev
-      }
-      
-      if (newQty <= 0) {
-        newCart.splice(index, 1)
-        return newCart
-      }
-      
-      newCart[index] = { ...item, quantity: newQty }
-      return newCart
-    })
-  }
-
   function removeFromCart(key: string) {
     const index = parseInt(key.split('-').pop() || '0')
     setCart((prev) => {
@@ -589,47 +576,6 @@ export default function PublicStorePage() {
       const itemTotal = (basePrice + variationPrice + optionalsPrice) * item.quantity
       return sum + itemTotal
     }, 0)
-  }
-
-  // Validation function for delivery fields
-  const validateDeliveryFields = () => {
-    if (shippingMethod !== "delivery") return true
-    
-    const requiredFields = ['address', 'number', 'neighborhood', 'city', 'state', 'zip_code']
-    
-    for (const field of requiredFields) {
-      if (!deliveryData[field as keyof typeof deliveryData]?.toString().trim()) {
-        toast.error(`Campo ${getFieldLabel(field)} é obrigatório para entrega`)
-        return false
-      }
-    }
-    
-    // Validate CEP format (basic validation)
-    if (deliveryData.zip_code && !/^\d{5}-?\d{3}$/.test(deliveryData.zip_code.replace(/\D/g, ''))) {
-      toast.error('CEP deve ter o formato 00000-000')
-      return false
-    }
-    
-    // Validate State format (2 characters)
-    if (deliveryData.state && deliveryData.state.length !== 2) {
-      toast.error('Estado deve ter 2 caracteres (ex: SP, RJ)')
-      return false
-    }
-    
-    return true
-  }
-
-  // Helper function to get field labels
-  const getFieldLabel = (field: string) => {
-    const labels: Record<string, string> = {
-      address: 'Endereço',
-      number: 'Número',
-      neighborhood: 'Bairro',
-      city: 'Cidade',
-      state: 'Estado',
-      zip_code: 'CEP'
-    }
-    return labels[field] || field
   }
 
   // Helper function to format CEP
@@ -687,18 +633,6 @@ export default function PublicStorePage() {
       'shipping_method': 'Método de Entrega'
     }
     return fieldTranslations[field] || field
-  }
-
-  // Helper function to translate payment method
-  const translatePaymentMethod = (method: string): string => {
-    const paymentMethods: Record<string, string> = {
-      'pix': 'PIX',
-      'credit_card': 'Cartão de Crédito',
-      'debit_card': 'Cartão de Débito',
-      'money': 'Dinheiro',
-      'bank_transfer': 'Transferência Bancária'
-    }
-    return paymentMethods[method] || method
   }
 
   // Helper function to translate shipping method
@@ -838,7 +772,7 @@ export default function PublicStorePage() {
           ]
           
           // Show specific field errors and store them for visual feedback
-          Object.entries(result.errors).forEach(([field, messages]: [string, any]) => {
+          Object.entries(result.errors as Record<string, string[] | string>).forEach(([field, messages]) => {
             // Skip delivery field validation errors when pickup is selected
             if (shippingMethod === "pickup" && pickupIgnoredFields.includes(field)) {
               return
@@ -890,7 +824,7 @@ export default function PublicStorePage() {
     }
   }
 
-  const handleReviewSubmit = async (reviewData: any) => {
+  const handleReviewSubmit = async (reviewData: ReviewData) => {
     try {
       if (!storeInfo) {
         throw new Error('Dados da loja não encontrados')
@@ -923,8 +857,8 @@ export default function PublicStorePage() {
         setShowReviewModal(false)
         toast.success('Avaliação enviada! Obrigado pelo feedback.')
       }
-    } catch (error: any) {
-      throw new Error(error.message || 'Erro ao enviar avaliação')
+    } catch (error) {
+      throw new Error(error instanceof Error && error.message ? error.message : 'Erro ao enviar avaliação')
     }
   }
 
@@ -1190,13 +1124,6 @@ export default function PublicStorePage() {
   // "Perguntar CPF/CNPJ" é opt-in por tenant; assume true (comportamento atual) até o tenant configurar explicitamente
   const invoiceDocumentAskEnabled = storeInfo?.settings?.invoice_document?.ask_enabled ?? true
   const invoiceDocumentRequired = storeInfo?.settings?.invoice_document?.required ?? false
-
-  const handleContactToggle = (type: 'whatsapp' | 'location') => {
-    setContactExpanded((prev) => ({
-      ...prev,
-      [type]: !prev[type],
-    }))
-  }
 
   const handleScrollToSummary = () => {
     if (typeof document === 'undefined') return
@@ -1890,7 +1817,7 @@ export default function PublicStorePage() {
                     <RadioGroup 
                       value={selectedServiceType || shippingMethod} 
                       onValueChange={(value) => {
-                        const serviceType = serviceTypes.find((st: any) => 
+                        const serviceType = serviceTypes.find((st) => 
                           (st.identify || st.slug) === value
                         )
                         if (serviceType) {
@@ -1904,8 +1831,8 @@ export default function PublicStorePage() {
                       className="space-y-2.5 sm:space-y-3"
                     >
                       {serviceTypes.length > 0 ? (
-                        serviceTypes.map((st: any) => {
-                          const typeValue = st.identify || st.slug
+                        serviceTypes.map((st) => {
+                          const typeValue = st.identify || st.slug || st.name
                           return (
                             <div key={typeValue} className="flex items-center gap-3 rounded-lg border border-border/60 px-4 py-3 sm:px-4 sm:py-3.5">
                               <RadioGroupItem value={typeValue} id={typeValue} />
@@ -1931,7 +1858,7 @@ export default function PublicStorePage() {
 
                 {/* Delivery Address - Exibir apenas se o tipo selecionado requer endereço */}
                 {(() => {
-                  const currentType = serviceTypes.find((st: any) => 
+                  const currentType = serviceTypes.find((st) => 
                     (st.identify || st.slug) === selectedServiceType
                   )
                   const requiresAddress = currentType?.requires_address || shippingMethod === "delivery"

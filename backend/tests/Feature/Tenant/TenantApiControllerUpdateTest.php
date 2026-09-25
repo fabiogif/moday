@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use App\Services\FileUploadService;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -248,5 +250,62 @@ class TenantApiControllerUpdateTest extends TestCase
         $this->sendImages($owner, $tenant->uuid, ['remove_logo' => '1'])->assertOk();
         $this->assertNull($tenant->fresh()->logo);
         Storage::disk('logos')->assertMissing($second);
+    }
+
+    #[Test]
+    public function logo_webp_de_3mb_e_aceito_e_reduzido_para_1024(): void
+    {
+        Storage::fake('logos');
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $tenant = $owner->tenant;
+
+        $this->sendImages($owner, $tenant->uuid, [
+            'logo' => UploadedFile::fake()->image('logo.webp', 2000, 2000)->size(3000),
+        ])->assertOk();
+
+        $logo = $tenant->fresh()->logo;
+        Storage::disk('logos')->assertExists($logo);
+        [$width, $height] = getimagesize(Storage::disk('logos')->path($logo));
+        $this->assertLessThanOrEqual(1024, $width);
+        $this->assertLessThanOrEqual(1024, $height);
+    }
+
+    #[Test]
+    public function logo_svg_ou_maior_que_5mb_retorna_422(): void
+    {
+        Storage::fake('logos');
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $tenant = $owner->tenant;
+
+        $this->sendImages($owner, $tenant->uuid, ['logo' => UploadedFile::fake()->create('logo.svg', 10, 'image/svg+xml')])
+            ->assertStatus(422)->assertJsonValidationErrors('logo');
+        $this->sendImages($owner, $tenant->uuid, ['logo' => UploadedFile::fake()->image('logo.png', 400, 400)->size(6000)])
+            ->assertStatus(422)->assertJsonValidationErrors('logo');
+
+        $this->assertNull($tenant->fresh()->logo);
+    }
+
+    #[Test]
+    public function falha_no_upload_vira_422_e_descarta_a_outra_imagem_enviada_junto(): void
+    {
+        Storage::fake('logos');
+        $owner = User::factory()->create(['email_verified_at' => now()]);
+        $tenant = $owner->tenant;
+        // Logo passa pelo serviço real; a capa falha dentro do FileUploadService (ex.: limite do serviço)
+        $this->partialMock(FileUploadService::class, function ($mock) {
+            $mock->shouldReceive('uploadFile')->with(Mockery::any(), 'logo', Mockery::any())->passthru();
+            $mock->shouldReceive('uploadFile')->with(Mockery::any(), 'cover', Mockery::any())
+                ->andThrow(new \Exception('Arquivo de imagem inválido'));
+        });
+
+        $response = $this->sendImages($owner, $tenant->uuid, [
+            'logo' => UploadedFile::fake()->image('logo.png', 400, 400),
+            'cover' => UploadedFile::fake()->image('capa.jpg', 800, 320),
+        ]);
+
+        $response->assertStatus(422)->assertJsonPath('errors.cover.0', 'Arquivo de imagem inválido');
+        $this->assertNull($tenant->fresh()->logo);
+        $this->assertNull($tenant->fresh()->cover);
+        $this->assertSame([], Storage::disk('logos')->allFiles());
     }
 }
