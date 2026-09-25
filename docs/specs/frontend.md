@@ -74,8 +74,13 @@ Admin: `admin-api-client.ts` (`adminApi`, chama `/api/admin{endpoint}`) + `admin
 - Cookie `auth-token` espelhado (client-side, não httpOnly) para o `middleware.ts` ler
 - `useAuthSync` (`src/hooks/use-auth-sync.ts`) no layout dashboard re-sincroniza token no `apiClient`
 - Guards: `middleware.ts` (allow-list via `src/lib/auth-routes.ts`) + `AuthGuard` (`src/components/auth-guard.tsx`) + `useTrialGuard`
-- Admin: fluxo isolado (`AdminAuthProvider`, `admin-token`), sem middleware Next — proteção só client-side
 
+- Admin: fluxo isolado (`AdminAuthProvider`, `admin-token`), sem middleware Next — proteção só client-side
+- Loja Pública: `ClientAuthProvider` (`src/contexts/client-auth-context.tsx`) com sessão isolada por loja (`localStorage['client-token:${slug}']`), impedindo vazamento de login entre tenants
+
+## Contato de Pedidos (Snapshot)
+
+- `orderContact(order)` em `(dashboard)/orders/utils/order-contact.ts` centraliza a exibição de nome, telefone e e-mail no painel (quadro, detalhes, recibo, buscas do PDV e página de sucesso), priorizando o snapshot do pedido (`client_full_name`, `client_phone`, `client_email`) com fallback para o cliente vinculado (`order.client`).
 ## Formulários
 
 1. Schema Zod na page/componente

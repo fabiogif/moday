@@ -65,9 +65,13 @@ $this->app->bind(FooRepositoryInterface::class, FooRepository::class);
 ```
 
 Providers reais (`bootstrap/providers.php`), um por domínio: `CoreRepositoryServiceProvider`, `FinancialRepositoryServiceProvider`, `LoyaltyRepositoryServiceProvider`, `IntegrationRepositoryServiceProvider`, `AnalyticsRepositoryServiceProvider`, `NotificationRepositoryServiceProvider`, `MarketingRepositoryServiceProvider`, `PDVRepositoryServiceProvider`, `AdminRepositoryServiceProvider` (`RepositoryServiceProvider` legado está vazio — não adicionar binds novos nele).
-
 Métodos típicos: `paginateByTenant`, `createNewOrder`/`create`, `update`, `getByIdentify`/`findForTenant`, persistência de pivots.
 
+## Models
+
+- Eloquent com trait `BelongsToTenant` para escopo de tenant.
+- `Order`: possui colunas de snapshot `customer_name`, `customer_phone`, `customer_email` preenchidas no checkout público para preservar o cadastro do cliente; acessadas via `contactName()`, `contactPhone()`, `contactEmail()` com fallback para `client`.
+- `Tenant`: campos de identidade visual `logo` e `cover` com regras de upload de até 5MB (WEBP, JPG, PNG) e auto-redimensionamento via `FileUploadService` (`files:prune-tenant-images` para limpeza de arquivos órfãos).
 ## Validação
 
 Form Request é o padrão **dominante** (108 classes em `app/Http/Requests/{Api,Api/Admin,Auth}`, ex.: `StoreOrderRequest`, `UpdateOrderRequest`). `BaseRequest` compartilhado integra com `ApiResponseClass::validationError`.
