@@ -27,6 +27,7 @@ import { ReviewModal } from './components/review-modal'
 import { resolveImageUrl } from '@/lib/resolve-image-url'
 import { ReviewsSection } from './components/reviews-section'
 import { apiClient, endpoints } from '@/lib/api-client'
+import { useClientAuth, type ClientUser } from '@/contexts/client-auth-context'
 import { buildApiUrl } from '@/lib/api-config'
 import { ProductRecommendations } from './components/product-recommendations'
 import { StoreHero } from './components/store-hero'
@@ -35,6 +36,7 @@ import { MenuOffers, MenuTopSellers } from './components/menu-showcases'
 import { MenuCategoryTabs } from './components/menu-category-tabs'
 import { MenuProductRow } from './components/menu-product-row'
 import { CartBar } from './components/cart-bar'
+import { SignupPromptDialog } from './components/signup-prompt-dialog'
 import { formatPrice, getNumericPrice, getDisplayPrice, type Product, type ProductVariation } from './menu-utils'
 
 interface StoreInfo {
@@ -106,6 +108,10 @@ export default function PublicStorePage() {
   const [selectedVariation, setSelectedVariation] = useState<string>('') // ID da variação (radio)
   const [selectedOptionalsQty, setSelectedOptionalsQty] = useState<Record<string, number>>({}) // {optionalId: quantidade}
   const [showSelectionDialog, setShowSelectionDialog] = useState(false)
+
+  const { isAuthenticated: isClientAuthenticated } = useClientAuth()
+  const [signupPromptOpen, setSignupPromptOpen] = useState(false)
+  const [signupPromptAnswered, setSignupPromptAnswered] = useState(false)
 
   // Form state
   const [clientData, setClientData] = useState({
@@ -189,6 +195,27 @@ export default function PublicStorePage() {
       cancelled = true
     }
   }, [slug])
+  // Completa só os campos ainda vazios — nunca sobrescreve o que o cliente já digitou
+  const applyClientPrefill = useCallback((me: Partial<ClientUser>) => {
+    setClientData((prev) => ({
+      ...prev,
+      name: prev.name || me.name || "",
+      email: prev.email || me.email || "",
+      phone: prev.phone || (me.phone ? maskPhone(me.phone) : ""),
+      cpf: prev.cpf || (me.cpf ? maskCPF(me.cpf) : ""),
+    }))
+    setDeliveryData((prev) => ({
+      ...prev,
+      address: prev.address || me.address || "",
+      number: prev.number || me.number || "",
+      neighborhood: prev.neighborhood || me.neighborhood || "",
+      city: prev.city || me.city || "",
+      state: prev.state || me.state || "",
+      zip_code: prev.zip_code || (me.zip_code ? maskZipCode(me.zip_code) : ""),
+      complement: prev.complement || me.complement || "",
+    }))
+  }, [])
+
   // Preenche o checkout só com os dados do cliente logado nesta loja (sessão via cookie).
   // Visitante digita os próprios dados — não há busca de cliente por telefone/CPF.
   useEffect(() => {
@@ -204,23 +231,7 @@ export default function PublicStorePage() {
         const me = result?.data
         if (cancelled || !result?.success || !me) return
 
-        setClientData((prev) => ({
-          ...prev,
-          name: prev.name || me.name || "",
-          email: prev.email || me.email || "",
-          phone: prev.phone || (me.phone ? maskPhone(me.phone) : ""),
-          cpf: prev.cpf || (me.cpf ? maskCPF(me.cpf) : ""),
-        }))
-        setDeliveryData((prev) => ({
-          ...prev,
-          address: prev.address || me.address || "",
-          number: prev.number || me.number || "",
-          neighborhood: prev.neighborhood || me.neighborhood || "",
-          city: prev.city || me.city || "",
-          state: prev.state || me.state || "",
-          zip_code: prev.zip_code || (me.zip_code ? maskZipCode(me.zip_code) : ""),
-          complement: prev.complement || me.complement || "",
-        }))
+        applyClientPrefill(me)
       } catch {
         // Sem sessão ou sem rede: segue com os campos vazios
       }
@@ -229,7 +240,7 @@ export default function PublicStorePage() {
     return () => {
       cancelled = true
     }
-  }, [slug])
+  }, [slug, applyClientPrefill])
 
   // Hook para buscar CEP
   const { searchCEP, loading: cepLoading, found: cepFound, notifyCepChange } = useViaCEP()
@@ -1099,11 +1110,33 @@ export default function PublicStorePage() {
     }
   }
 
-  const handleStartCheckout = () => {
-    if (!validateWizardStep(0)) return
+  const proceedToCheckout = () => {
     setCompletedSteps((prev) => new Set(prev).add(0))
     setCurrentStep(1)
     setMobileSummaryOpen(false)
+  }
+
+  // Cadastro é opcional: pergunta uma vez por visita e só a quem não está logado
+  const handleStartCheckout = () => {
+    if (!validateWizardStep(0)) return
+    if (!isClientAuthenticated && !signupPromptAnswered) {
+      setMobileSummaryOpen(false)
+      setSignupPromptOpen(true)
+      return
+    }
+    proceedToCheckout()
+  }
+
+  // "Continuar sem cadastro" segue exatamente o fluxo de antes
+  const finishSignupPrompt = () => {
+    setSignupPromptAnswered(true)
+    setSignupPromptOpen(false)
+    proceedToCheckout()
+  }
+
+  const handleClientRegistered = (client: ClientUser) => {
+    applyClientPrefill(client)
+    finishSignupPrompt()
   }
 
   const whatsappNumber = storeInfo?.whatsapp || storeInfo?.phone || ''
@@ -2765,6 +2798,14 @@ export default function PublicStorePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <SignupPromptDialog
+        open={signupPromptOpen}
+        slug={slug}
+        onClose={() => setSignupPromptOpen(false)}
+        onContinueAsGuest={finishSignupPrompt}
+        onRegistered={handleClientRegistered}
+      />
 
       <ReviewModal
         isOpen={showReviewModal}

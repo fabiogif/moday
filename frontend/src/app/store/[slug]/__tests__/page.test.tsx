@@ -51,6 +51,13 @@ jest.mock('@/components/site-footer', () => ({
   SiteFooter: () => null,
 }))
 
+// Sessão do cliente final controlada pelo teste (o provider real fica no layout da loja)
+let mockClientAuthenticated = false
+const mockRegister = jest.fn()
+jest.mock('@/contexts/client-auth-context', () => ({
+  useClientAuth: () => ({ isAuthenticated: mockClientAuthenticated, register: mockRegister }),
+}))
+
 jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
@@ -217,6 +224,7 @@ describe('PublicStorePage - Seções do cardápio', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
     fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar sem cadastro' }))
     expect(await screen.findByTestId('order-stepper')).toBeInTheDocument()
   })
 })
@@ -421,6 +429,7 @@ describe('PublicStorePage - Horário por método de entrega', () => {
     render(<PublicStorePage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
     fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar sem cadastro' }))
     fireEvent.change(await screen.findByLabelText(/Como podemos te chamar/i), { target: { value: 'Ana' } })
     fireEvent.change(screen.getByLabelText(/Celular com WhatsApp/i), { target: { value: '71988887777' } })
     fireEvent.click(screen.getAllByRole('button', { name: /Escolher entrega/i })[0])
@@ -475,6 +484,7 @@ describe('PublicStorePage - Dados do cliente sem busca pública', () => {
     render(<PublicStorePage />)
     fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
     fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    fireEvent.click(await screen.findByRole('button', { name: 'Continuar sem cadastro' }))
     return screen.findByLabelText(/Como podemos te chamar/i)
   }
 
@@ -519,5 +529,109 @@ describe('PublicStorePage - Dados do cliente sem busca pública', () => {
 
     const urls = (global.fetch as jest.Mock).mock.calls.map(([url]) => String(url))
     expect(urls.some((u) => u.includes('clients/lookup') || u.includes('71988887777'))).toBe(false)
+  })
+})
+
+describe('PublicStorePage - Cadastro opcional ao continuar o pedido', () => {
+  async function addItemAndContinue() {
+    render(<PublicStorePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+    return screen.findByRole('dialog', { name: 'Deseja se cadastrar?' })
+  }
+
+  async function openSignupForm() {
+    const prompt = await addItemAndContinue()
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Sim, quero me cadastrar' }))
+    const form = await screen.findByRole('dialog', { name: 'Criar conta' })
+    fireEvent.change(within(form).getByLabelText(/Nome Completo/i), { target: { value: 'Maria Nova' } })
+    fireEvent.change(within(form).getByLabelText(/^Email/i), { target: { value: 'maria@teste.com' } })
+    fireEvent.change(within(form).getByLabelText(/Telefone/i), { target: { value: '71988887777' } })
+    fireEvent.change(within(form).getByLabelText(/^Senha/i), { target: { value: 'segredo123' } })
+    fireEvent.change(within(form).getByLabelText(/Confirmar Senha/i), { target: { value: 'segredo123' } })
+    return form
+  }
+
+  const cartTotalIsKept = () => expect(screen.getAllByText(/5,00/).length).toBeGreaterThan(0)
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockStoreOpen = true
+    mockClientAuthenticated = false
+    setupStoreFetchMock()
+  })
+
+  it('continuar sem cadastro segue para "Seus dados" com o carrinho intacto', async () => {
+    const prompt = await addItemAndContinue()
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Continuar sem cadastro' }))
+
+    expect(await screen.findByLabelText(/Como podemos te chamar/i)).toHaveValue('')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(mockRegister).not.toHaveBeenCalled()
+    cartTotalIsKept()
+  })
+
+  it('cadastro com sucesso preenche "Seus dados" e continua o pedido', async () => {
+    mockRegister.mockResolvedValue({ uuid: 'c1', name: 'Maria Nova', email: 'maria@teste.com', phone: '71988887777' })
+    const form = await openSignupForm()
+    fireEvent.click(within(form).getByRole('button', { name: /Cadastrar e continuar/i }))
+
+    const nameInput = await screen.findByLabelText(/Como podemos te chamar/i)
+    expect(nameInput).toHaveValue('Maria Nova')
+    expect(screen.getByLabelText(/Celular com WhatsApp/i)).toHaveValue('(71) 98888-7777')
+    expect(mockRegister).toHaveBeenCalledWith(expect.objectContaining({ email: 'maria@teste.com' }), 'test-store')
+    cartTotalIsKept()
+  })
+
+  it('erro no cadastro mostra a mensagem, mantém os dados e não avança', async () => {
+    mockRegister.mockRejectedValue(new Error('Erro ao registrar cliente'))
+    const form = await openSignupForm()
+    fireEvent.click(within(form).getByRole('button', { name: /Cadastrar e continuar/i }))
+
+    expect(await within(form).findByText('Erro ao registrar cliente')).toBeInTheDocument()
+    expect(within(form).getByLabelText(/^Email/i)).toHaveValue('maria@teste.com')
+    expect(screen.queryByLabelText(/Como podemos te chamar/i)).not.toBeInTheDocument()
+  })
+
+  it('e-mail já cadastrado permite continuar sem cadastro sem perder o carrinho', async () => {
+    mockRegister.mockRejectedValue(new Error('Email já cadastrado nesta loja'))
+    const form = await openSignupForm()
+    fireEvent.click(within(form).getByRole('button', { name: /Cadastrar e continuar/i }))
+
+    expect(await within(form).findByText('Email já cadastrado nesta loja')).toBeInTheDocument()
+    fireEvent.click(within(form).getByRole('button', { name: 'Continuar sem cadastro' }))
+    expect(await screen.findByLabelText(/Como podemos te chamar/i)).toBeInTheDocument()
+    cartTotalIsKept()
+  })
+
+  it('fechar a modal volta ao cardápio com o carrinho intacto', async () => {
+    await openSignupForm()
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByLabelText(/Como podemos te chamar/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Ver carrinho/i })).toBeInTheDocument()
+  })
+
+  it('cliente logado não vê a pergunta', async () => {
+    mockClientAuthenticated = true
+    render(<PublicStorePage />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Adicionar Coca-Cola ao carrinho' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Continuar pedido/i })[0])
+
+    expect(await screen.findByLabelText(/Como podemos te chamar/i)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Deseja se cadastrar?' })).not.toBeInTheDocument()
+  })
+
+  it('pergunta só uma vez por visita', async () => {
+    const prompt = await addItemAndContinue()
+    fireEvent.click(within(prompt).getByRole('button', { name: 'Continuar sem cadastro' }))
+    await screen.findByLabelText(/Como podemos te chamar/i)
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Voltar/i })[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: /Continuar pedido/i }))[0])
+
+    expect(await screen.findByLabelText(/Como podemos te chamar/i)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Deseja se cadastrar?' })).not.toBeInTheDocument()
   })
 })

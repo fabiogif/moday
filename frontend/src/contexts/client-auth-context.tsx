@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { buildApiUrl } from '@/lib/api-config'
 
-interface ClientUser {
+export interface ClientUser {
   uuid: string
   name: string
   email: string
@@ -24,7 +24,7 @@ interface ClientAuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string, slug: string) => Promise<void>
-  register: (data: RegisterData, slug: string) => Promise<void>
+  register: (data: RegisterData, slug: string) => Promise<ClientUser>
   logout: () => void
   setClient: (client: ClientUser | null) => void
 }
@@ -121,7 +121,9 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.message || 'Erro ao registrar')
+      // 422 traz o motivo real por campo (ex.: "Email já cadastrado nesta loja"); a message é genérica
+      const firstFieldError = data.errors ? Object.values(data.errors as Record<string, string[]>).flat()[0] : undefined
+      throw new Error(firstFieldError || data.message || 'Erro ao registrar')
     }
 
     const { client: clientData, token: authToken } = data.data
@@ -132,6 +134,8 @@ export function ClientAuthProvider({ children }: ClientAuthProviderProps) {
     
     localStorage.setItem('client-auth-user', JSON.stringify(clientData))
     localStorage.setItem('client-auth-token', authToken)
+
+    return clientData
   }
 
   const logout = () => {
