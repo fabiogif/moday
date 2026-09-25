@@ -63,22 +63,25 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(OrderObserver::class);
 
         if (DB::connection()->getDriverName() === 'sqlite') {
-            DB::connection()->getPdo()->sqliteCreateFunction('DATE_FORMAT', function ($date, $format) {
-                $formatMap = [
-                    '%Y' => 'Y',
-                    '%y' => 'y',
-                    '%m' => 'm',
-                    '%d' => 'd',
-                    '%H' => 'H',
-                    '%i' => 'i',
-                    '%s' => 's',
-                    '%b' => 'M',
-                    '%M' => 'F',
-                ];
-                $phpFormat = str_replace(array_keys($formatMap), array_values($formatMap), $format);
-                $dt = new \DateTimeImmutable($date);
-                return $dt->format($phpFormat);
-            });
+            $pdo = DB::connection()->getPdo();
+            if (method_exists($pdo, 'sqliteCreateFunction')) {
+                $pdo->sqliteCreateFunction('DATE_FORMAT', function ($date, $format) {
+                    $formatMap = [
+                        '%Y' => 'Y',
+                        '%y' => 'y',
+                        '%m' => 'm',
+                        '%d' => 'd',
+                        '%H' => 'H',
+                        '%i' => 'i',
+                        '%s' => 's',
+                        '%b' => 'M',
+                        '%M' => 'F',
+                    ];
+                    $phpFormat = str_replace(array_keys($formatMap), array_values($formatMap), $format);
+                    $dt = new \DateTimeImmutable($date);
+                    return $dt->format($phpFormat);
+                });
+            }
         }
 
         if ($this->app->environment('production')) {
