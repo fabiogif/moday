@@ -51,6 +51,7 @@ Fonte de verdade para agentes e engenharia (ver também `CLAUDE.md` / `.cursor/r
 - [TESTE_RAPIDO_DRAG_DROP](guias/TESTE_RAPIDO_DRAG_DROP.md)
 - [TESTING_SUMMARY](guias/TESTING_SUMMARY.md)
 - [VERIFICACAO_RAPIDA_DASHBOARD](guias/VERIFICACAO_RAPIDA_DASHBOARD.md)
+- [UPGRADE_GITLAB](guias/UPGRADE_GITLAB.md)
 - [PLANO_MIGRACAO_MYSQL_ORACLE_ADB](guias/PLANO_MIGRACAO_MYSQL_ORACLE_ADB.md)
 
 ### Pedidos / Quadro Kanban (`docs/pedidos/`)

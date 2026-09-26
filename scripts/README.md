@@ -28,7 +28,7 @@ Rodar de qualquer lugar (entram em `backend/` automaticamente):
 ./backend/scripts/test-cache.sh
 ./backend/scripts/rotate-credentials.sh
 ./backend/scripts/setup-cron.sh      # instala a cron do Laravel Scheduler (job das 23:00)
-```
+./backend/scripts/upgrade-gitlab.sh   # automação de backup e upgrade seguro do GitLab CE no servidor
 
 ## Segurança (`scripts/test/`)
 
