@@ -33,7 +33,7 @@ readonly class CategoryService
             if ($inactive) {
                 $payload = array_intersect_key(
                     array_merge($this->syncActiveFlags($data), ['status' => 'A', 'is_active' => true]),
-                    array_flip(['name', 'description', 'url', 'status', 'is_active'])
+                    array_flip(['name', 'description', 'url', 'status', 'is_active', 'order'])
                 );
                 $category = $this->categoryRepositoryInterface->updateByTenant(
                     $payload,
@@ -51,6 +51,9 @@ readonly class CategoryService
         if (!isset($data['status'])) {
             $data['status'] = 'A';
             $data['is_active'] = true;
+        }
+        if (!isset($data['order'])) {
+            $data['order'] = 0;
         }
 
         $category = $this->categoryRepositoryInterface->store($data);
@@ -70,7 +73,7 @@ readonly class CategoryService
         return $this->categoryRepositoryInterface->getByUuid($identify);
     }
 
-    public function update(array $data, int $id, int $tenantId = null)
+    public function update(array $data, int|string $id, int $tenantId = null)
     {
         $data = $this->syncActiveFlags($data);
         if($tenantId) {
@@ -79,6 +82,16 @@ readonly class CategoryService
             return $category;
         }
         return $this->categoryRepositoryInterface->update($data, $id);
+    }
+
+    public function inactivate(string $identify, int $tenantId = null)
+    {
+        if($tenantId) {
+            $inactivated = $this->categoryRepositoryInterface->inactivateByTenant($identify, $tenantId);
+            $this->cacheService->invalidateCategoryCache($tenantId);
+            return $inactivated;
+        }
+        return $this->categoryRepositoryInterface->delete($identify);
     }
 
     public function delete(string $identify, int $tenantId = null)

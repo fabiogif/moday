@@ -37,6 +37,7 @@ interface Category {
   description: string
   url: string
   color?: string
+  order?: number
   productCount?: number
   isActive?: boolean
   status: string
@@ -49,8 +50,8 @@ export default function CategoriesPage() {
   const { isLoading: authLoading } = useAuth()
   const { mutate: createCategory } = useMutation()
   const { mutate: updateCategory } = useMutation()
+  const { mutate: inactivateCategory } = useMutation()
   const { mutate: deleteCategory } = useMutation()
-
   const [editingCategory, setEditingCategory] = useState<EditableCategory | null>(null)
   const [editOpen, setEditOpen] = useState(false)
 
@@ -66,6 +67,7 @@ export default function CategoriesPage() {
       const result = await createCategory(endpoints.categories.create, "POST", {
         name: categoryData.name,
         description: categoryData.description || "",
+        order: categoryData.order ?? 0,
         status: categoryData.isActive ? "A" : "I",
       })
 
@@ -84,6 +86,7 @@ export default function CategoriesPage() {
       const result = await updateCategory(endpoints.categories.update(identify), "PUT", {
         name: categoryData.name,
         description: categoryData.description || "",
+        order: categoryData.order ?? 0,
         status: categoryData.isActive ? "A" : "I",
         isActive: categoryData.isActive,
       })
@@ -98,13 +101,23 @@ export default function CategoriesPage() {
     }
   }
 
-  const handleDeleteCategory = async (identify: string) => {
+  const handleInactivateCategory = async (identify: string) => {
     try {
-      await deleteCategory(endpoints.categories.delete(identify), "DELETE")
+      await inactivateCategory(endpoints.categories.inactivate(identify), "PATCH")
       toast.success("Categoria inativada com sucesso")
       await refreshCategories()
     } catch (error: unknown) {
       toast.error(getApiErrorMessage(error, "Erro ao inativar categoria"))
+    }
+  }
+
+  const handleDeleteCategory = async (identify: string) => {
+    try {
+      await deleteCategory(endpoints.categories.delete(identify), "DELETE")
+      toast.success("Categoria excluída com sucesso")
+      await refreshCategories()
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Erro ao excluir categoria"))
     }
   }
 
@@ -114,6 +127,7 @@ export default function CategoriesPage() {
       name: category.name,
       description: category.description,
       color: category.color,
+      order: category.order,
       isActive: category.isActive ?? category.status === "A",
       status: category.status,
     })
@@ -150,6 +164,7 @@ export default function CategoriesPage() {
         <DataTable
           categories={Array.isArray(categories) ? categories : []}
           onDeleteCategory={handleDeleteCategory}
+          onInactivateCategory={handleInactivateCategory}
           onEditCategory={handleEditCategory}
           onAddCategory={handleAddCategory}
         />

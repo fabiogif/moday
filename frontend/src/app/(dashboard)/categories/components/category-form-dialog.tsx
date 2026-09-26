@@ -14,6 +14,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -39,6 +40,7 @@ const categoryFormSchema = z.object({
   }),
   description: z.string().max(500).default(""),
   color: z.string().default(""),
+  order: z.coerce.number().int().min(0, "A ordem deve ser maior ou igual a 0.").default(0),
   isActive: z.boolean(),
 })
 
@@ -46,6 +48,7 @@ export type CategoryFormValues = {
   name: string
   description: string
   color: string
+  order: number
   isActive: boolean
 }
 
@@ -54,6 +57,7 @@ export interface EditableCategory {
   name: string
   description?: string
   color?: string
+  order?: number
   isActive?: boolean
   status?: string
 }
@@ -97,6 +101,7 @@ export function CategoryFormDialog({
       name: "",
       description: "",
       color: "",
+      order: 0,
       isActive: true,
     },
   })
@@ -109,6 +114,7 @@ export function CategoryFormDialog({
         name: categoryToEdit.name || "",
         description: categoryToEdit.description || "",
         color: categoryToEdit.color || "",
+        order: typeof categoryToEdit.order === "number" ? categoryToEdit.order : 0,
         isActive:
           categoryToEdit.isActive ??
           (categoryToEdit.status ? categoryToEdit.status === "A" : true),
@@ -118,6 +124,7 @@ export function CategoryFormDialog({
         name: "",
         description: "",
         color: "",
+        order: 0,
         isActive: true,
       })
     }
@@ -162,7 +169,7 @@ export function CategoryFormDialog({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
           <DialogDescription>
@@ -226,6 +233,29 @@ export function CategoryFormDialog({
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="order"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ordem de Exibição</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="0"
+                      {...field}
+                      value={field.value ?? 0}
+                      onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <FormDescription>
+                    Define a posição de exibição no cardápio (menor número aparece primeiro)
+                  </FormDescription>
                 </FormItem>
               )}
             />

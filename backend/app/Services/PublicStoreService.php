@@ -73,7 +73,8 @@ readonly class PublicStoreService
                     $product['categories'] = array_map(function ($cat) {
                         return [
                             'uuid' => $cat['uuid'] ?? $cat['identify'] ?? null,
-                            'name' => $cat['name'] ?? ''
+                            'name' => $cat['name'] ?? '',
+                            'order' => (int) ($cat['order'] ?? 0),
                         ];
                     }, $product['categories']);
                 }

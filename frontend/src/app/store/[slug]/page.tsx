@@ -260,14 +260,26 @@ export default function PublicStorePage() {
   // Hook para buscar CEP
   const { searchCEP, loading: cepLoading, found: cepFound, notifyCepChange } = useViaCEP()
 
-  // Cardápio em seções: todas as categorias empilhadas; sem categoria vai para "Outros" no fim
-  const categories = Array.from(
-    new Set(
-      products.flatMap(product =>
-        product.categories?.map(cat => cat.name) || []
-      )
-    )
-  ).sort()
+  // Cardápio em seções: ordenado por ordem da categoria, depois alfabético; sem categoria vai para "Outros" no fim
+  const categoryMap = new Map<string, { name: string; order: number }>()
+  for (const product of products) {
+    for (const cat of product.categories || []) {
+      if (cat?.name && !categoryMap.has(cat.name)) {
+        categoryMap.set(cat.name, {
+          name: cat.name,
+          order: typeof cat.order === "number" ? cat.order : 0,
+        })
+      }
+    }
+  }
+  const categories = Array.from(categoryMap.values())
+    .sort((a, b) => {
+      if (a.order !== b.order) {
+        return a.order - b.order
+      }
+      return a.name.localeCompare(b.name, "pt-BR")
+    })
+    .map(c => c.name)
   const uncategorized = products.filter(product => !product.categories?.length)
   const menuSections = [
     ...categories.map((name, index) => ({

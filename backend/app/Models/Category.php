@@ -10,11 +10,11 @@ use Illuminate\Support\Str;
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'categories';
 
-    protected $fillable = ['uuid', 'name', 'url', 'description', 'tenant_id', 'status', 'is_active'];
+    protected $fillable = ['uuid', 'name', 'url', 'description', 'tenant_id', 'status', 'is_active', 'order'];
 
     /**
      * The attributes that should be cast.
@@ -24,9 +24,15 @@ class Category extends Model
         return [
             'status' => 'string',
             'is_active' => 'boolean',
+            'order' => 'integer',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
+    }
+    public function setDescriptionAttribute($value): void
+    {
+        $this->attributes['description'] = $value ?? '';
     }
 
     /**
@@ -45,6 +51,12 @@ class Category extends Model
             }
             if (empty($model->status)) {
                 $model->status = 'A'; // Status padrão 'Ativo'
+            }
+            if (!isset($model->order)) {
+                $model->order = 0;
+            }
+            if (!isset($model->description)) {
+                $model->description = '';
             }
         });
     }

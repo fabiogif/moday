@@ -49,6 +49,7 @@ class StoreCategoryRequest extends BaseRequest
             'url' => 'nullable|string|max:255',
             'status' => 'nullable|in:A,I',
             'isActive' => 'nullable|boolean',
+            'order' => 'nullable|integer|min:0',
         ];
     }
 

@@ -8,7 +8,8 @@ interface CategoryRepositoryInterface extends BaseRepositoryInterface
     public function getByUuidAndTenant(string $identify, int $tenantId);
     public function paginateByTenant(int $page, int $totalPerPage, string $filter, int $tenantId): PaginateRepositoryInterface;
     public function getActiveByTenant(int $tenantId);
-    public function updateByTenant(array $data, int $id, int $tenantId);
+    public function updateByTenant(array $data, int|string $id, int $tenantId);
+    public function inactivateByTenant(string $identify, int $tenantId);
     public function deleteByTenant(string $identify, int $tenantId);
     public function getStats(int $tenantId): array;
 }

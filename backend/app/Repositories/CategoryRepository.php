@@ -43,7 +43,8 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
             }
             $query->where('tenant_id', $tenantId);
         })
-            ->orderByDesc('id')
+            ->orderBy('order', 'asc')
+            ->orderBy('name', 'asc')
             ->paginate(perPage: $totalPerPage, columns: ['*'], pageName:'page', page: $page, total: null);
         return new PaginatePresenter($result);
     }
@@ -53,15 +54,20 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         return $this->entity
             ->where('tenant_id', $tenantId)
             ->where('status', 'A')
-            ->orderBy('name')
+            ->orderBy('order', 'asc')
+            ->orderBy('name', 'asc')
             ->get();
     }
     
-    public function updateByTenant(array $data, int $id, int $tenantId)
+    public function updateByTenant(array $data, int|string $id, int $tenantId)
     {
-        $category = $this->entity->where('id', $id)
-                           ->where('tenant_id', $tenantId)
-                           ->first();
+        $query = $this->entity->where('tenant_id', $tenantId);
+        if (is_numeric($id)) {
+            $query->where('id', (int) $id);
+        } else {
+            $query->where('uuid', $id);
+        }
+        $category = $query->first();
 
         if (!$category) {
             return null;
@@ -72,7 +78,7 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         return $category->fresh();
     }
     
-    public function deleteByTenant(string $identify, int $tenantId)
+    public function inactivateByTenant(string $identify, int $tenantId)
     {
         $category = $this->entity->where('uuid', $identify)
             ->where('tenant_id', $tenantId)
@@ -88,6 +94,19 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
         ]);
 
         return $category->fresh();
+    }
+
+    public function deleteByTenant(string $identify, int $tenantId)
+    {
+        $category = $this->entity->where('uuid', $identify)
+            ->where('tenant_id', $tenantId)
+            ->first();
+
+        if (!$category) {
+            return false;
+        }
+
+        return (bool) $category->delete();
     }
 
     public function getStats(int $tenantId): array

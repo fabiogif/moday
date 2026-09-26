@@ -21,6 +21,7 @@ import {
   Eye,
   Pencil,
   Ban,
+  Trash2,
   Download,
   Search,
 } from "lucide-react"
@@ -72,6 +73,7 @@ interface Category {
   description: string
   url: string
   color?: string
+  order?: number
   productCount?: number
   isActive?: boolean
   status: string
@@ -81,12 +83,13 @@ interface Category {
 
 interface DataTableProps {
   categories: Category[]
-  onDeleteCategory: (identify: string) => void
+  onDeleteCategory: (identify: string) => void | Promise<void>
+  onInactivateCategory?: (identify: string) => void | Promise<void>
   onEditCategory: (category: Category) => void
-  onAddCategory: (categoryData: CategoryFormValues) => void
+  onAddCategory: (categoryData: CategoryFormValues) => void | Promise<void>
 }
 
-export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddCategory }: DataTableProps) {
+export function DataTable({ categories, onDeleteCategory, onInactivateCategory, onEditCategory, onAddCategory }: DataTableProps) {
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -94,6 +97,7 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState("")
   const [categoryToInactivate, setCategoryToInactivate] = useState<Category | null>(null)
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
 
   const getStatusColor = (isActive: boolean) => {
     return isActive 
@@ -139,6 +143,13 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
           />
           <div className="font-medium">{row.getValue("name")}</div>
         </div>
+      ),
+    },
+    {
+      accessorKey: "order",
+      header: "Ordem",
+      cell: ({ row }) => (
+        <div className="text-center font-medium">{row.original.order ?? 0}</div>
       ),
     },
     {
@@ -215,11 +226,20 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
                   e.preventDefault()
                   setCategoryToInactivate(category)
                 }}
-                className="text-red-600"
                 disabled={category.status === "I"}
               >
-                <Ban className="mr-2 h-4 w-4" />
+                <Ban className="mr-2 h-4 w-4 text-orange-600" />
                 Inativar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setCategoryToDelete(category)
+                }}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -408,13 +428,44 @@ export function DataTable({ categories, onDeleteCategory, onEditCategory, onAddC
             <AlertDialogAction
               onClick={() => {
                 if (categoryToInactivate) {
-                  onDeleteCategory(categoryToInactivate.identify)
+                  const action = onInactivateCategory ?? onDeleteCategory
+                  action(categoryToInactivate.identify)
                   setCategoryToInactivate(null)
+                }
+              }}
+              className="bg-orange-600 text-white hover:bg-orange-700"
+            >
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!categoryToDelete}
+        onOpenChange={(open) => !open && setCategoryToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a categoria{" "}
+              <strong>{categoryToDelete?.name}</strong>? Ela será excluída logicamente do sistema.
+              A exclusão será bloqueada se houver produtos ativos vinculados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (categoryToDelete) {
+                  onDeleteCategory(categoryToDelete.identify)
+                  setCategoryToDelete(null)
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Inativar
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -345,6 +345,8 @@ Route::middleware(['inject.token.cookie:auth_token', 'auth:api', 'tenant.blocked
     Route::get('/category/{identify}', [CategoryApiController::class , 'show'])->middleware('throttle:read');
     Route::post('/category', [CategoryApiController::class , 'store'])->middleware('throttle:critical');
     Route::put('/category/{id}', [CategoryApiController::class , 'update'])->middleware('throttle:critical');
+    Route::patch('/category/{identify}/inactivate', [CategoryApiController::class , 'inactivate'])->middleware('throttle:critical');
+    Route::post('/category/{identify}/inactivate', [CategoryApiController::class , 'inactivate'])->middleware('throttle:critical');
     Route::delete('/category/{identify}', [CategoryApiController::class , 'delete'])->middleware('throttle:critical');
     
 

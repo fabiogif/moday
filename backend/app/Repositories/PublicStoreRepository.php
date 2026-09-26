@@ -27,7 +27,9 @@ class PublicStoreRepository implements PublicStoreRepositoryInterface
         return Product::query()
             ->where('tenant_id', $tenantId)
             ->visibleInCatalog()
-            ->with('categories')
+            ->with(['categories' => function ($query) {
+                $query->orderBy('order', 'asc')->orderBy('name', 'asc');
+            }])
             ->withSum('orderProducts as sold_qty', 'qty')
             ->orderBy('name')
             ->get()

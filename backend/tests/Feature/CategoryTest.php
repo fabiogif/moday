@@ -226,6 +226,43 @@ class CategoryTest extends TestCase
             'url' => 'churrasco-atualizado'
         ]);
     }
+    #[Test]
+    public function pode_atualizar_categoria_usando_uuid()
+    {
+        $category = Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'order' => 1,
+        ]);
+
+        $updateData = [
+            'name' => 'Pizza Especial Atualizada',
+            'description' => 'Descrição via UUID',
+            'order' => 5,
+            'status' => 'A',
+        ];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->putJson("/api/category/{$category->uuid}", $updateData);
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'name' => 'Pizza Especial Atualizada',
+                        'description' => 'Descrição via UUID',
+                        'order' => 5,
+                    ]
+                ]);
+
+        $this->assertDatabaseHas('categories', [
+            'uuid' => $category->uuid,
+            'name' => 'Pizza Especial Atualizada',
+            'order' => 5,
+        ]);
+    }
+
 
     #[Test]
     public function pode_deletar_categoria()
@@ -242,12 +279,11 @@ class CategoryTest extends TestCase
         $response->assertStatus(200)
                 ->assertJson([
                     'success' => true,
-                    'message' => 'Categoria inativada com sucesso'
+                    'message' => 'Categoria excluída com sucesso'
                 ]);
 
-        $this->assertDatabaseHas('categories', [
+        $this->assertSoftDeleted('categories', [
             'id' => $category->id,
-            'status' => 'I',
         ]);
     }
 
@@ -422,7 +458,7 @@ class CategoryTest extends TestCase
         $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
             'Accept' => 'application/json',
-        ])->deleteJson("/api/category/{$category->uuid}")
+        ])->patchJson("/api/category/{$category->uuid}/inactivate")
             ->assertOk();
 
         $response = $this->withHeaders([
@@ -437,5 +473,37 @@ class CategoryTest extends TestCase
             'status' => 'I',
             'is_active' => false,
         ]);
+    }
+
+    #[Test]
+    public function pode_criar_e_listar_categorias_ordenadas_por_order()
+    {
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->postJson('/api/category', [
+            'name' => 'Bebidas',
+            'order' => 10,
+        ])->assertStatus(201);
+
+        $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->postJson('/api/category', [
+            'name' => 'Pizzas',
+            'order' => 1,
+        ])->assertStatus(201);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json'
+        ])->getJson('/api/category/active');
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertEquals('Pizzas', $data[0]['name']);
+        $this->assertEquals(1, $data[0]['order']);
+        $this->assertEquals('Bebidas', $data[1]['name']);
+        $this->assertEquals(10, $data[1]['order']);
     }
 }

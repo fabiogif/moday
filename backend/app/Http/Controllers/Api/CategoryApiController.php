@@ -36,7 +36,7 @@ class CategoryApiController extends Controller
                 tenantId: $user->tenant_id
             );
             return ApiResponseClass::sendResponsePaginate(CategoryResource::class, $categories, 200);
-        } catch (\Exception $ex) {
+        } catch (\Throwable $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar categorias');
         }
     }
@@ -59,12 +59,12 @@ class CategoryApiController extends Controller
 
             $category = $this->categoryService->store($data);
             return ApiResponseClass::sendResponse(new CategoryResource($category), 'Categoria cadastrada com sucesso', 201);
-        } catch (\Exception $ex) {
+        } catch (\Throwable $ex) {
             Log::error('CategoryApiController::store - Erro:', [
                 'message' => $ex->getMessage(),
                 'trace' => $ex->getTraceAsString()
             ]);
-            return ApiResponseClass::rollback($ex);
+            return ApiResponseClass::rollback($ex, 'Erro ao cadastrar categoria');
         }
     }
 
@@ -86,7 +86,7 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }
             return ApiResponseClass::sendResponse(new CategoryResource($category), 'Categoria atualizada com sucesso', 200);
-        } catch (\Exception $ex) {
+        } catch (\Throwable $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao atualizar categoria');
         }
     }
@@ -109,6 +109,42 @@ class CategoryApiController extends Controller
 
         return ApiResponseClass::sendResponse(new CategoryResource($category), '', 200);
     }
+    public function inactivate(string $identify): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+            
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+            
+            // Regra: bloquear inativação se houver produtos ativos vinculados
+            $guard = app(\App\Services\DeletionGuardService::class);
+            $check = $guard->checkCategoryHasActiveProducts($identify, $user->tenant_id);
+            if ($check['blocked']) {
+                return ApiResponseClass::validationError([
+                    'linked_products' => $check['products']
+                ], 'Não é possível inativar: existem produtos ativos vinculados à categoria');
+            }
+
+            $inactivated = $this->categoryService->inactivate($identify, $user->tenant_id);
+            if (!$inactivated) {
+                return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
+            }
+            return ApiResponseClass::sendResponse(
+                new CategoryResource($inactivated),
+                'Categoria inativada com sucesso',
+                200
+            );
+        } catch (\Throwable $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao inativar categoria');
+        }
+    }
+
     public function delete(string $identify): JsonResponse
     {
         try {
@@ -128,7 +164,7 @@ class CategoryApiController extends Controller
             if ($check['blocked']) {
                 return ApiResponseClass::validationError([
                     'linked_products' => $check['products']
-                ], 'Não é possível inativar: existem produtos ativos vinculados à categoria');
+                ], 'Não é possível excluir: existem produtos ativos vinculados à categoria');
             }
 
             $deleted = $this->categoryService->delete($identify, $user->tenant_id);
@@ -136,12 +172,12 @@ class CategoryApiController extends Controller
                 return ApiResponseClass::sendResponse('', 'Categoria não encontrada', 404);
             }
             return ApiResponseClass::sendResponse(
-                new CategoryResource($deleted),
-                'Categoria inativada com sucesso',
+                ['deleted' => true],
+                'Categoria excluída com sucesso',
                 200
             );
-        } catch (\Exception $ex) {
-            return ApiResponseClass::rollback($ex, 'Erro ao inativar categoria');
+        } catch (\Throwable $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao excluir categoria');
         }
     }
 
@@ -160,7 +196,7 @@ class CategoryApiController extends Controller
             
             $stats = $this->categoryService->getStats($user->tenant_id);
             return ApiResponseClass::sendResponse($stats, 'Estatísticas carregadas com sucesso', 200);
-        } catch (\Exception $ex) {
+        } catch (\Throwable $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao carregar estatísticas');
         }
     }
@@ -185,7 +221,7 @@ class CategoryApiController extends Controller
                 'Categorias ativas listadas com sucesso',
                 200
             );
-        } catch (\Exception $ex) {
+        } catch (\Throwable $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar categorias ativas');
         }
     }

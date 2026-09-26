@@ -203,6 +203,21 @@ describe('PublicStorePage - Seções do cardápio', () => {
     expect(within(nav).getByRole('button', { name: 'Sobremesas' })).toBeInTheDocument()
   })
 
+  it('ordena as seções de categoria pela ordem numérica antes da alfabética', async () => {
+    setupStoreFetchMock([
+      { ...mockProducts[0], name: 'Pizza', categories: [{ uuid: 'c1', name: 'Pizzas', order: 1 }] },
+      { ...mockProducts[1], name: 'Refri', categories: [{ uuid: 'c2', name: 'Bebidas', order: 2 }] },
+      { ...mockProducts[2], name: 'Burger', categories: [{ uuid: 'c3', name: 'Entradas', order: 0 }] },
+    ])
+    render(<PublicStorePage />)
+
+    const nav = await screen.findByRole('navigation', { name: 'Categorias do cardápio' })
+    const tabs = within(nav).getAllByRole('button').slice(1)
+    expect(tabs[0]).toHaveTextContent('Entradas')
+    expect(tabs[1]).toHaveTextContent('Pizzas')
+    expect(tabs[2]).toHaveTextContent('Bebidas')
+  })
+
   it('produto sem categoria vai para a seção "Outros"', async () => {
     setupStoreFetchMock([{ ...mockProducts[1], categories: [] }])
     render(<PublicStorePage />)

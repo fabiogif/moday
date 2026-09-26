@@ -21,7 +21,7 @@ export interface Product {
   image: string
   qtd_stock: number
   brand: string
-  categories: Array<{ uuid: string; name: string }>
+  categories: Array<{ uuid: string; name: string; order?: number }>
   variations?: ProductVariation[]   // Seleção única (tamanhos) — preço somado ao do produto
   optionals?: ProductOptional[]     // Múltipla escolha com quantidade
   sold_qty?: number

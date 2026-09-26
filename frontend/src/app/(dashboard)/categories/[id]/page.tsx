@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useForm } from "react-hook-form"
+import { useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import {
@@ -13,6 +13,7 @@ import {
   Calendar,
   Edit,
   Ban,
+  Trash2,
   Package,
   CheckCircle2,
   XCircle,
@@ -64,6 +65,7 @@ import { cn } from "@/lib/utils"
 const categorySchema = z.object({
   name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   description: z.string().max(500).optional().or(z.literal("")),
+  order: z.coerce.number().int().min(0, "A ordem deve ser maior ou igual a 0.").default(0),
   isActive: z.boolean().optional(),
 })
 
@@ -82,6 +84,7 @@ interface Category {
   name: string
   description: string
   url: string
+  order?: number
   productCount?: number
   isActive?: boolean
   status: string
@@ -103,6 +106,7 @@ export default function CategoryDetailPage() {
   const categoryId = params.id as string
 
   const [isEditing, setIsEditing] = useState(false)
+  const [showInactivateDialog, setShowInactivateDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const { data: category, loading, error, refetch } = useAuthenticatedApi<Category>(
@@ -110,13 +114,15 @@ export default function CategoryDetailPage() {
   )
 
   const { mutate: updateCategory, loading: updating } = useMutation()
+  const { mutate: inactivateCategory, loading: inactivating } = useMutation()
   const { mutate: deleteCategory, loading: deleting } = useMutation()
 
   const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categorySchema),
+    resolver: zodResolver(categorySchema) as Resolver<CategoryFormValues>,
     defaultValues: {
       name: "",
       description: "",
+      order: 0,
       isActive: true,
     },
   })
@@ -126,6 +132,7 @@ export default function CategoryDetailPage() {
     form.reset({
       name: category.name || "",
       description: category.description || "",
+      order: typeof category.order === "number" ? category.order : 0,
       isActive: category.isActive ?? category.status === "A",
     })
   }, [category, form])
@@ -135,6 +142,7 @@ export default function CategoryDetailPage() {
       const response = await updateCategory(endpoints.categories.update(categoryId), "PUT", {
         name: data.name,
         description: data.description || "",
+        order: data.order ?? 0,
         status: data.isActive ? "A" : "I",
         isActive: data.isActive,
       })
@@ -149,13 +157,24 @@ export default function CategoryDetailPage() {
     }
   }
 
+  const handleInactivate = async () => {
+    try {
+      await inactivateCategory(endpoints.categories.inactivate(categoryId), "PATCH")
+      toast.success("Categoria inativada com sucesso")
+      setShowInactivateDialog(false)
+      refetch()
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao inativar categoria")
+    }
+  }
+
   const handleDelete = async () => {
     try {
       await deleteCategory(endpoints.categories.delete(categoryId), "DELETE")
-      toast.success("Categoria inativada com sucesso")
+      toast.success("Categoria excluída com sucesso")
       router.push("/categories")
     } catch (err: any) {
-      toast.error(err.message || "Erro ao inativar categoria")
+      toast.error(err.message || "Erro ao excluir categoria")
     }
   }
 
@@ -306,6 +325,7 @@ export default function CategoryDetailPage() {
                     form.reset({
                       name: category.name || "",
                       description: category.description || "",
+                      order: typeof category.order === "number" ? category.order : 0,
                       isActive: category.isActive ?? category.status === "A",
                     })
                   }}
@@ -332,6 +352,30 @@ export default function CategoryDetailPage() {
                         <Input {...field} disabled={!isEditing} />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="order"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ordem de Exibição</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          {...field}
+                          value={field.value ?? 0}
+                          onChange={(e) => field.onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+                          disabled={!isEditing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <FormDescription>
+                        Define a posição de exibição no cardápio (menor número aparece primeiro)
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -470,33 +514,67 @@ export default function CategoryDetailPage() {
       {/* Destructive actions ? visually separated */}
       <Card className="border-destructive/30">
         <CardHeader>
-          <CardTitle className="text-base text-destructive">Zona de risco</CardTitle>
+          <CardTitle className="text-base text-destructive">Ações da categoria</CardTitle>
           <CardDescription>
-            A categoria será inativada e deixará de aparecer nas listagens ativas e no cardápio.
-            A inativação pode ser bloqueada se houver produtos ativos vinculados.
+            Inative a categoria para ocultá-la do cardápio ou realize a exclusão lógica do sistema.
+            Ações serão bloqueadas se houver produtos ativos vinculados.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowInactivateDialog(true)}
+            disabled={isEditing || category.status === "I"}
+          >
+            <Ban className="w-4 h-4 mr-2 text-orange-600" />
+            Inativar categoria
+          </Button>
           <Button
             variant="destructive"
             onClick={() => setShowDeleteDialog(true)}
-            disabled={isEditing || category.status === "I"}
+            disabled={isEditing}
           >
-            <Ban className="w-4 h-4 mr-2" />
-            Inativar categoria
+            <Trash2 className="w-4 h-4 mr-2" />
+            Excluir categoria
           </Button>
         </CardContent>
       </Card>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialog open={showInactivateDialog} onOpenChange={setShowInactivateDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar inativação</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja inativar a categoria <strong>{category.name}</strong>?
+              Tem certeza que deseja inativar a categoria <strong>{category.name}</strong>? Ela deixará de aparecer nas listagens ativas e no cardápio.
               {productCount > 0 && (
                 <span className="block mt-2 text-orange-600 dark:text-orange-400">
                   Atenção: esta categoria possui {productCount} produto(s) associado(s).
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleInactivate}
+              className="bg-orange-600 text-white hover:bg-orange-700"
+              disabled={inactivating}
+            >
+              {inactivating ? "Inativando..." : "Inativar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a categoria <strong>{category.name}</strong>? Esta ação realizará a exclusão da categoria do sistema.
+              {productCount > 0 && (
+                <span className="block mt-2 text-destructive font-medium">
+                  Atenção: esta categoria possui {productCount} produto(s) associado(s) e a exclusão será bloqueada.
                 </span>
               )}
             </AlertDialogDescription>
@@ -508,7 +586,7 @@ export default function CategoryDetailPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
             >
-              {deleting ? "Inativando..." : "Inativar"}
+              {deleting ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

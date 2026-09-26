@@ -341,6 +341,7 @@ export const endpoints = {
     getById: (id: string) => `/api/category/${id}`,
     update: (id: number | string) => `/api/category/${id}`,
     delete: (id: string) => `/api/category/${id}`,
+    inactivate: (id: string) => `/api/category/${id}/inactivate`,
   },
   
   // Pedidos
