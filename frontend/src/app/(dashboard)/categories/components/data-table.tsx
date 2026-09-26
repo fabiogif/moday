@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   type ColumnDef,
@@ -24,8 +24,28 @@ import {
   Trash2,
   Download,
   Search,
+  GripVertical,
 } from "lucide-react"
-
+import {
+  DndContext,
+  type DragEndEvent,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { apiClient, endpoints } from "@/lib/api-client"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -87,9 +107,81 @@ interface DataTableProps {
   onInactivateCategory?: (identify: string) => void | Promise<void>
   onEditCategory: (category: Category) => void
   onAddCategory: (categoryData: CategoryFormValues) => void | Promise<void>
+  onRefresh?: () => void | Promise<void>
 }
 
-export function DataTable({ categories, onDeleteCategory, onInactivateCategory, onEditCategory, onAddCategory }: DataTableProps) {
+interface DraggableRowProps {
+  row: Row<Category>
+  isReordering?: boolean
+  canDrag?: boolean
+}
+
+function DraggableRow({ row, isReordering, canDrag = true }: DraggableRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: row.original.identify,
+    disabled: !canDrag || isReordering,
+  })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : undefined,
+  }
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      data-state={row.getIsSelected() && "selected"}
+      className={cn(
+        "bg-background transition-shadow",
+        isDragging && "shadow-lg ring-2 ring-primary/40 z-10 relative"
+      )}
+    >
+      {row.getVisibleCells().map((cell) => {
+        if (cell.column.id === "drag-handle") {
+          return (
+            <TableCell key={cell.id} className="w-12 text-center p-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                ref={canDrag && !isReordering ? setActivatorNodeRef : undefined}
+                {...(canDrag && !isReordering ? listeners : {})}
+                {...(canDrag && !isReordering ? attributes : {})}
+                disabled={!canDrag || isReordering}
+                className={cn(
+                  "h-8 w-8 cursor-grab active:cursor-grabbing",
+                  (!canDrag || isReordering) && "cursor-not-allowed opacity-40"
+                )}
+                aria-label={`Reordenar categoria ${row.original.name}`}
+                title={!canDrag ? "Limpe os filtros para reorganizar" : "Arrastar para reordenar"}
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </TableCell>
+          )
+        }
+
+        return (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        )
+      })}
+    </TableRow>
+  )
+}
+
+export function DataTable({ categories, onDeleteCategory, onInactivateCategory, onEditCategory, onAddCategory, onRefresh }: DataTableProps) {
   const router = useRouter()
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -110,6 +202,14 @@ export function DataTable({ categories, onDeleteCategory, onInactivateCategory, 
   }
 
   const columns: ColumnDef<Category>[] = [
+    {
+      id: "drag-handle",
+      header: () => <span className="sr-only">Mover</span>,
+      cell: () => null,
+      enableSorting: false,
+      enableHiding: false,
+      size: 48,
+    },
     {
       id: "select",
       header: ({ table }) => (
@@ -134,14 +234,22 @@ export function DataTable({ categories, onDeleteCategory, onInactivateCategory, 
     },
     {
       accessorKey: "name",
-      header: "Nome",
+      header: "Categoria",
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-3 h-3 rounded-full" 
+        <div className="flex items-center gap-3">
+          <span 
+            className="h-3.5 w-3.5 rounded-full border border-border shrink-0" 
             style={{ backgroundColor: row.original.color || '#6B7280' }}
+            aria-hidden
           />
-          <div className="font-medium">{row.getValue("name")}</div>
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{row.getValue("name")}</span>
+            {row.original.description && (
+              <span className="text-xs text-muted-foreground line-clamp-1 max-w-[280px]">
+                {row.original.description}
+              </span>
+            )}
+          </div>
         </div>
       ),
     },
@@ -248,8 +356,67 @@ export function DataTable({ categories, onDeleteCategory, onInactivateCategory, 
     },
   ]
 
+  const [data, setData] = useState<Category[]>(categories)
+  const [isReordering, setIsReordering] = useState(false)
+
+  useEffect(() => {
+    setData(categories)
+  }, [categories])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
+
+  const isFiltered = Boolean(globalFilter || columnFilters.length > 0)
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const activeId = String(active.id)
+    const overId = String(over.id)
+
+    const oldIndex = data.findIndex((cat) => cat.identify === activeId)
+    const newIndex = data.findIndex((cat) => cat.identify === overId)
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return
+    }
+
+    const previousData = [...data]
+    const reordered = arrayMove(data, oldIndex, newIndex).map((cat, idx) => ({
+      ...cat,
+      order: idx + 1,
+    }))
+
+    setData(reordered)
+    setIsReordering(true)
+
+    try {
+      await apiClient.post(endpoints.categories.reorder, {
+        order: reordered.map((cat) => cat.identify),
+      })
+      toast.success("Ordem atualizada com sucesso")
+      if (onRefresh) {
+        await onRefresh()
+      }
+    } catch (error: unknown) {
+      setData(previousData)
+      const err = error as { response?: { data?: { message?: string } }; message?: string }
+      toast.error(err?.response?.data?.message || err?.message || "Não foi possível atualizar a ordem")
+      setIsReordering(false)
+    }
+  }
+
   const table = useReactTable({
-    data: categories,
+    data,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -335,56 +502,85 @@ export function DataTable({ categories, onDeleteCategory, onInactivateCategory, 
           </Button>
         </div>
       </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  Nenhuma categoria encontrada. {Array.isArray(categories) ? `(${categories.length} categorias carregadas)` : 'Carregando...'}
-                </TableCell>
-              </TableRow>
+      <Card className="mt-4">
+        <CardHeader className="flex flex-col gap-1 pb-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg font-semibold">Categorias Cadastradas</CardTitle>
+              <CardDescription>
+                Organize a ordem arrastando as linhas da tabela
+                {isFiltered && (
+                  <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    (Limpe a busca/filtros para reordenar)
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {isReordering && (
+              <Badge variant="outline" className="text-xs animate-pulse">
+                Atualizando ordem...
+              </Badge>
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        return (
+                          <TableHead key={header.id}>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
+                        )
+                      })}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {table.getRowModel().rows?.length ? (
+                    <SortableContext
+                      items={data.map((cat) => cat.identify)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {table.getRowModel().rows.map((row) => (
+                        <DraggableRow
+                          key={row.original.identify}
+                          row={row}
+                          isReordering={isReordering}
+                          canDrag={!isFiltered}
+                        />
+                      ))}
+                    </SortableContext>
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        Nenhuma categoria encontrada. {Array.isArray(categories) ? `(${categories.length} categorias carregadas)` : "Carregando..."}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </DndContext>
+        </CardContent>
+      </Card>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           {table.getFilteredSelectedRowModel().rows.length} de{" "}

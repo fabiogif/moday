@@ -73,6 +73,10 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
             return null;
         }
 
+        if (isset($data['name']) && empty($data['url'])) {
+            $data['url'] = \Illuminate\Support\Str::slug($data['name']);
+        }
+
         $category->update($data);
 
         return $category->fresh();
@@ -130,5 +134,16 @@ class CategoryRepository extends BaseRepository implements CategoryRepositoryInt
             'avg_products_per_category' => $avgProductsPerCategory,
             'total_products' => $totalProducts
         ];
+    }
+
+    public function updateOrder(int $tenantId, array $categoryUuids): bool
+    {
+        foreach ($categoryUuids as $index => $uuid) {
+            $this->entity->where('uuid', $uuid)
+                ->where('tenant_id', $tenantId)
+                ->update(['order' => $index + 1]);
+        }
+
+        return true;
     }
 }

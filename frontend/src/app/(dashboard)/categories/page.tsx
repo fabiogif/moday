@@ -167,6 +167,7 @@ export default function CategoriesPage() {
           onInactivateCategory={handleInactivateCategory}
           onEditCategory={handleEditCategory}
           onAddCategory={handleAddCategory}
+          onRefresh={refreshCategories}
         />
       </div>
 

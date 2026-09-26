@@ -11,6 +11,7 @@ use App\Http\Resources\CategoryResource;
 use App\Services\CategoryService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\Api\ReorderCategoryRequest;
 
 class CategoryApiController extends Controller
 {
@@ -223,6 +224,31 @@ class CategoryApiController extends Controller
             );
         } catch (\Throwable $ex) {
             return ApiResponseClass::rollback($ex, 'Erro ao listar categorias ativas');
+        }
+    }
+
+    public function reorder(ReorderCategoryRequest $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return ApiResponseClass::unauthorized('Usuário não autenticado');
+            }
+
+            if (!$user->tenant_id) {
+                return ApiResponseClass::forbidden('Usuário não possui tenant associado');
+            }
+
+            $this->categoryService->reorderCategories($user->tenant_id, $request->validated('order'));
+
+            return ApiResponseClass::sendResponse(
+                '',
+                'Ordem das categorias atualizada com sucesso',
+                200
+            );
+        } catch (\Throwable $ex) {
+            return ApiResponseClass::rollback($ex, 'Erro ao reordenar categorias');
         }
     }
 }

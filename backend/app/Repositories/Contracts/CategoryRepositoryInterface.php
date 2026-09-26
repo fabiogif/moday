@@ -12,4 +12,5 @@ interface CategoryRepositoryInterface extends BaseRepositoryInterface
     public function inactivateByTenant(string $identify, int $tenantId);
     public function deleteByTenant(string $identify, int $tenantId);
     public function getStats(int $tenantId): array;
+    public function updateOrder(int $tenantId, array $categoryUuids): bool;
 }

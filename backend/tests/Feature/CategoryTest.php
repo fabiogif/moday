@@ -506,4 +506,35 @@ class CategoryTest extends TestCase
         $this->assertEquals('Bebidas', $data[1]['name']);
         $this->assertEquals(10, $data[1]['order']);
     }
+
+    #[Test]
+    public function pode_reordenar_categorias_via_endpoint(): void
+    {
+        $cat1 = Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Primeira',
+            'order' => 1,
+        ]);
+        $cat2 = Category::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Segunda',
+            'order' => 2,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->token,
+            'Accept' => 'application/json',
+        ])->postJson('/api/category/reorder', [
+            'order' => [$cat2->uuid, $cat1->uuid],
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+                'message' => 'Ordem das categorias atualizada com sucesso',
+            ]);
+
+        $this->assertEquals(1, $cat2->fresh()->order);
+        $this->assertEquals(2, $cat1->fresh()->order);
+    }
 }

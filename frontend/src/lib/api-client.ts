@@ -342,6 +342,7 @@ export const endpoints = {
     update: (id: number | string) => `/api/category/${id}`,
     delete: (id: string) => `/api/category/${id}`,
     inactivate: (id: string) => `/api/category/${id}/inactivate`,
+    reorder: '/api/category/reorder',
   },
   
   // Pedidos

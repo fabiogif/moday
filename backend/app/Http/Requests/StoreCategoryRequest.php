@@ -16,7 +16,7 @@ class StoreCategoryRequest extends BaseRequest
     public function rules(): array
     {
         $tenantId = auth()->user()?->tenant_id;
-        $categoryId = $this->route('id') ?? null;
+        $categoryId = $this->route('id') ?? $this->route('category') ?? $this->route('identify') ?? null;
 
         // Soft-delete uses status = I. Inactive names can be reused.
         $nameRule = Rule::unique('categories', 'name')
@@ -30,7 +30,11 @@ class StoreCategoryRequest extends BaseRequest
             if (is_numeric($categoryId)) {
                 $nameRule = $nameRule->ignore((int) $categoryId);
             } else {
-                $existingId = Category::query()->where('uuid', $categoryId)->value('id');
+                $query = Category::query();
+                if ($tenantId) {
+                    $query->where('tenant_id', $tenantId);
+                }
+                $existingId = $query->where('uuid', $categoryId)->value('id');
                 if ($existingId) {
                     $nameRule = $nameRule->ignore((int) $existingId);
                 }

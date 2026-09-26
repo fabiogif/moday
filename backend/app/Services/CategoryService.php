@@ -126,6 +126,13 @@ readonly class CategoryService
         });
     }
 
+    public function reorderCategories(int $tenantId, array $categoryUuids): bool
+    {
+        $result = $this->categoryRepositoryInterface->updateOrder($tenantId, $categoryUuids);
+        $this->cacheService->invalidateCategoryCache($tenantId);
+        return $result;
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
