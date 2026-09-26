@@ -23,7 +23,7 @@ class CategoryUnitTest extends TestCase
 
     public function testIfUseTraits()
     {
-        $traitsNeed = [HasFactory::class];
+        $traitsNeed = [HasFactory::class, \Illuminate\Database\Eloquent\SoftDeletes::class];
         $traitsUser =  array_keys(class_uses($this->model()));
 
         $this->assertEquals($traitsNeed, $traitsUser);
